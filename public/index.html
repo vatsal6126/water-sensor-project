@@ -37,7 +37,7 @@ header {
   background: #222a3b;
   border-radius: 14px;
   padding: 20px;
-  min-width: 0; 
+  min-width: 0;
 }
 .card-title {
   font-size: 13px;
@@ -271,7 +271,7 @@ const dataChart = new Chart(document.getElementById("dataChart"), {
 
 // --- WEBSOCKET LOGIC ---
 ws.onopen = () => console.log("✅ WebSocket connected");
-ws.onerror = () => console.log("❌ WebSocket error");
+ws.onerror = () => console.log("❌ WebSocket error (Render may block WS sometimes)");
 
 ws.onmessage = (e) => {
   const msg = JSON.parse(e.data);
@@ -394,9 +394,44 @@ function updateCards(d) {
   sEl.innerText = "Status: " + d.status;
   sEl.className = "value " + (d.status === "SAFE" ? "status-safe" : "status-unsafe");
 }
+
+/* ✅ NEW: AUTO-POLLING (Render safe)
+   If WebSocket doesn't work on Render sometimes,
+   this will still update graph every 2 seconds using /snapshot.
+*/
+let lastTimeSeen = null;
+
+async function pollLatest() {
+  try {
+    const res = await fetch("/snapshot");
+    const data = await res.json();
+
+    if (!data || data.pH === undefined) return;
+
+    // Only add if new (prevents duplicates)
+    if (data.time !== lastTimeSeen) {
+      lastTimeSeen = data.time;
+
+      fullHistory.push(data);
+      if (fullHistory.length > 50) fullHistory.shift();
+
+      updateCards(data);
+      redrawGraph();
+
+      setTimeout(() => {
+        scrollBox.scrollTo({ left: scrollBox.scrollWidth, behavior: "smooth" });
+      }, 50);
+    }
+  } catch (err) {
+    console.log("poll error", err.message);
+  }
+}
+
+setInterval(pollLatest, 2000);
 </script>
 
 </body>
 </html>
+
 
 
