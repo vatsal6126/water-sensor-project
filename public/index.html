@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sensor Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* --- BASIC LAYOUT --- */
+body {
+  margin: 0;
+  background: #1b2230;
+  font-family: 'Inter', sans-serif;
+  color: #e5e7eb;
+}
+header {
+  height: 60px;
+  background: #111827;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  font-weight: 600;
+}
+.container {
+  padding: 20px;
+  max-width: 1300px;
+  margin: auto;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+.card {
+  background: #222a3b;
+  border-radius: 14px;
+  padding: 20px;
+  min-width: 0; 
+}
+.card-title {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 10px;
+}
+.value {
+  font-size: 26px;
+  font-weight: 600;
+}
+
+/* --- SPLIT GRAPH LAYOUT --- */
+.chart-container {
+  display: flex;
+  height: 300px;
+  width: 100%;
+  position: relative;
+}
+
+/* LEFT: Fixed Axis */
+.y-axis-area {
+  width: 120px;
+  flex-shrink: 0;
+  background: #222a3b;
+  z-index: 10;
+  border-right: 1px solid #374151;
+}
+
+/* RIGHT: Scrollable Data */
+.graph-scroll-area {
+  flex-grow: 1;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  position: relative;
+}
+
+#chartWrapper {
+  width: max-content;
+  height: 100%;
+}
+
+canvas {
+  height: 300px !important;
+}
+
+/* --- BUTTONS --- */
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.nav-btn {
+  background: #374151;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  flex: 1;
+}
+.nav-btn:hover { background: #4b5563; }
+
+.action-btn {
+  margin-top: 15px;
+  padding: 12px;
+  width: 100%;
+  background: #3b82f6;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* --- METRICS --- */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-top: 20px;
+}
+.metric {
+  background: #222a3b;
+  border-radius: 14px;
+  padding: 15px;
+}
+.status-safe { color: #22c55e; }
+.status-unsafe { color: #ef4444; }
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+
+<body>
+
+<header>Sensor Dashboard</header>
+
+<div class="container">
+<div class="grid">
+
+<div class="card">
+  <div class="card-title">HISTORICAL SENSOR DATA</div>
+
+  <select id="metricSelect" style="
+    background:#111827; color:white; border:none;
+    padding:6px 10px; border-radius:6px; margin-bottom:10px;">
+    <option value="tds">TDS</option>
+    <option value="pH">pH</option>
+    <option value="temp">Temperature</option>
+  </select>
+
+  <div class="chart-container">
+    <div class="y-axis-area">
+      <canvas id="axisChart"></canvas>
+    </div>
+    <div class="graph-scroll-area" id="scrollBox">
+      <div id="chartWrapper">
+        <canvas id="dataChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="nav-btn" id="scrollLeft"> &larr; Prev </button>
+    <button class="nav-btn" id="scrollRight"> Next &rarr; </button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">CURRENT READINGS</div>
+  <div class="value" id="ph">pH: --</div>
+  <div class="value" id="tds">TDS: -- ppm</div>
+  <div class="value" id="temp">Temp: -- °C</div>
+  <div class="value" id="status">Status: --</div>
+  <button class="action-btn" id="fetchBtn">Fetch Latest Reading</button>
+</div>
+
+</div>
+
+<div class="metrics">
+  <div class="metric">
+    <div class="card-title">pH LEVEL</div>
+    <div class="value" id="phMetric">--</div>
+  </div>
+  <div class="metric">
+    <div class="card-title">TDS (ppm)</div>
+    <div class="value" id="tdsMetric">--</div>
+  </div>
+  <div class="metric">
+    <div class="card-title">TEMPERATURE</div>
+    <div class="value" id="tempMetric">-- °C</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ✅ IMPORTANT FIX FOR NGROK + PHONE:
+   - https => wss://
+   - http  => ws://
+*/
+const wsProtocol = (location.protocol === "https:") ? "wss://" : "ws://";
+const ws = new WebSocket(wsProtocol + location.host);
+
+// --- SETTINGS ---
+const POINT_WIDTH = 100;
+let fullHistory = [];
+let currentMetric = "tds";
+
+const scrollBox = document.getElementById("scrollBox");
+const chartWrapper = document.getElementById("chartWrapper");
+
+// --- 1) AXIS CHART (Fixed Left) ---
+const axisChart = new Chart(document.getElementById("axisChart"), {
+  type: 'line',
+  data: { datasets: [] },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { display: false },
+      y: {
+        ticks: { color: '#9ca3af', font: { size: 11 } },
+        grid: { drawBorder: false, display: false }
+      }
+    },
+    layout: {
+      padding: {
+        bottom: 25,
+        left: 15,
+        right: 5
+      }
+    }
+  }
+});
+
+// --- 2) DATA CHART (Scrollable Right) ---
+const dataChart = new Chart(document.getElementById("dataChart"), {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [{
+      data: [],
+      borderColor: "#3b82f6",
+      backgroundColor: "rgba(59, 130, 246, 0.1)",
+      borderWidth: 2,
+      tension: 0.3,
+      pointRadius: 4,
+      pointBackgroundColor: "#1b2230",
+      fill: true
+    }]
+  },
+  options: {
+    responsive: false,
+    maintainAspectRatio: false,
+    animation: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: {
+        ticks: { color: '#9ca3af' },
+        grid: { color: '#374151' }
+      },
+      y: { display: false }
+    }
+  }
+});
+
+// --- WEBSOCKET LOGIC ---
+ws.onopen = () => console.log("✅ WebSocket connected");
+ws.onerror = () => console.log("❌ WebSocket error");
+
+ws.onmessage = (e) => {
+  const msg = JSON.parse(e.data);
+
+  // ✅ 1) Load history
+  if (msg.type === "history") {
+    fullHistory = msg.data || [];
+    redrawGraph();
+
+    // ✅ auto scroll to latest
+    setTimeout(() => {
+      scrollBox.scrollTo({ left: scrollBox.scrollWidth, behavior: "smooth" });
+    }, 100);
+
+    // ✅ update cards with latest
+    if (fullHistory.length > 0) {
+      updateCards(fullHistory[fullHistory.length - 1]);
+    }
+  }
+
+  // ✅ 2) Live new reading
+  if (msg.type === "reading") {
+    fullHistory.push(msg.data);
+    if (fullHistory.length > 50) fullHistory.shift();
+
+    updateCards(msg.data);
+    redrawGraph();
+
+    setTimeout(() => {
+      scrollBox.scrollTo({ left: scrollBox.scrollWidth, behavior: "smooth" });
+    }, 50);
+  }
+};
+
+// ✅ Fetch Latest Reading Button (uses /snapshot)
+document.getElementById("fetchBtn").addEventListener("click", async () => {
+  try {
+    const res = await fetch("/snapshot");
+    const data = await res.json();
+
+    if (data && data.pH !== null && data.pH !== undefined) {
+      updateCards(data);
+    }
+  } catch (err) {
+    console.log("❌ Snapshot fetch failed", err);
+  }
+});
+
+document.getElementById("metricSelect").addEventListener("change", (e) => {
+  currentMetric = e.target.value;
+  redrawGraph();
+});
+
+document.getElementById("scrollLeft").addEventListener("click", () => {
+  scrollBox.scrollBy({ left: -200, behavior: "smooth" });
+});
+
+document.getElementById("scrollRight").addEventListener("click", () => {
+  scrollBox.scrollBy({ left: 200, behavior: "smooth" });
+});
+
+function redrawGraph() {
+  if (!fullHistory || fullHistory.length === 0) {
+    axisChart.update();
+    dataChart.update();
+    return;
+  }
+
+  const labels = fullHistory.map(d => d.time);
+  const data = fullHistory.map(d =>
+    currentMetric === "tds" ? d.tds :
+    currentMetric === "pH" ? d.pH :
+    d.temp
+  );
+
+  dataChart.data.labels = labels;
+  dataChart.data.datasets[0].data = data;
+
+  // ✅ min/max with padding
+  let minVal = Math.min(...data);
+  let maxVal = Math.max(...data);
+
+  let padding = (maxVal - minVal) * 0.1;
+  if (padding === 0) padding = 1;
+
+  minVal -= padding;
+  maxVal += padding;
+
+  axisChart.options.scales.y.min = minVal;
+  axisChart.options.scales.y.max = maxVal;
+  dataChart.options.scales.y.min = minVal;
+  dataChart.options.scales.y.max = maxVal;
+
+  // ✅ resize scrolling canvas
+  const totalPoints = fullHistory.length;
+  const newWidth = Math.max(scrollBox.clientWidth, totalPoints * POINT_WIDTH);
+
+  chartWrapper.style.width = newWidth + "px";
+
+  const canvas = document.getElementById("dataChart");
+  canvas.style.width = newWidth + "px";
+  canvas.width = newWidth;
+  canvas.height = 300;
+
+  axisChart.update();
+  dataChart.resize();
+  dataChart.update();
+}
+
+function updateCards(d) {
+  document.getElementById("ph").innerText = "pH: " + d.pH;
+  document.getElementById("tds").innerText = "TDS: " + d.tds + " ppm";
+  document.getElementById("temp").innerText = "Temp: " + d.temp + " °C";
+
+  document.getElementById("phMetric").innerText = d.pH;
+  document.getElementById("tdsMetric").innerText = d.tds;
+  document.getElementById("tempMetric").innerText = d.temp + " °C";
+
+  const sEl = document.getElementById("status");
+  sEl.innerText = "Status: " + d.status;
+  sEl.className = "value " + (d.status === "SAFE" ? "status-safe" : "status-unsafe");
+}
+</script>
+
+</body>
+</html>
+
+
