@@ -529,59 +529,85 @@ async function pollLatest() {
 setInterval(pollLatest, 2000);
 
 /* ✅ MAP LOGIC */
+/* ✅ MAP LOGIC (PINS SYSTEM) */
 const map = L.map("map").setView([21.1702, 72.8311], 12);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
 
-setTimeout(() => map.invalidateSize(), 300);
+// ✅ Fix common map sizing issue (important)
+setTimeout(() => {
+  map.invalidateSize();
+}, 300);
 
+// ✅ markers storage
 let markers = {};
 
+// ✅ color based on status
 function getColor(status) {
   return status === "UNSAFE" ? "red" : "green";
 }
 
+// ✅ Load all pins from Firebase (devices -> device1 -> pins -> pinId)
 async function loadMarkers() {
   try {
     const res = await fetch(`${FIREBASE_DB}/devices.json`);
     const devices = await res.json();
     if (!devices) return;
 
+    // Loop devices
     for (const deviceId in devices) {
-      const d = devices[deviceId];
-      if (!d.lat || !d.lng) continue;
+      const device = devices[deviceId];
 
-      const color = getColor(d.status || "SAFE");
+      // If no pins, skip
+      if (!device.pins) continue;
 
-      const popupText = `
-        <b>${deviceId}</b><br>
-        🧪 pH: ${d.pH}<br>
-        💧 TDS: ${d.tds}<br>
-        🌡️ Temp: ${d.temp}<br>
-        🌫️ Turb: ${d.turb}<br>
-        ⚠️ Status: <b style="color:${color}">${d.status}</b><br>
-        🕒 Time: ${d.time}
-      `;
+      // Loop pins inside device
+      for (const pinId in device.pins) {
+        const d = device.pins[pinId];
 
-      if (markers[deviceId]) {
-        markers[deviceId].setLatLng([d.lat, d.lng]);
-        markers[deviceId].setPopupContent(popupText);
-        markers[deviceId].setStyle({ color, fillColor: color });
-      } else {
-        const marker = L.circleMarker([d.lat, d.lng], {
-          radius: 10,
-          color: color,
-          fillColor: color,
-          fillOpacity: 0.8
-        }).addTo(map);
+        if (!d.lat || !d.lng) continue;
 
-        marker.bindPopup(popupText);
-        markers[deviceId] = marker;
+        const key = `${deviceId}_${pinId}`;
+        const color = getColor(d.status || "SAFE");
+
+        const popupText = `
+          <b>${deviceId}</b><br>
+          🧪 pH: ${d.pH}<br>
+          💧 TDS: ${d.tds}<br>
+          🌡️ Temp: ${d.temp}<br>
+          🌫️ Turb: ${d.turb}<br>
+          ⚠️ Status: <b style="color:${color}">${d.status}</b><br>
+          🕒 Time: ${d.time}
+        `;
+
+        // ✅ If marker exists => update it
+        if (markers[key]) {
+          markers[key].setLatLng([d.lat, d.lng]);
+          markers[key].setPopupContent(popupText);
+          markers[key].setStyle({ color, fillColor: color });
+        } 
+        // ✅ Else create marker
+        else {
+          const marker = L.circleMarker([d.lat, d.lng], {
+            radius: 10,
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.85
+          }).addTo(map);
+
+          marker.bindPopup(popupText);
+          markers[key] = marker;
+        }
       }
     }
-  } catch (err) {}
+  } catch (err) {
+    console.log("❌ map error:", err.message);
+  }
 }
+
+// ✅ refresh map every 2 seconds
 setInterval(loadMarkers, 2000);
 loadMarkers();
+
 </script>
 
 </body>
