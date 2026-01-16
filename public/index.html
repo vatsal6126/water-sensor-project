@@ -7,6 +7,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<!-- ✅ Leaflet CSS (MAP) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
 <style>
 /* --- BASIC LAYOUT --- */
 body {
@@ -116,7 +119,7 @@ canvas {
 /* --- METRICS --- */
 .metrics {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 15px;
   margin-top: 20px;
 }
@@ -130,6 +133,21 @@ canvas {
 
 @media (max-width: 900px) {
   .grid { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ✅ MAP CARD STYLE (added only this) */
+.map-card {
+  margin-top: 20px;
+  background: #222a3b;
+  border-radius: 14px;
+  padding: 15px;
+}
+#map {
+  height: 350px;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
 }
 </style>
 </head>
@@ -150,6 +168,7 @@ canvas {
     <option value="tds">TDS</option>
     <option value="pH">pH</option>
     <option value="temp">Temperature</option>
+    <option value="turb">Turbidity</option>
   </select>
 
   <div class="chart-container">
@@ -174,6 +193,7 @@ canvas {
   <div class="value" id="ph">pH: --</div>
   <div class="value" id="tds">TDS: -- ppm</div>
   <div class="value" id="temp">Temp: -- °C</div>
+  <div class="value" id="turb">Turbidity: --</div>
   <div class="value" id="status">Status: --</div>
   <button class="action-btn" id="fetchBtn">Fetch Latest Reading</button>
 </div>
@@ -193,9 +213,22 @@ canvas {
     <div class="card-title">TEMPERATURE</div>
     <div class="value" id="tempMetric">-- °C</div>
   </div>
+  <div class="metric">
+    <div class="card-title">TURBIDITY</div>
+    <div class="value" id="turbMetric">--</div>
+  </div>
+</div>
+
+<!-- ✅ MAP ADDED BELOW GRAPH + CARDS (this is the only new UI part) -->
+<div class="map-card">
+  <div class="card-title">LIVE LOCATION MAP</div>
+  <div id="map"></div>
 </div>
 
 </div>
+
+<!-- ✅ Leaflet JS (MAP) -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 /* ✅ IMPORTANT FIX FOR NGROK + PHONE:
@@ -204,6 +237,9 @@ canvas {
 */
 const wsProtocol = (location.protocol === "https:") ? "wss://" : "ws://";
 const ws = new WebSocket(wsProtocol + location.host);
+
+// ✅ Firebase Realtime Database URL (CHANGE THIS)
+const FIREBASE_DB = "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app/"; // 👈 replace this
 
 // --- SETTINGS ---
 const POINT_WIDTH = 100;
@@ -341,10 +377,12 @@ function redrawGraph() {
   }
 
   const labels = fullHistory.map(d => d.time);
+
   const data = fullHistory.map(d =>
     currentMetric === "tds" ? d.tds :
     currentMetric === "pH" ? d.pH :
-    d.temp
+    currentMetric === "temp" ? d.temp :
+    d.turb
   );
 
   dataChart.data.labels = labels;
@@ -385,20 +423,19 @@ function updateCards(d) {
   document.getElementById("ph").innerText = "pH: " + d.pH;
   document.getElementById("tds").innerText = "TDS: " + d.tds + " ppm";
   document.getElementById("temp").innerText = "Temp: " + d.temp + " °C";
+  document.getElementById("turb").innerText = "Turbidity: " + d.turb;
 
   document.getElementById("phMetric").innerText = d.pH;
   document.getElementById("tdsMetric").innerText = d.tds;
   document.getElementById("tempMetric").innerText = d.temp + " °C";
+  document.getElementById("turbMetric").innerText = d.turb;
 
   const sEl = document.getElementById("status");
   sEl.innerText = "Status: " + d.status;
   sEl.className = "value " + (d.status === "SAFE" ? "status-safe" : "status-unsafe");
 }
 
-/* ✅ NEW: AUTO-POLLING (Render safe)
-   If WebSocket doesn't work on Render sometimes,
-   this will still update graph every 2 seconds using /snapshot.
-*/
+/* ✅ AUTO-POLLING (Render safe) */
 let lastTimeSeen = null;
 
 async function pollLatest() {
@@ -408,7 +445,6 @@ async function pollLatest() {
 
     if (!data || data.pH === undefined) return;
 
-    // Only add if new (prevents duplicates)
     if (data.time !== lastTimeSeen) {
       lastTimeSeen = data.time;
 
@@ -426,12 +462,69 @@ async function pollLatest() {
     console.log("poll error", err.message);
   }
 }
-
 setInterval(pollLatest, 2000);
+
+/* ✅ MAP LOGIC BELOW WEBSITE */
+const map = L.map("map").setView([21.1702, 72.8311], 12);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+
+let markers = {};
+
+function getColor(status) {
+  return status === "UNSAFE" ? "red" : "green";
+}
+
+async function loadMarkers() {
+  try {
+    const res = await fetch(`${FIREBASE_DB}/devices.json`);
+    const devices = await res.json();
+    if (!devices) return;
+
+    for (const deviceId in devices) {
+      const d = devices[deviceId];
+      if (!d.lat || !d.lng) continue;
+
+      const color = getColor(d.status || "SAFE");
+
+      const popupText = `
+        <b>${deviceId}</b><br>
+        🧪 pH: ${d.pH}<br>
+        💧 TDS: ${d.tds}<br>
+        🌡️ Temp: ${d.temp}<br>
+        🌫️ Turb: ${d.turb}<br>
+        ⚠️ Status: <b style="color:${color}">${d.status}</b><br>
+        🕒 Time: ${d.time}
+      `;
+
+      if (markers[deviceId]) {
+        markers[deviceId].setLatLng([d.lat, d.lng]);
+        markers[deviceId].setPopupContent(popupText);
+        markers[deviceId].setStyle({ color, fillColor: color });
+      } else {
+        const marker = L.circleMarker([d.lat, d.lng], {
+          radius: 10,
+          color: color,
+          fillColor: color,
+          fillOpacity: 0.8
+        }).addTo(map);
+
+        marker.bindPopup(popupText);
+        markers[deviceId] = marker;
+      }
+    }
+  } catch (err) {
+    console.log("map error:", err.message);
+  }
+}
+
+setInterval(loadMarkers, 2000);
+loadMarkers();
 </script>
 
 </body>
 </html>
+
+
 
 
 

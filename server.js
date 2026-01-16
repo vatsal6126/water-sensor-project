@@ -21,7 +21,8 @@ const ALERT_COOLDOWN = 2 * 60 * 1000; // ✅ 2 minutes
 
 // ✅ Create CSV file if it doesn't exist
 if (!fs.existsSync(DATA_FILE)) {
-  fs.writeFileSync(DATA_FILE, "time,pH,tds,temp,status\n");
+  // ✅ Added turb column
+  fs.writeFileSync(DATA_FILE, "time,pH,tds,temp,turb,status\n");
 }
 
 // ✅ Use Render/Cloud port if available, else use 3000 (Laptop)
@@ -48,15 +49,25 @@ app.get("/update", async (req, res) => {
   const phVal = parseFloat(req.query.pH);
   const tdsVal = parseFloat(req.query.tds);
   const tempVal = parseFloat(req.query.temp);
+  const turbVal = parseFloat(req.query.turb); // ✅ turbidity added
 
   // ✅ Reject invalid values
-  if (isNaN(phVal) || isNaN(tdsVal) || isNaN(tempVal)) {
+  if (isNaN(phVal) || isNaN(tdsVal) || isNaN(tempVal) || isNaN(turbVal)) {
     return res.status(400).send("❌ Invalid sensor values (missing/NaN)");
   }
 
   // ✅ Decide SAFE / UNSAFE
   let currentStatus = "SAFE";
-  if (phVal < 6.5 || phVal > 8.5 || tdsVal > 500 || tempVal > 35) {
+
+  // ✅ turbidity threshold (change later if you want)
+  // Example: turb > 1000 => unsafe
+  if (
+    phVal < 6.5 ||
+    phVal > 8.5 ||
+    tdsVal > 500 ||
+    tempVal > 35 ||
+    turbVal > 1000
+  ) {
     currentStatus = "UNSAFE";
   }
 
@@ -65,6 +76,7 @@ app.get("/update", async (req, res) => {
     pH: phVal,
     tds: tdsVal,
     temp: tempVal,
+    turb: turbVal, // ✅ turbidity added
     status: currentStatus,
   };
 
@@ -72,10 +84,10 @@ app.get("/update", async (req, res) => {
   history.push(entry);
   if (history.length > 50) history.shift();
 
-  // ✅ Save to CSV
+  // ✅ Save to CSV (added turb)
   fs.appendFileSync(
     DATA_FILE,
-    `${entry.time},${entry.pH},${entry.tds},${entry.temp},${entry.status}\n`
+    `${entry.time},${entry.pH},${entry.tds},${entry.temp},${entry.turb},${entry.status}\n`
   );
 
   // ✅ Send live update to website
@@ -97,7 +109,7 @@ app.get("/update", async (req, res) => {
       try {
         await axios.post(
           `https://ntfy.sh/${NTFY_TOPIC}`,
-          `⚠️ DANGER: Water is UNSAFE!\n\n🧪 pH: ${entry.pH}\n💧 TDS: ${entry.tds}\n🌡️ Temp: ${entry.temp}`,
+          `⚠️ DANGER: Water is UNSAFE!\n\n🧪 pH: ${entry.pH}\n💧 TDS: ${entry.tds}\n🌡️ Temp: ${entry.temp}\n🌫️ Turbidity: ${entry.turb}`,
           {
             headers: {
               Title: "Water Sensor Alert",
