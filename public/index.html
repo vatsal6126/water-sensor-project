@@ -256,19 +256,18 @@ canvas {
   </div>
 </div>
 
-<!-- ✅ WQI CARD (FULL WIDTH) -->
+<!-- ✅ WQI CARD -->
 <div class="wqi-card">
   <div class="wqi-top">
     <div class="wqi-title">WQI (Water Quality Index) • 0 = Bad, 100 = Perfect</div>
     <div class="wqi-score" id="wqiScore">-- / 100</div>
   </div>
-
   <div class="wqi-bar-bg">
     <div class="wqi-bar-fill" id="wqiFill"></div>
   </div>
 </div>
 
-<!-- ✅ MAP ADDED BELOW -->
+<!-- ✅ MAP -->
 <div class="map-card">
   <div class="card-title">LIVE LOCATION MAP</div>
   <div id="map"></div>
@@ -276,7 +275,23 @@ canvas {
 
 </div>
 
-<!-- ✅ Leaflet JS -->
+<div style="margin-top:20px;">
+  <button id="resetBtn" style="
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    background:#ef4444;
+    color:white;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+  ">
+    ⚠️ RESET ALL DATA
+  </button>
+</div>
+
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
@@ -284,6 +299,8 @@ const wsProtocol = (location.protocol === "https:") ? "wss://" : "ws://";
 const ws = new WebSocket(wsProtocol + location.host);
 
 const FIREBASE_DB = "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
+const DEVICE_ID = "device1";
+const FIREBASE_HISTORY_URL = `${FIREBASE_DB}/devices/${DEVICE_ID}/history.json`;
 
 // --- SETTINGS ---
 const POINT_WIDTH = 100;
@@ -293,7 +310,7 @@ let currentMetric = "tds";
 const scrollBox = document.getElementById("scrollBox");
 const chartWrapper = document.getElementById("chartWrapper");
 
-// ✅ WQI CALCULATION (0–100) practical WHO-style scoring
+// ✅ WQI CALCULATION
 function calcWQI(d) {
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
@@ -381,19 +398,12 @@ const dataChart = new Chart(document.getElementById("dataChart"), {
 });
 
 // --- WEBSOCKET LOGIC ---
-ws.onopen = () => console.log("✅ WebSocket connected");
-ws.onerror = () => console.log("❌ WebSocket error");
-
 ws.onmessage = (e) => {
   const msg = JSON.parse(e.data);
 
   if (msg.type === "history") {
     fullHistory = msg.data || [];
     redrawGraph();
-
-    setTimeout(() => {
-      scrollBox.scrollTo({ left: scrollBox.scrollWidth, behavior: "smooth" });
-    }, 100);
 
     if (fullHistory.length > 0) {
       updateCards(fullHistory[fullHistory.length - 1]);
@@ -406,22 +416,54 @@ ws.onmessage = (e) => {
 
     updateCards(msg.data);
     redrawGraph();
+  }
+
+  if (msg.type === "reset") {
+    fullHistory = [];
+    redrawGraph();
+
+    for (const key in markers) {
+      map.removeLayer(markers[key]);
+    }
+    markers = {};
+
+    alert("⚠️ Data Reset Done!");
+  }
+};
+
+// ✅ LOAD OLD HISTORY FROM FIREBASE
+async function loadFirebaseHistory() {
+  try {
+    const res = await fetch(FIREBASE_HISTORY_URL);
+    const histObj = await res.json();
+    if (!histObj) return;
+
+    const arr = Object.values(histObj);
+    arr.sort((a, b) => (a.time > b.time ? 1 : -1));
+
+    fullHistory = arr.slice(-50);
+
+    redrawGraph();
 
     setTimeout(() => {
       scrollBox.scrollTo({ left: scrollBox.scrollWidth, behavior: "smooth" });
-    }, 50);
+    }, 100);
+
+    if (fullHistory.length > 0) {
+      updateCards(fullHistory[fullHistory.length - 1]);
+    }
+  } catch (err) {
+    console.log("firebase history error:", err.message);
   }
-};
+}
+loadFirebaseHistory();
 
 // ✅ Fetch Latest Reading Button
 document.getElementById("fetchBtn").addEventListener("click", async () => {
   try {
     const res = await fetch("/snapshot");
     const data = await res.json();
-
-    if (data && data.pH !== null && data.pH !== undefined) {
-      updateCards(data);
-    }
+    if (data && data.pH !== null && data.pH !== undefined) updateCards(data);
   } catch (err) {}
 });
 
@@ -468,6 +510,7 @@ function redrawGraph() {
 
   axisChart.options.scales.y.min = minVal;
   axisChart.options.scales.y.max = maxVal;
+
   dataChart.options.scales.y.min = minVal;
   dataChart.options.scales.y.max = maxVal;
 
@@ -501,69 +544,36 @@ function updateCards(d) {
   sEl.innerText = "Status: " + d.status;
   sEl.className = "value " + (d.status === "SAFE" ? "status-safe" : "status-unsafe");
 
-  // ✅ UPDATE WQI
   const wqi = calcWQI(d);
   setWQIUI(wqi);
 }
 
-/* ✅ AUTO-POLLING */
-let lastTimeSeen = null;
-async function pollLatest() {
-  try {
-    const res = await fetch("/snapshot");
-    const data = await res.json();
-
-    if (!data || data.pH === undefined) return;
-
-    if (data.time !== lastTimeSeen) {
-      lastTimeSeen = data.time;
-
-      fullHistory.push(data);
-      if (fullHistory.length > 50) fullHistory.shift();
-
-      updateCards(data);
-      redrawGraph();
-    }
-  } catch (err) {}
-}
-setInterval(pollLatest, 2000);
-
-/* ✅ MAP LOGIC */
 /* ✅ MAP LOGIC (PINS SYSTEM) */
 const map = L.map("map").setView([21.1702, 72.8311], 12);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
 
-// ✅ Fix common map sizing issue (important)
 setTimeout(() => {
   map.invalidateSize();
 }, 300);
 
-// ✅ markers storage
 let markers = {};
 
-// ✅ color based on status
 function getColor(status) {
   return status === "UNSAFE" ? "red" : "green";
 }
 
-// ✅ Load all pins from Firebase (devices -> device1 -> pins -> pinId)
 async function loadMarkers() {
   try {
     const res = await fetch(`${FIREBASE_DB}/devices.json`);
     const devices = await res.json();
     if (!devices) return;
 
-    // Loop devices
     for (const deviceId in devices) {
       const device = devices[deviceId];
-
-      // If no pins, skip
       if (!device.pins) continue;
 
-      // Loop pins inside device
       for (const pinId in device.pins) {
         const d = device.pins[pinId];
-
         if (!d.lat || !d.lng) continue;
 
         const key = `${deviceId}_${pinId}`;
@@ -579,14 +589,11 @@ async function loadMarkers() {
           🕒 Time: ${d.time}
         `;
 
-        // ✅ If marker exists => update it
         if (markers[key]) {
           markers[key].setLatLng([d.lat, d.lng]);
           markers[key].setPopupContent(popupText);
           markers[key].setStyle({ color, fillColor: color });
-        } 
-        // ✅ Else create marker
-        else {
+        } else {
           const marker = L.circleMarker([d.lat, d.lng], {
             radius: 10,
             color: color,
@@ -604,14 +611,45 @@ async function loadMarkers() {
   }
 }
 
-// ✅ refresh map every 2 seconds
 setInterval(loadMarkers, 2000);
 loadMarkers();
 
+document.getElementById("resetBtn").addEventListener("click", async () => {
+  const pass = prompt("Enter Reset Password:");
+  if (!pass) return;
+
+  const ok = confirm("⚠️ Are you sure? This will delete all old Firebase data!");
+  if (!ok) return;
+
+  try {
+    const res = await fetch(`/reset?password=${encodeURIComponent(pass)}&id=${DEVICE_ID}`);
+    const txt = await res.text();
+
+    if (!res.ok) {
+      alert(txt);
+      return;
+    }
+
+    alert("✅ Reset Done!");
+
+    fullHistory = [];
+    redrawGraph();
+
+    for (const key in markers) {
+      map.removeLayer(markers[key]);
+    }
+    markers = {};
+
+  } catch (err) {
+    alert("❌ Reset failed: " + err.message);
+  }
+});
 </script>
 
 </body>
 </html>
+
+
 
 
 

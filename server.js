@@ -6,7 +6,13 @@ const axios = require("axios");
 
 // --- CONFIGURATION ---
 const NTFY_TOPIC = "water-project-group-rrdv";
-const FIREBASE_DB = "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app"; // ✅ your Firebase
+
+// ✅ Firebase Database URL (NO ending slash)
+const FIREBASE_DB =
+  "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+// ✅ Reset password (server side secure)
+const RESET_PASSWORD = "LDCHEMICAL";
 // ---------------------
 
 const app = express();
@@ -15,19 +21,28 @@ const wss = new WebSocket.Server({ server });
 
 app.use(express.static("public"));
 
+const DATA_FILE = "data.csv";
 let history = [];
 let lastAlertTime = 0;
-const ALERT_COOLDOWN = 2 * 60 * 1000;
+const ALERT_COOLDOWN = 2 * 60 * 1000; // ✅ 2 minutes
+
+// ✅ Create CSV file if it doesn't exist (local only)
+if (!fs.existsSync(DATA_FILE)) {
+  fs.writeFileSync(DATA_FILE, "time,pH,tds,temp,turb,status\n");
+}
 
 // ✅ Use Render/Cloud port if available, else 3000
 const PORT = process.env.PORT || 3000;
 
+// ✅ Start Server
 server.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });
 
-// ✅ Ping route
-app.get("/ping", (req, res) => res.send("ok"));
+// ✅ Ping route (UptimeRobot)
+app.get("/ping", (req, res) => {
+  res.send("ok");
+});
 
 // ✅ Snapshot route
 app.get("/snapshot", (req, res) => {
@@ -35,41 +50,42 @@ app.get("/snapshot", (req, res) => {
   res.json(history[history.length - 1]);
 });
 
-// ✅ Distance formula (meters)
-function distanceMeters(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const toRad = (v) => (v * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
+/* ✅ RESET ROUTE (SECURE)
+   Delete Firebase data using server-side password
+   Example:
+   /reset?password=LDCHEMICAL&id=device1
+*/
+app.get("/reset", async (req, res) => {
+  const pass = req.query.password;
+  const id = req.query.id || "device1";
 
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  if (pass !== RESET_PASSWORD) {
+    return res.status(401).send("❌ Wrong password");
+  }
 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
+  try {
+    // ✅ Delete entire device data from Firebase
+    await axios.delete(`${FIREBASE_DB}/devices/${id}.json`);
 
-// ✅ Firebase Helpers
-async function fbGET(path) {
-  const url = `${FIREBASE_DB}${path}.json`;
-  const res = await axios.get(url);
-  return res.data;
-}
+    // ✅ Also clear server RAM history (graph history)
+    history = [];
 
-async function fbPUT(path, data) {
-  const url = `${FIREBASE_DB}${path}.json`;
-  await axios.put(url, data);
-}
+    // ✅ Notify all connected clients to clear UI instantly
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({ type: "reset" }));
+      }
+    });
 
-async function fbPOST(path, data) {
-  const url = `${FIREBASE_DB}${path}.json`;
-  await axios.post(url, data);
-}
+    return res.send("✅ Firebase reset successful");
+  } catch (err) {
+    return res.status(500).send("❌ Reset failed: " + err.message);
+  }
+});
 
-// --- HANDLE DATA FROM ESP32 ---
+// --- HANDLE DATA FROM ESP32/ARDUINO ---
 app.get("/update", async (req, res) => {
-  const deviceId = req.query.id || "device1";
+  const id = req.query.id || "device1";
 
   const phVal = parseFloat(req.query.pH);
   const tdsVal = parseFloat(req.query.tds);
@@ -81,7 +97,7 @@ app.get("/update", async (req, res) => {
 
   // ✅ Reject invalid sensor values
   if (isNaN(phVal) || isNaN(tdsVal) || isNaN(tempVal) || isNaN(turbVal)) {
-    return res.status(400).send("❌ Invalid sensor values");
+    return res.status(400).send("❌ Invalid sensor values (missing/NaN)");
   }
 
   // ✅ Decide SAFE / UNSAFE
@@ -97,11 +113,19 @@ app.get("/update", async (req, res) => {
     temp: tempVal,
     turb: turbVal,
     status: currentStatus,
+    lat: isNaN(lat) ? null : lat,
+    lng: isNaN(lng) ? null : lng,
   };
 
-  // ✅ Save to RAM history for live graph
+  // ✅ Save to history (max 50)
   history.push(entry);
   if (history.length > 50) history.shift();
+
+  // ✅ Save to CSV (works locally, Render may reset file)
+  fs.appendFileSync(
+    DATA_FILE,
+    `${entry.time},${entry.pH},${entry.tds},${entry.temp},${entry.turb},${entry.status}\n`
+  );
 
   // ✅ Send live update to website
   wss.clients.forEach((client) => {
@@ -110,102 +134,57 @@ app.get("/update", async (req, res) => {
     }
   });
 
-  console.log("✅ Data Received:", deviceId, entry);
+  console.log("✅ Data Received:", entry);
 
-  // ✅ SAVE EVERYTHING TO FIREBASE (Permanent)
+  // ✅ Save into Firebase (latest + history)
   try {
-    // 1) Save latest
-    await fbPUT(`/devices/${deviceId}/latest`, {
-      ...entry,
-      lat: isNaN(lat) ? null : lat,
-      lng: isNaN(lng) ? null : lng,
-      deviceId
-    });
+    // Save latest
+    await axios.patch(`${FIREBASE_DB}/devices/${id}/latest.json`, entry);
 
-    // 2) Save history (auto-id)
-    await fbPOST(`/devices/${deviceId}/history`, {
-      ...entry,
-      lat: isNaN(lat) ? null : lat,
-      lng: isNaN(lng) ? null : lng,
-      deviceId
-    });
+    // Save history (auto unique key)
+    await axios.post(`${FIREBASE_DB}/devices/${id}/history.json`, entry);
 
-    // 3) PIN LOGIC (only if lat/lng provided)
-    if (!isNaN(lat) && !isNaN(lng)) {
-      const lastPin = await fbGET(`/devices/${deviceId}/lastPin`);
-
-      if (!lastPin || !lastPin.lat || !lastPin.lng) {
-        // ✅ first pin
-        const pinData = {
-          lat, lng,
-          ...entry,
-          createdAt: entry.time,
-          updatedAt: entry.time
-        };
-        const created = await axios.post(`${FIREBASE_DB}/devices/${deviceId}/pins.json`, pinData);
-        const pinId = created.data.name;
-
-        await fbPUT(`/devices/${deviceId}/lastPin`, { pinId, lat, lng });
-      } else {
-        // ✅ check distance
-        const dist = distanceMeters(lastPin.lat, lastPin.lng, lat, lng);
-
-        if (dist > 25) {
-          // ✅ new pin if moved > 25m
-          const pinData = {
-            lat, lng,
-            ...entry,
-            createdAt: entry.time,
-            updatedAt: entry.time
-          };
-          const created = await axios.post(`${FIREBASE_DB}/devices/${deviceId}/pins.json`, pinData);
-          const pinId = created.data.name;
-
-          await fbPUT(`/devices/${deviceId}/lastPin`, { pinId, lat, lng });
-
-        } else {
-          // ✅ update existing pin if within 25m
-          await fbPUT(`/devices/${deviceId}/pins/${lastPin.pinId}`, {
-            lat, lng,
-            ...entry,
-            createdAt: entry.time,
-            updatedAt: entry.time
-          });
-
-          // update lastPin location too
-          await fbPUT(`/devices/${deviceId}/lastPin`, {
-            pinId: lastPin.pinId,
-            lat,
-            lng
-          });
-        }
-      }
+    // Save pin (only if lat/lng provided)
+    if (entry.lat !== null && entry.lng !== null) {
+      await axios.patch(`${FIREBASE_DB}/devices/${id}/pins/current.json`, entry);
     }
-  } catch (err) {
-    console.log("❌ Firebase save error:", err.message);
+  } catch (e) {
+    console.log("❌ Firebase save error:", e.message);
   }
 
-  // ✅ Send NTFY alert
+  // ✅ Send NTFY alert (cooldown)
   if (currentStatus === "UNSAFE") {
     const now = Date.now();
+
     if (now - lastAlertTime > ALERT_COOLDOWN) {
+      console.log("⚠️ Sending Phone Alert...");
+
       try {
         await axios.post(
           `https://ntfy.sh/${NTFY_TOPIC}`,
           `⚠️ DANGER: Water is UNSAFE!\n\n🧪 pH: ${entry.pH}\n💧 TDS: ${entry.tds}\n🌡️ Temp: ${entry.temp}\n🌫️ Turb: ${entry.turb}`,
-          { headers: { Title: "Water Sensor Alert", Tags: "warning,skull", Priority: "high" } }
+          {
+            headers: {
+              Title: "Water Sensor Alert",
+              Tags: "warning,skull",
+              Priority: "high",
+            },
+          }
         );
+
+        console.log("✅ Alert sent!");
         lastAlertTime = now;
       } catch (err) {
-        console.log("❌ NTFY error:", err.message);
+        console.error("❌ Alert Failed:", err.message);
       }
     }
   }
 
-  res.send("✅ Data Received + Firebase Updated");
+  res.send("✅ Data Received");
 });
 
-// ✅ history for new users
+// --- SEND OLD HISTORY TO NEW VISITORS ---
 wss.on("connection", (ws) => {
+  console.log("✅ WebSocket Client Connected");
   ws.send(JSON.stringify({ type: "history", data: history }));
 });
