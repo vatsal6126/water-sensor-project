@@ -136,7 +136,7 @@ canvas {
   .metrics { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* ✅ MAP CARD STYLE (added only this) */
+/* ✅ MAP CARD STYLE */
 .map-card {
   margin-top: 20px;
   background: #222a3b;
@@ -219,7 +219,7 @@ canvas {
   </div>
 </div>
 
-<!-- ✅ MAP ADDED BELOW GRAPH + CARDS (this is the only new UI part) -->
+<!-- ✅ MAP ADDED BELOW GRAPH + CARDS -->
 <div class="map-card">
   <div class="card-title">LIVE LOCATION MAP</div>
   <div id="map"></div>
@@ -227,19 +227,15 @@ canvas {
 
 </div>
 
-<!-- ✅ Leaflet JS (MAP) -->
+<!-- ✅ Leaflet JS -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-/* ✅ IMPORTANT FIX FOR NGROK + PHONE:
-   - https => wss://
-   - http  => ws://
-*/
 const wsProtocol = (location.protocol === "https:") ? "wss://" : "ws://";
 const ws = new WebSocket(wsProtocol + location.host);
 
-// ✅ Firebase Realtime Database URL (CHANGE THIS)
-const FIREBASE_DB = "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app/"; // 👈 replace this
+// ✅ FIXED: removed ending "/" so no double slash happens
+const FIREBASE_DB = "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
 
 // --- SETTINGS ---
 const POINT_WIDTH = 100;
@@ -249,7 +245,7 @@ let currentMetric = "tds";
 const scrollBox = document.getElementById("scrollBox");
 const chartWrapper = document.getElementById("chartWrapper");
 
-// --- 1) AXIS CHART (Fixed Left) ---
+// --- 1) AXIS CHART ---
 const axisChart = new Chart(document.getElementById("axisChart"), {
   type: 'line',
   data: { datasets: [] },
@@ -264,17 +260,11 @@ const axisChart = new Chart(document.getElementById("axisChart"), {
         grid: { drawBorder: false, display: false }
       }
     },
-    layout: {
-      padding: {
-        bottom: 25,
-        left: 15,
-        right: 5
-      }
-    }
+    layout: { padding: { bottom: 25, left: 15, right: 5 } }
   }
 });
 
-// --- 2) DATA CHART (Scrollable Right) ---
+// --- 2) DATA CHART ---
 const dataChart = new Chart(document.getElementById("dataChart"), {
   type: 'line',
   data: {
@@ -296,10 +286,7 @@ const dataChart = new Chart(document.getElementById("dataChart"), {
     animation: false,
     plugins: { legend: { display: false } },
     scales: {
-      x: {
-        ticks: { color: '#9ca3af' },
-        grid: { color: '#374151' }
-      },
+      x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
       y: { display: false }
     }
   }
@@ -312,23 +299,19 @@ ws.onerror = () => console.log("❌ WebSocket error (Render may block WS sometim
 ws.onmessage = (e) => {
   const msg = JSON.parse(e.data);
 
-  // ✅ 1) Load history
   if (msg.type === "history") {
     fullHistory = msg.data || [];
     redrawGraph();
 
-    // ✅ auto scroll to latest
     setTimeout(() => {
       scrollBox.scrollTo({ left: scrollBox.scrollWidth, behavior: "smooth" });
     }, 100);
 
-    // ✅ update cards with latest
     if (fullHistory.length > 0) {
       updateCards(fullHistory[fullHistory.length - 1]);
     }
   }
 
-  // ✅ 2) Live new reading
   if (msg.type === "reading") {
     fullHistory.push(msg.data);
     if (fullHistory.length > 50) fullHistory.shift();
@@ -342,7 +325,7 @@ ws.onmessage = (e) => {
   }
 };
 
-// ✅ Fetch Latest Reading Button (uses /snapshot)
+// ✅ Fetch Latest Reading Button
 document.getElementById("fetchBtn").addEventListener("click", async () => {
   try {
     const res = await fetch("/snapshot");
@@ -388,7 +371,6 @@ function redrawGraph() {
   dataChart.data.labels = labels;
   dataChart.data.datasets[0].data = data;
 
-  // ✅ min/max with padding
   let minVal = Math.min(...data);
   let maxVal = Math.max(...data);
 
@@ -403,7 +385,6 @@ function redrawGraph() {
   dataChart.options.scales.y.min = minVal;
   dataChart.options.scales.y.max = maxVal;
 
-  // ✅ resize scrolling canvas
   const totalPoints = fullHistory.length;
   const newWidth = Math.max(scrollBox.clientWidth, totalPoints * POINT_WIDTH);
 
@@ -437,7 +418,6 @@ function updateCards(d) {
 
 /* ✅ AUTO-POLLING (Render safe) */
 let lastTimeSeen = null;
-
 async function pollLatest() {
   try {
     const res = await fetch("/snapshot");
@@ -458,15 +438,18 @@ async function pollLatest() {
         scrollBox.scrollTo({ left: scrollBox.scrollWidth, behavior: "smooth" });
       }, 50);
     }
-  } catch (err) {
-    console.log("poll error", err.message);
-  }
+  } catch (err) {}
 }
 setInterval(pollLatest, 2000);
 
-/* ✅ MAP LOGIC BELOW WEBSITE */
+/* ✅ MAP LOGIC */
 const map = L.map("map").setView([21.1702, 72.8311], 12);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+
+// ✅ Fix common map sizing issue
+setTimeout(() => {
+  map.invalidateSize();
+}, 300);
 
 let markers = {};
 
@@ -523,6 +506,7 @@ loadMarkers();
 
 </body>
 </html>
+
 
 
 
