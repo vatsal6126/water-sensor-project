@@ -28,7 +28,7 @@ const ALERT_COOLDOWN = 2 * 60 * 1000; // ✅ 2 minutes
 
 // ✅ Create CSV file if it doesn't exist (local only)
 if (!fs.existsSync(DATA_FILE)) {
-  fs.writeFileSync(DATA_FILE, "time,pH,tds,temp,turb,status\n");
+  fs.writeFileSync(DATA_FILE, "ts,time,pH,tds,temp,turb,status,lat,lng\n");
 }
 
 // ✅ Use Render/Cloud port if available, else 3000
@@ -44,7 +44,7 @@ app.get("/ping", (req, res) => {
   res.send("ok");
 });
 
-// ✅ Snapshot route
+// ✅ Snapshot route (optional local RAM snapshot)
 app.get("/snapshot", (req, res) => {
   if (history.length === 0) return res.json({});
   res.json(history[history.length - 1]);
@@ -102,11 +102,19 @@ app.get("/update", async (req, res) => {
 
   // ✅ Decide SAFE / UNSAFE
   let currentStatus = "SAFE";
-  if (phVal < 6.5 || phVal > 8.5 || tdsVal > 500 || tempVal > 35 || turbVal > 10) {
+  if (
+    phVal < 6.5 ||
+    phVal > 8.5 ||
+    tdsVal > 500 ||
+    tempVal > 35 ||
+    turbVal > 10
+  ) {
     currentStatus = "UNSAFE";
   }
 
+  // ✅ ADD ts timestamp (FIX)
   const entry = {
+    ts: Date.now(),
     time: new Date().toLocaleString(),
     pH: phVal,
     tds: tdsVal,
@@ -124,7 +132,7 @@ app.get("/update", async (req, res) => {
   // ✅ Save to CSV (works locally, Render may reset file)
   fs.appendFileSync(
     DATA_FILE,
-    `${entry.time},${entry.pH},${entry.tds},${entry.temp},${entry.turb},${entry.status}\n`
+    `${entry.ts},${entry.time},${entry.pH},${entry.tds},${entry.temp},${entry.turb},${entry.status},${entry.lat},${entry.lng}\n`
   );
 
   // ✅ Send live update to website
@@ -136,7 +144,7 @@ app.get("/update", async (req, res) => {
 
   console.log("✅ Data Received:", entry);
 
-  // ✅ Save into Firebase (latest + history)
+  // ✅ Save into Firebase (latest + history + pins)
   try {
     // Save latest
     await axios.patch(`${FIREBASE_DB}/devices/${id}/latest.json`, entry);
@@ -188,3 +196,4 @@ wss.on("connection", (ws) => {
   console.log("✅ WebSocket Client Connected");
   ws.send(JSON.stringify({ type: "history", data: history }));
 });
+

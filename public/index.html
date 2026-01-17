@@ -301,6 +301,7 @@ const ws = new WebSocket(wsProtocol + location.host);
 const FIREBASE_DB = "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
 const DEVICE_ID = "device1";
 const FIREBASE_HISTORY_URL = `${FIREBASE_DB}/devices/${DEVICE_ID}/history.json`;
+const FIREBASE_LATEST_URL = `${FIREBASE_DB}/devices/${DEVICE_ID}/latest.json`;
 
 // --- SETTINGS ---
 const POINT_WIDTH = 100;
@@ -350,13 +351,21 @@ function setWQIUI(wqi) {
   else fill.style.background = "#22c55e";
 }
 
-// --- 1) AXIS CHART ---
+// --- 1) AXIS CHART (FIXED) ---
 const axisChart = new Chart(document.getElementById("axisChart"), {
   type: 'line',
-  data: { datasets: [] },
+  data: {
+    labels: [],
+    datasets: [{
+      data: [],
+      borderWidth: 0,
+      pointRadius: 0
+    }]
+  },
   options: {
     responsive: true,
     maintainAspectRatio: false,
+    animation: false,
     plugins: { legend: { display: false } },
     scales: {
       x: { display: false },
@@ -431,7 +440,7 @@ ws.onmessage = (e) => {
   }
 };
 
-// ✅ LOAD OLD HISTORY FROM FIREBASE
+// ✅ LOAD OLD HISTORY FROM FIREBASE (FIXED SORT using ts)
 async function loadFirebaseHistory() {
   try {
     const res = await fetch(FIREBASE_HISTORY_URL);
@@ -439,7 +448,9 @@ async function loadFirebaseHistory() {
     if (!histObj) return;
 
     const arr = Object.values(histObj);
-    arr.sort((a, b) => (a.time > b.time ? 1 : -1));
+
+    // ✅ Correct sorting using numeric timestamp
+    arr.sort((a, b) => (a.ts || 0) - (b.ts || 0));
 
     fullHistory = arr.slice(-50);
 
@@ -458,13 +469,15 @@ async function loadFirebaseHistory() {
 }
 loadFirebaseHistory();
 
-// ✅ Fetch Latest Reading Button
+// ✅ Fetch Latest Reading Button (FIXED → reads Firebase latest even if server restarted)
 document.getElementById("fetchBtn").addEventListener("click", async () => {
   try {
-    const res = await fetch("/snapshot");
+    const res = await fetch(FIREBASE_LATEST_URL);
     const data = await res.json();
     if (data && data.pH !== null && data.pH !== undefined) updateCards(data);
-  } catch (err) {}
+  } catch (err) {
+    alert("❌ Failed to fetch latest reading");
+  }
 });
 
 document.getElementById("metricSelect").addEventListener("change", (e) => {
@@ -482,6 +495,10 @@ document.getElementById("scrollRight").addEventListener("click", () => {
 
 function redrawGraph() {
   if (!fullHistory || fullHistory.length === 0) {
+    axisChart.data.labels = [];
+    axisChart.data.datasets[0].data = [];
+    dataChart.data.labels = [];
+    dataChart.data.datasets[0].data = [];
     axisChart.update();
     dataChart.update();
     return;
@@ -496,8 +513,13 @@ function redrawGraph() {
     d.turb
   );
 
+  // ✅ update dataChart
   dataChart.data.labels = labels;
   dataChart.data.datasets[0].data = data;
+
+  // ✅ update axisChart to force y-axis ticks to show
+  axisChart.data.labels = labels;
+  axisChart.data.datasets[0].data = data;
 
   let minVal = Math.min(...data);
   let maxVal = Math.max(...data);
@@ -611,7 +633,8 @@ async function loadMarkers() {
   }
 }
 
-setInterval(loadMarkers, 2000);
+// ✅ reduced from 2 sec → 5 sec (less firebase spam)
+setInterval(loadMarkers, 5000);
 loadMarkers();
 
 document.getElementById("resetBtn").addEventListener("click", async () => {
@@ -648,13 +671,3 @@ document.getElementById("resetBtn").addEventListener("click", async () => {
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
