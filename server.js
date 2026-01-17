@@ -83,6 +83,25 @@ app.get("/reset", async (req, res) => {
   }
 });
 
+// ✅ Distance calculator (meters) for 25m pin rule
+function distanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // meters
+  const toRad = (x) => (x * Math.PI) / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 // --- HANDLE DATA FROM ESP32/ARDUINO ---
 app.get("/update", async (req, res) => {
   const id = req.query.id || "device1";
@@ -112,7 +131,7 @@ app.get("/update", async (req, res) => {
     currentStatus = "UNSAFE";
   }
 
-  // ✅ ADD ts timestamp (FIX)
+  // ✅ ADD ts timestamp
   const entry = {
     ts: Date.now(),
     time: new Date().toLocaleString(),
@@ -144,17 +163,58 @@ app.get("/update", async (req, res) => {
 
   console.log("✅ Data Received:", entry);
 
-  // ✅ Save into Firebase (latest + history + pins)
+  // ✅ Save into Firebase (latest + history + MULTI pins)
   try {
-    // Save latest
+    // ✅ Save latest
     await axios.patch(`${FIREBASE_DB}/devices/${id}/latest.json`, entry);
 
-    // Save history (auto unique key)
+    // ✅ Save history (auto unique key)
     await axios.post(`${FIREBASE_DB}/devices/${id}/history.json`, entry);
 
-    // Save pin (only if lat/lng provided)
+    // ✅ MULTI PIN SYSTEM (25 meter rule)
     if (entry.lat !== null && entry.lng !== null) {
-      await axios.patch(`${FIREBASE_DB}/devices/${id}/pins/current.json`, entry);
+      try {
+        const pinsRes = await axios.get(
+          `${FIREBASE_DB}/devices/${id}/pins.json`
+        );
+        const pins = pinsRes.data || {};
+
+        let nearestPinId = null;
+        let nearestDist = Infinity;
+
+        for (const pinId in pins) {
+          const p = pins[pinId];
+          if (!p.lat || !p.lng) continue;
+
+          const dist = distanceMeters(entry.lat, entry.lng, p.lat, p.lng);
+
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearestPinId = pinId;
+          }
+        }
+
+        // ✅ If nearest pin within 25m → update it
+        if (nearestPinId && nearestDist <= 25) {
+          await axios.patch(
+            `${FIREBASE_DB}/devices/${id}/pins/${nearestPinId}.json`,
+            entry
+          );
+          console.log(
+            `📍 Updated pin ${nearestPinId} (${nearestDist.toFixed(1)}m)`
+          );
+        } 
+        // ✅ Else create a new pin
+        else {
+          const newPin = await axios.post(
+            `${FIREBASE_DB}/devices/${id}/pins.json`,
+            entry
+          );
+          console.log(`📍 Created new pin: ${newPin.data.name}`);
+        }
+      } catch (pinErr) {
+        console.log("❌ Pin save error:", pinErr.message);
+      }
     }
   } catch (e) {
     console.log("❌ Firebase save error:", e.message);
@@ -196,4 +256,5 @@ wss.on("connection", (ws) => {
   console.log("✅ WebSocket Client Connected");
   ws.send(JSON.stringify({ type: "history", data: history }));
 });
+
 
