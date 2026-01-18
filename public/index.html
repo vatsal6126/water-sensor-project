@@ -575,6 +575,11 @@ async function loadMarkers() {
 
 // load once at start
 loadMarkers();
+// ✅ AUTO REFRESH MAP EVERY 10 SECONDS
+setInterval(() => {
+  if (!isMapBusy) loadMarkers();
+}, 10000);
+
 
 // ✅ refresh button
 document.getElementById("refreshMapBtn").addEventListener("click", async () => {
