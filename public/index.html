@@ -634,8 +634,30 @@ async function loadMarkers() {
 }
 
 // ✅ reduced from 2 sec → 5 sec (less firebase spam)
-setInterval(loadMarkers, 5000);
+let isMapBusy = false;
+
+// detect zoom/drag (user is interacting)
+map.on("zoomstart", () => isMapBusy = true);
+map.on("dragstart", () => isMapBusy = true);
+
+map.on("zoomend", () => {
+  isMapBusy = false;
+  loadMarkers(); // ✅ refresh after zoom finished
+});
+
+map.on("dragend", () => {
+  isMapBusy = false;
+  loadMarkers(); // ✅ refresh after drag finished
+});
+
+// ✅ refresh pins normally every 5 seconds
+setInterval(() => {
+  if (!isMapBusy) loadMarkers();
+}, 5000);
+
+// run once at start
 loadMarkers();
+
 
 document.getElementById("resetBtn").addEventListener("click", async () => {
   const pass = prompt("Enter Reset Password:");
