@@ -11,7 +11,6 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
-/* --- BASIC LAYOUT --- */
 body {
   margin: 0;
   background: #1b2230;
@@ -52,7 +51,6 @@ header {
   font-weight: 600;
 }
 
-/* --- SPLIT GRAPH LAYOUT --- */
 .chart-container {
   display: flex;
   height: 300px;
@@ -60,7 +58,6 @@ header {
   position: relative;
 }
 
-/* LEFT: Fixed Axis */
 .y-axis-area {
   width: 120px;
   flex-shrink: 0;
@@ -69,7 +66,6 @@ header {
   border-right: 1px solid #374151;
 }
 
-/* RIGHT: Scrollable Data */
 .graph-scroll-area {
   flex-grow: 1;
   overflow-x: hidden;
@@ -86,7 +82,6 @@ canvas {
   height: 300px !important;
 }
 
-/* --- BUTTONS --- */
 .controls {
   display: flex;
   gap: 10px;
@@ -116,7 +111,6 @@ canvas {
   cursor: pointer;
 }
 
-/* --- METRICS --- */
 .metrics {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -136,7 +130,6 @@ canvas {
   .metrics { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* ✅ WQI CARD STYLE */
 .wqi-card{
   margin-top: 20px;
   background: #222a3b;
@@ -173,7 +166,6 @@ canvas {
   transition: width 0.5s ease;
 }
 
-/* ✅ MAP CARD STYLE */
 .map-card {
   margin-top: 20px;
   background: #222a3b;
@@ -256,7 +248,6 @@ canvas {
   </div>
 </div>
 
-<!-- ✅ WQI CARD -->
 <div class="wqi-card">
   <div class="wqi-top">
     <div class="wqi-title">WQI (Water Quality Index) • 0 = Bad, 100 = Perfect</div>
@@ -267,10 +258,24 @@ canvas {
   </div>
 </div>
 
-<!-- ✅ MAP -->
 <div class="map-card">
   <div class="card-title">LIVE LOCATION MAP</div>
   <div id="map"></div>
+
+  <button id="refreshMapBtn" style="
+    margin-top:12px;
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:12px;
+    background:#3b82f6;
+    color:white;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+  ">
+    🔄 Refresh Map
+  </button>
 </div>
 
 </div>
@@ -291,7 +296,6 @@ canvas {
   </button>
 </div>
 
-
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
@@ -303,7 +307,6 @@ const DEVICE_ID = "device1";
 const FIREBASE_HISTORY_URL = `${FIREBASE_DB}/devices/${DEVICE_ID}/history.json`;
 const FIREBASE_LATEST_URL = `${FIREBASE_DB}/devices/${DEVICE_ID}/latest.json`;
 
-// --- SETTINGS ---
 const POINT_WIDTH = 100;
 let fullHistory = [];
 let currentMetric = "tds";
@@ -311,7 +314,7 @@ let currentMetric = "tds";
 const scrollBox = document.getElementById("scrollBox");
 const chartWrapper = document.getElementById("chartWrapper");
 
-// ✅ WQI CALCULATION
+// ✅ WQI
 function calcWQI(d) {
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
@@ -320,20 +323,9 @@ function calcWQI(d) {
   if (d.pH > 8.5) scorePH = 100 - ((d.pH - 8.5) * 25);
   scorePH = clamp(scorePH, 0, 100);
 
-  let scoreTDS = 100;
-  if (d.tds <= 300) scoreTDS = 100;
-  else if (d.tds <= 500) scoreTDS = 70;
-  else scoreTDS = 30;
-
-  let scoreTEMP = 100;
-  if (d.temp <= 30) scoreTEMP = 100;
-  else if (d.temp <= 35) scoreTEMP = 70;
-  else scoreTEMP = 30;
-
-  let scoreTURB = 100;
-  if (d.turb <= 5) scoreTURB = 100;
-  else if (d.turb <= 10) scoreTURB = 70;
-  else scoreTURB = 30;
+  let scoreTDS = d.tds <= 300 ? 100 : d.tds <= 500 ? 70 : 30;
+  let scoreTEMP = d.temp <= 30 ? 100 : d.temp <= 35 ? 70 : 30;
+  let scoreTURB = d.turb <= 5 ? 100 : d.turb <= 10 ? 70 : 30;
 
   const wqi = (scorePH * 0.35) + (scoreTDS * 0.25) + (scoreTURB * 0.25) + (scoreTEMP * 0.15);
   return Math.round(clamp(wqi, 0, 100));
@@ -342,7 +334,6 @@ function calcWQI(d) {
 function setWQIUI(wqi) {
   const fill = document.getElementById("wqiFill");
   const scoreEl = document.getElementById("wqiScore");
-
   scoreEl.innerText = `${wqi} / 100`;
   fill.style.width = `${wqi}%`;
 
@@ -351,17 +342,10 @@ function setWQIUI(wqi) {
   else fill.style.background = "#22c55e";
 }
 
-// --- 1) AXIS CHART (FIXED) ---
+// ✅ Axis chart
 const axisChart = new Chart(document.getElementById("axisChart"), {
   type: 'line',
-  data: {
-    labels: [],
-    datasets: [{
-      data: [],
-      borderWidth: 0,
-      pointRadius: 0
-    }]
-  },
+  data: { labels: [], datasets: [{ data: [], borderWidth: 0, pointRadius: 0 }] },
   options: {
     responsive: true,
     maintainAspectRatio: false,
@@ -369,60 +353,34 @@ const axisChart = new Chart(document.getElementById("axisChart"), {
     plugins: { legend: { display: false } },
     scales: {
       x: { display: false },
-      y: {
-        ticks: { color: '#9ca3af', font: { size: 11 } },
-        grid: { drawBorder: false, display: false }
-      }
-    },
-    layout: { padding: { bottom: 25, left: 15, right: 5 } }
+      y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { drawBorder: false, display: false } }
+    }
   }
 });
 
-// --- 2) DATA CHART ---
+// ✅ Data chart
 const dataChart = new Chart(document.getElementById("dataChart"), {
   type: 'line',
-  data: {
-    labels: [],
-    datasets: [{
-      data: [],
-      borderColor: "#3b82f6",
-      backgroundColor: "rgba(59, 130, 246, 0.1)",
-      borderWidth: 2,
-      tension: 0.3,
-      pointRadius: 4,
-      pointBackgroundColor: "#1b2230",
-      fill: true
-    }]
-  },
+  data: { labels: [], datasets: [{
+    data: [], borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.1)",
+    borderWidth: 2, tension: 0.3, pointRadius: 4, pointBackgroundColor: "#1b2230", fill: true
+  }]},
   options: {
     responsive: false,
     maintainAspectRatio: false,
     animation: false,
     plugins: { legend: { display: false } },
-    scales: {
-      x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
-      y: { display: false }
-    }
+    scales: { x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } }, y: { display: false } }
   }
 });
 
-// --- WEBSOCKET LOGIC ---
+// ✅ websocket live
 ws.onmessage = (e) => {
   const msg = JSON.parse(e.data);
-
-  if (msg.type === "history") {
-    fullHistory = msg.data || [];
-    redrawGraph();
-
-    if (fullHistory.length > 0) {
-      updateCards(fullHistory[fullHistory.length - 1]);
-    }
-  }
 
   if (msg.type === "reading") {
     fullHistory.push(msg.data);
     if (fullHistory.length > 50) fullHistory.shift();
-
     updateCards(msg.data);
     redrawGraph();
   }
@@ -430,17 +388,12 @@ ws.onmessage = (e) => {
   if (msg.type === "reset") {
     fullHistory = [];
     redrawGraph();
-
-    for (const key in markers) {
-      map.removeLayer(markers[key]);
-    }
-    markers = {};
-
+    clearAllMarkers();
     alert("⚠️ Data Reset Done!");
   }
 };
 
-// ✅ LOAD OLD HISTORY FROM FIREBASE (FIXED SORT using ts)
+// ✅ load history from firebase
 async function loadFirebaseHistory() {
   try {
     const res = await fetch(FIREBASE_HISTORY_URL);
@@ -448,33 +401,21 @@ async function loadFirebaseHistory() {
     if (!histObj) return;
 
     const arr = Object.values(histObj);
-
-    // ✅ Correct sorting using numeric timestamp
     arr.sort((a, b) => (a.ts || 0) - (b.ts || 0));
-
     fullHistory = arr.slice(-50);
-
     redrawGraph();
 
-    setTimeout(() => {
-      scrollBox.scrollTo({ left: scrollBox.scrollWidth, behavior: "smooth" });
-    }, 100);
-
-    if (fullHistory.length > 0) {
-      updateCards(fullHistory[fullHistory.length - 1]);
-    }
-  } catch (err) {
-    console.log("firebase history error:", err.message);
-  }
+    if (fullHistory.length > 0) updateCards(fullHistory[fullHistory.length - 1]);
+  } catch (err) {}
 }
 loadFirebaseHistory();
 
-// ✅ Fetch Latest Reading Button (FIXED → reads Firebase latest even if server restarted)
+// ✅ fetch latest
 document.getElementById("fetchBtn").addEventListener("click", async () => {
   try {
     const res = await fetch(FIREBASE_LATEST_URL);
     const data = await res.json();
-    if (data && data.pH !== null && data.pH !== undefined) updateCards(data);
+    if (data && data.pH !== undefined) updateCards(data);
   } catch (err) {
     alert("❌ Failed to fetch latest reading");
   }
@@ -488,7 +429,6 @@ document.getElementById("metricSelect").addEventListener("change", (e) => {
 document.getElementById("scrollLeft").addEventListener("click", () => {
   scrollBox.scrollBy({ left: -200, behavior: "smooth" });
 });
-
 document.getElementById("scrollRight").addEventListener("click", () => {
   scrollBox.scrollBy({ left: 200, behavior: "smooth" });
 });
@@ -513,17 +453,14 @@ function redrawGraph() {
     d.turb
   );
 
-  // ✅ update dataChart
   dataChart.data.labels = labels;
   dataChart.data.datasets[0].data = data;
 
-  // ✅ update axisChart to force y-axis ticks to show
   axisChart.data.labels = labels;
   axisChart.data.datasets[0].data = data;
 
   let minVal = Math.min(...data);
   let maxVal = Math.max(...data);
-
   let padding = (maxVal - minVal) * 0.1;
   if (padding === 0) padding = 1;
 
@@ -532,7 +469,6 @@ function redrawGraph() {
 
   axisChart.options.scales.y.min = minVal;
   axisChart.options.scales.y.max = maxVal;
-
   dataChart.options.scales.y.min = minVal;
   dataChart.options.scales.y.max = maxVal;
 
@@ -566,22 +502,26 @@ function updateCards(d) {
   sEl.innerText = "Status: " + d.status;
   sEl.className = "value " + (d.status === "SAFE" ? "status-safe" : "status-unsafe");
 
-  const wqi = calcWQI(d);
-  setWQIUI(wqi);
+  setWQIUI(calcWQI(d));
 }
 
-/* ✅ MAP LOGIC (PINS SYSTEM) */
+/* ✅ MAP SYSTEM (MANUAL REFRESH ONLY) */
 const map = L.map("map").setView([21.1702, 72.8311], 12);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
 
-setTimeout(() => {
-  map.invalidateSize();
-}, 300);
+setTimeout(() => map.invalidateSize(), 300);
 
 let markers = {};
 
 function getColor(status) {
   return status === "UNSAFE" ? "red" : "green";
+}
+
+function clearAllMarkers() {
+  for (const key in markers) {
+    map.removeLayer(markers[key]);
+  }
+  markers = {};
 }
 
 async function loadMarkers() {
@@ -633,32 +573,24 @@ async function loadMarkers() {
   }
 }
 
-// ✅ reduced from 2 sec → 5 sec (less firebase spam)
-let isMapBusy = false;
-
-// detect zoom/drag (user is interacting)
-map.on("zoomstart", () => isMapBusy = true);
-map.on("dragstart", () => isMapBusy = true);
-
-map.on("zoomend", () => {
-  isMapBusy = false;
-  loadMarkers(); // ✅ refresh after zoom finished
-});
-
-map.on("dragend", () => {
-  isMapBusy = false;
-  loadMarkers(); // ✅ refresh after drag finished
-});
-
-// ✅ refresh pins normally every 5 seconds
-setInterval(() => {
-  if (!isMapBusy) loadMarkers();
-}, 5000);
-
-// run once at start
+// load once at start
 loadMarkers();
 
+// ✅ refresh button
+document.getElementById("refreshMapBtn").addEventListener("click", async () => {
+  const btn = document.getElementById("refreshMapBtn");
+  btn.innerText = "⏳ Refreshing...";
+  btn.disabled = true;
+  btn.style.opacity = "0.7";
 
+  await loadMarkers();
+
+  btn.innerText = "🔄 Refresh Map";
+  btn.disabled = false;
+  btn.style.opacity = "1";
+});
+
+// ✅ RESET BUTTON
 document.getElementById("resetBtn").addEventListener("click", async () => {
   const pass = prompt("Enter Reset Password:");
   if (!pass) return;
@@ -679,12 +611,7 @@ document.getElementById("resetBtn").addEventListener("click", async () => {
 
     fullHistory = [];
     redrawGraph();
-
-    for (const key in markers) {
-      map.removeLayer(markers[key]);
-    }
-    markers = {};
-
+    clearAllMarkers();
   } catch (err) {
     alert("❌ Reset failed: " + err.message);
   }
@@ -693,3 +620,4 @@ document.getElementById("resetBtn").addEventListener("click", async () => {
 
 </body>
 </html>
+
