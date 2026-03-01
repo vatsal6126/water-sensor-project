@@ -460,128 +460,209 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
 
 <script>
 // ══════════════════════════════
-// DATA — starts empty
+// DATA
 // ══════════════════════════════
-let pinsData   = [];   // { id, name, lat, lng, pH, tds, temp, turb, status, ts }
-let mlMap      = null; // dashboard map
-let entryMap   = null; // manual-entry map
-let mlMarkers  = [];   // dashboard markers
-let entryMarkers = []; // entry map markers (one per saved pin)
-let entryTempMarker = null; // preview pin while picking
+let pinsData = [];
+let mlMap = null;
+let entryMap = null;
+let mlMarkers = [];
+let entryMarkers = [];
+let entryTempMarker = null;
 let pendingLat = null;
 let pendingLng = null;
 
 let activeMetric = 'pH';
-let activeColor  = '#3b82f6';
-let chartPoints  = [];  // [{val, ts}] for current view
+let activeColor = '#3b82f6';
+let chartPoints = [];
 
 // ══════════════════════════════
 // MAP STYLE
 // ══════════════════════════════
 const MAP_STYLE = {
   version: 8,
-  sources: { osm: { type:'raster', tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize:256, attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }},
-  layers: [{ id:'osm', type:'raster', source:'osm', paint:{ 'raster-brightness-max':0.42, 'raster-saturation':-0.65, 'raster-hue-rotate':195 }}]
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256
+    }
+  },
+  layers: [{
+    id: 'osm',
+    type: 'raster',
+    source: 'osm'
+  }]
 };
 
 // ══════════════════════════════
-// INIT DASHBOARD MAP
+// DASHBOARD MAP INIT
 // ══════════════════════════════
 function initDashboardMap() {
   if (mlMap) return;
-  mlMap = new maplibregl.Map({ container:'maplibre-map', style:MAP_STYLE, center:[72.8311,21.175], zoom:11, attributionControl:true });
-  mlMap.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'bottom-right');
+
+  mlMap = new maplibregl.Map({
+    container: 'maplibre-map',
+    style: MAP_STYLE,
+    center: [72.8311, 21.175],
+    zoom: 11
+  });
+
+  mlMap.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+
+  mlMap.on('load', () => {
+    console.log("Dashboard map loaded");
+  });
 }
 
 // ══════════════════════════════
-// INIT ENTRY MAP
+// ENTRY MAP INIT
 // ══════════════════════════════
 function initEntryMap() {
   if (entryMap) return;
-  entryMap = new maplibregl.Map({ container:'entry-map', style:MAP_STYLE, center:[72.8311,21.175], zoom:10, attributionControl:false });
-  entryMap.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'top-right');
 
-  entryMap.on('load', () => {
-    entryMap.getCanvas().classList.add('picking');
-    // Re-add existing pins to entry map
-    pinsData.forEach(pin => addEntryMapMarker(pin));
+  entryMap = new maplibregl.Map({
+    container: 'entry-map',
+    style: MAP_STYLE,
+    center: [72.8311, 21.175],
+    zoom: 10
   });
+
+  entryMap.addControl(new maplibregl.NavigationControl(), 'top-right');
 
   entryMap.on('click', e => {
     pendingLat = e.lngLat.lat;
     pendingLng = e.lngLat.lng;
 
-    // Update fields
     document.getElementById('f-lat').value = pendingLat.toFixed(6);
     document.getElementById('f-lng').value = pendingLng.toFixed(6);
     document.getElementById('add-pin-btn').disabled = false;
 
-    // Update coords display
-    const cd = document.getElementById('coords-display');
-    cd.classList.add('visible');
-    document.getElementById('coords-text').textContent = `${pendingLat.toFixed(4)}, ${pendingLng.toFixed(4)}`;
-
-    // Hint hides
-    document.getElementById('entry-hint').classList.add('hidden');
-
-    // Remove old temp marker
     if (entryTempMarker) entryTempMarker.remove();
 
-    // Place preview marker
-    const el = document.createElement('div');
-    el.className = 'entry-preview-marker';
-    entryTempMarker = new maplibregl.Marker({ element:el, anchor:'center' })
+    entryTempMarker = new maplibregl.Marker()
       .setLngLat([pendingLng, pendingLat])
       .addTo(entryMap);
   });
 }
 
 // ══════════════════════════════
-// MARKER HELPERS
+// MARKER CREATION
 // ══════════════════════════════
-function makeMarkerEl(status) {
-  const el = document.createElement('div');
-  el.className = `ml-marker ${status === 'SAFE' ? 'safe' : 'warning'}`;
-  el.innerHTML = `<div class="ml-pulse"></div><div class="ml-marker-inner"></div>`;
-  return el;
-}
-
-function makePopupHTML(pin) {
-  const cls = pin.status === 'SAFE' ? 'safe' : 'warning';
-  return `<div class="popup-inner">
-    <div class="popup-name">${pin.name}</div>
-    <div class="popup-row"><span>pH</span><span class="popup-val">${pin.pH}</span></div>
-    <div class="popup-row"><span>TDS</span><span class="popup-val">${pin.tds} ppm</span></div>
-    <div class="popup-row"><span>Temp</span><span class="popup-val">${pin.temp}°C</span></div>
-    <div class="popup-row"><span>Turbidity</span><span class="popup-val">${pin.turb} NTU</span></div>
-    <div class="popup-status ${cls}"><div class="s-dot ${cls}"></div>${pin.status}</div>
-  </div>`;
-}
-
 function addDashboardMarker(pin, idx) {
-  const el = makeMarkerEl(pin.status);
-  const popup = new maplibregl.Popup({ offset:[0,-30], closeButton:true, closeOnClick:false }).setHTML(makePopupHTML(pin));
-  const marker = new maplibregl.Marker({ element:el, anchor:'bottom' }).setLngLat([pin.lng,pin.lat]).setPopup(popup).addTo(mlMap);
-  el.addEventListener('click', () => {
-    mlMarkers.forEach(m => m.getElement().classList.remove('selected'));
-    el.classList.add('selected');
+
+  const marker = new maplibregl.Marker()
+    .setLngLat([pin.lng, pin.lat])
+    .addTo(mlMap);
+
+  marker.getElement().addEventListener('click', () => {
     selectPin(idx);
-    if (!marker.getPopup().isOpen()) marker.togglePopup();
-    mlMap.flyTo({ center:[pin.lng,pin.lat], zoom:14, speed:1.2, curve:1.2 });
+    mlMap.flyTo({ center: [pin.lng, pin.lat], zoom: 14 });
   });
+
   mlMarkers[idx] = marker;
 }
 
-function addEntryMapMarker(pin) {
-  const el = makeMarkerEl(pin.status);
-  el.style.cursor = 'default';
-  const m = new maplibregl.Marker({ element:el, anchor:'bottom' }).setLngLat([pin.lng,pin.lat]).addTo(entryMap);
-  entryMarkers.push({ id:pin.id, marker:m });
+// ══════════════════════════════
+// SELECT PIN
+// ══════════════════════════════
+function selectPin(idx) {
+  const pin = pinsData[idx];
+
+  document.getElementById('panel-title').textContent = "Location Metrics";
+  document.getElementById('panel-sub').textContent =
+    `${pin.lat.toFixed(4)}, ${pin.lng.toFixed(4)}`;
+
+  document.getElementById('val-pH').innerHTML = pin.pH;
+  document.getElementById('val-tds').innerHTML =
+    `${pin.tds} <span class="metric-unit">ppm</span>`;
+  document.getElementById('val-temp').innerHTML =
+    `${pin.temp} <span class="metric-unit">°C</span>`;
+  document.getElementById('val-turb').innerHTML =
+    `${pin.turb} <span class="metric-unit">NTU</span>`;
+
+  buildChartData(pin);
+  drawChart();
 }
 
-function removeEntryMapMarker(pinId) {
-  const idx = entryMarkers.findIndex(e => e.id === pinId);
-  if (idx !== -1) { entryMarkers[idx].marker.remove(); entryMarkers.splice(idx,1); }
+// ══════════════════════════════
+// ADD PIN
+// ══════════════════════════════
+function addPin() {
+
+  if (pendingLat === null || pendingLng === null) {
+    alert("Click on map first");
+    return;
+  }
+
+  const pH = parseFloat(document.getElementById('f-pH').value);
+  const tds = parseFloat(document.getElementById('f-tds').value);
+  const temp = parseFloat(document.getElementById('f-temp').value);
+  const turb = parseFloat(document.getElementById('f-turb').value);
+
+  if ([pH, tds, temp, turb].some(isNaN)) {
+    alert("Fill all values");
+    return;
+  }
+
+  const pin = {
+    id: Date.now(),
+    lat: pendingLat,
+    lng: pendingLng,
+    pH, tds, temp, turb,
+    ts: Date.now()
+  };
+
+  const idx = pinsData.push(pin) - 1;
+
+  mlMap.once('idle', () => {
+    addDashboardMarker(pin, idx);
+  });
+
+  if (entryTempMarker) entryTempMarker.remove();
+  pendingLat = pendingLng = null;
+
+  document.getElementById('f-lat').value = '';
+  document.getElementById('f-lng').value = '';
+  document.getElementById('add-pin-btn').disabled = true;
+}
+
+// ══════════════════════════════
+// SIMPLE CHART
+// ══════════════════════════════
+function buildChartData(pin) {
+  chartPoints = [];
+
+  for (let i = 6; i >= 0; i--) {
+    chartPoints.push({
+      val: pin.pH + Math.random(),
+      ts: new Date(pin.ts - i * 3600000)
+    });
+  }
+}
+
+function drawChart() {
+  const svg = document.getElementById('area-chart');
+  if (!chartPoints.length) {
+    svg.innerHTML = '';
+    return;
+  }
+
+  const W = 800, H = 200;
+  const max = Math.max(...chartPoints.map(p => p.val));
+  const min = Math.min(...chartPoints.map(p => p.val));
+
+  const path = chartPoints.map((p, i) => {
+    const x = (i / 6) * W;
+    const y = H - ((p.val - min) / (max - min)) * H;
+    return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+  }).join(' ');
+
+  svg.innerHTML = `
+    <path d="${path}"
+      fill="none"
+      stroke="${activeColor}"
+      stroke-width="3"/>
+  `;
 }
 
 // ══════════════════════════════
@@ -590,364 +671,29 @@ function removeEntryMapMarker(pinId) {
 function navigate(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
   document.getElementById('page-' + page).classList.add('active');
   document.getElementById('nav-' + page).classList.add('active');
-  closeSidebar();
-  if (page === 'dashboard') {
-    setTimeout(() => { mlMap && mlMap.resize(); drawChart(); }, 120);
-  }
+
   if (page === 'options') {
     setTimeout(() => {
       initEntryMap();
-      entryMap && entryMap.resize();
-    }, 120);
-  }
-}
-
-function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('visible'); document.getElementById('closeBtn').style.display='flex'; }
-function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('visible'); }
-
-// ══════════════════════════════
-// SELECT PIN (dashboard)
-// ══════════════════════════════
-function selectPin(idx) {
-  const pin = pinsData[idx];
-  document.getElementById('panel-title').textContent = 'Location Metrics';
-  document.getElementById('panel-sub').textContent   = `Coordinates: ${pin.lat.toFixed(4)}, ${pin.lng.toFixed(4)}`;
-  const badge = document.getElementById('status-badge');
-  const dot   = document.getElementById('status-dot');
-  badge.classList.add('visible');
-  if (pin.status === 'SAFE') {
-    badge.className='status-badge visible safe'; dot.className='status-dot safe'; document.getElementById('status-text').textContent='SAFE';
-  } else {
-    badge.className='status-badge visible warning'; dot.className='status-dot warning'; document.getElementById('status-text').textContent='WARNING';
-  }
-  document.getElementById('val-pH').innerHTML   = pin.pH;
-  document.getElementById('val-tds').innerHTML  = `${pin.tds} <span class="metric-unit">ppm</span>`;
-  document.getElementById('val-temp').innerHTML = `${pin.temp} <span class="metric-unit">°C</span>`;
-  document.getElementById('val-turb').innerHTML = `${pin.turb} <span class="metric-unit">NTU</span>`;
-  // Build chart data for this pin based on its timestamp ± some history
-  buildChartData(pin);
-  drawChart();
-}
-
-// ══════════════════════════════
-// METRIC TABS
-// ══════════════════════════════
-function setActiveMetric(metric, color) {
-  activeMetric = metric; activeColor = color;
-  document.querySelectorAll('.metric-card').forEach(c => c.classList.remove('active'));
-  document.getElementById('metric-' + metric).classList.add('active');
-  document.getElementById('chart-dot').style.background = color;
-  document.getElementById('chart-metric-label').textContent = metric.toUpperCase();
-  drawChart();
-}
-
-// ══════════════════════════════
-// CHART DATA — real timestamps
-// ══════════════════════════════
-const metricMeta = {
-  pH:   { base:6.5, range:1.5, unit:'' },
-  tds:  { base:150, range:50,  unit:'ppm' },
-  temp: { base:22,  range:5,   unit:'°C' },
-  turb: { base:2,   range:8,   unit:'NTU' },
-};
-
-function buildChartData(pin) {
-  // 7 readings spaced every 2 hours ending at pin.ts
-  const points = [];
-  const endMs = pin.ts;
-  const meta = metricMeta[activeMetric];
-  for (let i = 6; i >= 0; i--) {
-    const ts = new Date(endMs - i * 2 * 60 * 60 * 1000);
-    // Last point = actual pin value; others are jittered
-    const val = (i === 0)
-      ? pin[activeMetric]
-      : meta.base + Math.random() * meta.range;
-    points.push({ ts, val: +val.toFixed(2) });
-  }
-  chartPoints = points;
-}
-
-function formatTime(d) {
-  const h = d.getHours().toString().padStart(2,'0');
-  const m = d.getMinutes().toString().padStart(2,'0');
-  return `${h}:${m}`;
-}
-
-function formatFull(d) {
-  const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
-  return `${mo} ${d.getDate()}, ${formatTime(d)}`;
-}
-
-// ══════════════════════════════
-// SMOOTH BEZIER CURVE helper
-// ══════════════════════════════
-function smoothCurve(pts) {
-  // Catmull-Rom → cubic bezier
-  if (pts.length < 2) return '';
-  let d = `M${pts[0].x},${pts[0].y}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[Math.max(i-1,0)];
-    const p1 = pts[i];
-    const p2 = pts[i+1];
-    const p3 = pts[Math.min(i+2, pts.length-1)];
-    const cp1x = p1.x + (p2.x - p0.x) / 6;
-    const cp1y = p1.y + (p2.y - p0.y) / 6;
-    const cp2x = p2.x - (p3.x - p1.x) / 6;
-    const cp2y = p2.y - (p3.y - p1.y) / 6;
-    d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
-  }
-  return d;
-}
-
-// ══════════════════════════════
-// DRAW CHART
-// ══════════════════════════════
-function drawChart() {
-  const svg = document.getElementById('area-chart');
-  if (!chartPoints.length) {
-    svg.innerHTML = `<text x="400" y="100" text-anchor="middle" font-family="Outfit,sans-serif" font-size="13" fill="rgba(255,255,255,0.25)">Select a pin to view chart</text>`;
-    return;
+      entryMap.resize();
+    }, 100);
   }
 
-  const W=800, H=200, p={t:20,r:20,b:34,l:44};
-  const iW=W-p.l-p.r, iH=H-p.t-p.b;
-  const vals = chartPoints.map(d=>d.val);
-  const minV = Math.min(...vals)*0.92;
-  const maxV = Math.max(...vals)*1.06;
-
-  const xS = i => p.l + (i/(chartPoints.length-1))*iW;
-  const yS = v => p.t + iH - ((v-minV)/(maxV-minV))*iH;
-
-  const pts = chartPoints.map((d,i) => ({ x:xS(i), y:yS(d.val) }));
-  const linePath = smoothCurve(pts);
-  // Area: close path along bottom
-  const areaPath = linePath + ` L${xS(chartPoints.length-1)},${H-p.b} L${xS(0)},${H-p.b} Z`;
-
-  const gid = 'grad-' + Date.now();
-
-  // X-axis labels (HH:MM)
-  const labels = chartPoints.map((d,i) => `
-    <text x="${xS(i)}" y="${H-8}" text-anchor="middle"
-      font-family="Outfit,sans-serif" font-size="10" fill="rgba(255,255,255,0.3)">${formatTime(d.ts)}</text>`).join('');
-
-  // Invisible hover hit areas per dot
-  const hitAreas = chartPoints.map((d,i) => `
-    <circle class="chart-hit" cx="${xS(i)}" cy="${yS(d.val)}"
-      r="18" fill="transparent" style="cursor:pointer"
-      data-idx="${i}" />`).join('');
-
-  // Visible dots
-  const dots = chartPoints.map((d,i) => `
-    <circle class="chart-dot-vis" cx="${xS(i)}" cy="${yS(d.val)}"
-      r="5" fill="${activeColor}" stroke="rgba(15,23,42,0.85)" stroke-width="2"
-      style="pointer-events:none" data-idx="${i}"/>`).join('');
-
-  svg.innerHTML = `
-    <defs>
-      <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="5%"  stop-color="${activeColor}" stop-opacity="0.4"/>
-        <stop offset="95%" stop-color="${activeColor}" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-    ${[0.25,0.5,0.75].map(t=>`<line x1="${p.l}" y1="${p.t+t*iH}" x2="${W-p.r}" y2="${p.t+t*iH}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`).join('')}
-    ${labels}
-    <path d="${areaPath}" fill="url(#${gid})"/>
-    <path d="${linePath}" fill="none" stroke="${activeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    ${dots}
-    ${hitAreas}`;
-
-  // Bind tooltip events to hit areas
-  svg.querySelectorAll('.chart-hit').forEach(el => {
-    el.addEventListener('mouseenter', showChartTooltip);
-    el.addEventListener('mouseleave', hideChartTooltip);
-    el.addEventListener('click', showChartTooltip);
-  });
-}
-
-// ══════════════════════════════
-// CHART TOOLTIP
-// ══════════════════════════════
-function showChartTooltip(e) {
-  const idx = parseInt(e.target.getAttribute('data-idx'));
-  const pt  = chartPoints[idx];
-  const tooltip = document.getElementById('chart-tooltip');
-  const wrapper = document.getElementById('chart-wrapper');
-  const svgRect = document.getElementById('area-chart').getBoundingClientRect();
-  const wRect   = wrapper.getBoundingClientRect();
-
-  // Compute position in viewBox space then scale to actual pixels
-  const W=800, H=200, p={t:20,r:20,b:34,l:44};
-  const iW=W-p.l-p.r, iH=H-p.t-p.b;
-  const vals = chartPoints.map(d=>d.val);
-  const minV = Math.min(...vals)*0.92;
-  const maxV = Math.max(...vals)*1.06;
-  const xS = i => p.l+(i/(chartPoints.length-1))*iW;
-  const yS = v => p.t+iH-((v-minV)/(maxV-minV))*iH;
-
-  const vbX = xS(idx);
-  const vbY = yS(pt.val);
-  // scale from viewBox to actual pixels
-  const scaleX = svgRect.width / W;
-  const scaleY = svgRect.height / H;
-  const left = (svgRect.left - wRect.left) + vbX * scaleX;
-  const top  = (svgRect.top  - wRect.top)  + vbY * scaleY;
-
-  document.getElementById('ct-time').textContent = formatFull(pt.ts);
-  document.getElementById('ct-val').textContent  = pt.val;
-  document.getElementById('ct-unit').textContent = metricMeta[activeMetric].unit;
-
-  tooltip.style.left = left + 'px';
-  tooltip.style.top  = top  + 'px';
-  tooltip.classList.add('visible');
-
-  // Pulse the dot
-  const dot = document.getElementById('area-chart').querySelector(`.chart-dot-vis[data-idx="${idx}"]`);
-  if (dot) { dot.setAttribute('r','7'); dot.setAttribute('stroke-width','3'); }
-}
-
-function hideChartTooltip(e) {
-  document.getElementById('chart-tooltip').classList.remove('visible');
-  document.getElementById('area-chart').querySelectorAll('.chart-dot-vis').forEach(d => {
-    d.setAttribute('r','5'); d.setAttribute('stroke-width','2');
-  });
-}
-
-// ══════════════════════════════
-// ADD PIN (from form)
-// ══════════════════════════════
-function addPin() {
-  if (pendingLat === null || pendingLng === null) {
-    alert('Please click on the map to place a pin first.'); return;
+  if (page === 'dashboard') {
+    setTimeout(() => {
+      mlMap.resize();
+    }, 100);
   }
-  const pH   = parseFloat(document.getElementById('f-pH').value);
-  const tds  = parseFloat(document.getElementById('f-tds').value);
-  const temp = parseFloat(document.getElementById('f-temp').value);
-  const turb = parseFloat(document.getElementById('f-turb').value);
-
-  if ([pH,tds,temp,turb].some(isNaN)) { alert('Please fill in all sensor values.'); return; }
-
-  const status = (pH<6||pH>8.5||turb>10) ? 'WARNING' : 'SAFE';
-  const pin = {
-    id: 'pin'+Date.now(),
-    name: `Station ${pinsData.length+1}`,
-    lat: pendingLat, lng: pendingLng,
-    pH, tds, temp, turb, status,
-    ts: Date.now()
-  };
-
-  const idx = pinsData.push(pin) - 1;
-
-  // Dashboard map marker
-  if (mlMap) {
-    if (!mlMap.loaded()) mlMap.on('load', () => addDashboardMarker(pin, idx));
-    else addDashboardMarker(pin, idx);
-  }
-
-  // Entry map: convert preview marker to permanent
-  if (entryTempMarker) { entryTempMarker.remove(); entryTempMarker = null; }
-  addEntryMapMarker(pin);
-
-  // Add to pins list UI
-  addPinToList(pin);
-
-  // Reset form
-  pendingLat = pendingLng = null;
-  ['f-pH','f-tds','f-temp','f-turb'].forEach(id => document.getElementById(id).value='');
-  document.getElementById('f-lat').value = '';
-  document.getElementById('f-lng').value = '';
-  document.getElementById('add-pin-btn').disabled = true;
-  document.getElementById('coords-display').classList.remove('visible');
-  document.getElementById('entry-hint').classList.remove('hidden');
-}
-
-// ══════════════════════════════
-// PIN LIST UI
-// ══════════════════════════════
-function addPinToList(pin) {
-  document.getElementById('pins-empty').style.display = 'none';
-  const list = document.getElementById('pins-list');
-  const item = document.createElement('div');
-  item.className = 'pin-item';
-  item.id = 'pin-item-' + pin.id;
-  item.innerHTML = `
-    <div style="flex:1;min-width:0">
-      <div class="pin-item-name">${pin.name}</div>
-      <div class="pin-item-coords">${pin.lat.toFixed(4)}, ${pin.lng.toFixed(4)}</div>
-    </div>
-    <span class="pin-item-badge ${pin.status === 'SAFE' ? 'safe' : 'warning'}">${pin.status}</span>
-    <button class="pin-del-btn" onclick="deletePin('${pin.id}')" title="Remove pin">
-      <svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-    </button>`;
-  list.appendChild(item);
-}
-
-function rebuildPinsList() {
-  const list = document.getElementById('pins-list');
-  list.innerHTML = '<p class="pins-empty" id="pins-empty" style="display:none">No pins added yet. Drop one on the map above.</p>';
-  if (pinsData.length === 0) {
-    document.getElementById('pins-empty').style.display = '';
-  } else {
-    pinsData.forEach(p => addPinToList(p));
-  }
-}
-
-function deletePin(pinId) {
-  const idx = pinsData.findIndex(p => p.id === pinId);
-  if (idx === -1) return;
-  // Remove dashboard marker
-  if (mlMarkers[idx]) { mlMarkers[idx].remove(); mlMarkers.splice(idx,1); }
-  // Remove from entry map
-  removeEntryMapMarker(pinId);
-  // Remove from data
-  pinsData.splice(idx,1);
-  // Rebuild dashboard markers array indices
-  mlMarkers = [];
-  pinsData.forEach((pin, i) => {
-    if (mlMap && mlMap.loaded()) addDashboardMarker(pin, i);
-  });
-  // Remove from list
-  const item = document.getElementById('pin-item-' + pinId);
-  if (item) item.remove();
-  if (pinsData.length === 0) {
-    const ep = document.getElementById('pins-empty');
-    if (ep) ep.style.display = '';
-  }
-}
-
-// ══════════════════════════════
-// RESET
-// ══════════════════════════════
-function confirmReset() {
-  const code = prompt('Enter LDCHEMICAL to confirm full reset:');
-  if (code === 'LDCHEMICAL') {
-    mlMarkers.forEach(m => m && m.remove());
-    mlMarkers = [];
-    entryMarkers.forEach(e => e.marker.remove());
-    entryMarkers = [];
-    pinsData = [];
-    rebuildPinsList();
-    // Reset dashboard panel
-    document.getElementById('panel-title').textContent = 'Select a Location';
-    document.getElementById('panel-sub').textContent   = 'Click on a map marker to view detailed metrics';
-    document.getElementById('status-badge').classList.remove('visible');
-    ['val-pH','val-tds','val-temp','val-turb'].forEach(id => document.getElementById(id).innerHTML='--');
-    chartPoints = [];
-    drawChart();
-    alert('All data has been reset.');
-  } else if (code !== null) { alert('Incorrect code. Reset cancelled.'); }
 }
 
 // ══════════════════════════════
 // INIT
 // ══════════════════════════════
-document.getElementById('year').textContent = new Date().getFullYear();
-if (window.innerWidth < 768) document.getElementById('closeBtn').style.display = 'flex';
-
 window.addEventListener('load', () => {
   initDashboardMap();
-  drawChart(); // empty state
 });
 </script>
 </body>
