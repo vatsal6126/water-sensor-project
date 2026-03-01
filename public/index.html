@@ -528,10 +528,15 @@ async function loadPins() {
     el.innerHTML =
       `<div class="ml-pulse"></div><div class="ml-marker-inner"></div>`;
 
-    const marker = new maplibregl.Marker({ element: el, anchor: "bottom" })
-      .setLngLat([Number(pin.lng),
-      Number(pin.lat)])
-      .addTo(mlMap);
+    const marker = new maplibregl.Marker({
+  element: el,
+  anchor: "center"   // ✅ change bottom → center
+})
+.setLngLat([
+  parseFloat(pin.lng),
+  parseFloat(pin.lat)
+])
+.addTo(mlMap);
 
     el.addEventListener("click", () => selectPin(index));
     mlMarkers.push(marker);
@@ -569,6 +574,20 @@ async function loadHistory() {
 }
 
 /* ================== DRAW CHART ================== */
+function setActiveMetric(metric, color) {
+  activeMetric = metric;
+
+  document.querySelectorAll(".metric-card")
+    .forEach(c => c.classList.remove("active"));
+
+  document.getElementById("metric-" + metric)
+    .classList.add("active");
+
+  document.getElementById("chart-dot").style.background = color;
+  document.getElementById("chart-metric-label").innerText = metric;
+
+  drawChart();
+}
 function drawChart() {
   const svg = document.getElementById("area-chart");
   svg.innerHTML = "";
@@ -578,20 +597,55 @@ function drawChart() {
   const W = 800;
   const H = 200;
 
-  const values = chartData.map(d => d[activeMetric]);
+  const values = chartData.map(d => Number(d[activeMetric]));
+  const times = chartData.map(d =>
+    d.time ? d.time : new Date(d.ts).toLocaleTimeString()
+  );
+
   const max = Math.max(...values);
   const min = Math.min(...values);
+  const range = max - min || 1;
 
-  const path = chartData.map((d, i) => {
-    const x = (i / (chartData.length - 1)) * W;
-    const y =
-      H - ((d[activeMetric] - min) / (max - min || 1)) * H;
-    return `${i === 0 ? "M" : "L"}${x},${y}`;
-  }).join(" ");
+  let path = "";
+
+  values.forEach((val, i) => {
+    const x = (i / (values.length - 1)) * W;
+    const y = H - ((val - min) / range) * H;
+
+    path += `${i === 0 ? "M" : "L"}${x},${y} `;
+  });
 
   svg.innerHTML = `
     <path d="${path}" fill="none" stroke="#3b82f6" stroke-width="3"/>
   `;
+
+  // Tooltip
+  const tooltip = document.getElementById("chart-tooltip");
+
+  svg.onmousemove = function(e) {
+    const rect = svg.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const index = Math.round((mouseX / rect.width) * (values.length - 1));
+
+    if (!values[index]) return;
+
+    tooltip.classList.add("visible");
+    tooltip.style.left = mouseX + "px";
+    tooltip.style.top = "40px";
+
+    document.getElementById("ct-time").innerText = times[index];
+    document.getElementById("ct-val").innerText = values[index];
+
+    document.getElementById("ct-unit").innerText =
+      activeMetric === "tds" ? " ppm" :
+      activeMetric === "temp" ? " °C" :
+      activeMetric === "turb" ? " NTU" :
+      "";
+  };
+
+  svg.onmouseleave = function() {
+    tooltip.classList.remove("visible");
+  };
 }
 
 /* ================== ADD PIN ================== */
