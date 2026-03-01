@@ -1,50 +1,34 @@
 const express = require("express");
 const http = require("http");
-const WebSocket = require("ws");
-const fs = require("fs");
 const axios = require("axios");
 
-// --- CONFIGURATION ---
-const NTFY_TOPIC = "water-project-group-rrdv";
-
+// ================= CONFIG =================
 const FIREBASE_DB =
   "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
 
 const RESET_PASSWORD = "LDCHEMICAL";
-// ---------------------
+const NTFY_TOPIC = "water-project-group-rrdv";
+
+const ALERT_COOLDOWN = 2 * 60 * 1000; // 2 minutes
+let lastAlertTime = 0;
+// ==========================================
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
 
 app.use(express.static("public"));
 
-const DATA_FILE = "data.csv";
-let history = [];
-let lastAlertTime = 0;
-const ALERT_COOLDOWN = 2 * 60 * 1000;
-
-// ✅ Create CSV file if it doesn't exist
-if (!fs.existsSync(DATA_FILE)) {
-  fs.writeFileSync(DATA_FILE, "ts,time,pH,tds,temp,turb,status,lat,lng\n");
-}
-
 const PORT = process.env.PORT || 3000;
-
 server.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
 
+// ================= KEEP ALIVE =================
 app.get("/ping", (req, res) => {
   res.send("ok");
 });
 
-app.get("/snapshot", (req, res) => {
-  if (history.length === 0) return res.json({});
-  res.json(history[history.length - 1]);
-});
-
-// ✅ RESET ROUTE
+// ================= RESET =================
 app.get("/reset", async (req, res) => {
   const pass = req.query.password;
   const id = req.query.id || "device1";
@@ -55,22 +39,13 @@ app.get("/reset", async (req, res) => {
 
   try {
     await axios.delete(`${FIREBASE_DB}/devices/${id}.json`);
-
-    history = [];
-
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify({ type: "reset" }));
-      }
-    });
-
     return res.send("✅ Firebase reset successful");
   } catch (err) {
     return res.status(500).send("❌ Reset failed: " + err.message);
   }
 });
 
-// ✅ Distance calculator (meters)
+// ================= DISTANCE (25m rule) =================
 function distanceMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000;
   const toRad = (x) => (x * Math.PI) / 180;
@@ -79,79 +54,62 @@ function distanceMeters(lat1, lon1, lat2, lon2) {
   const dLon = toRad(lon2 - lon1);
 
   const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) *
       Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+      Math.sin(dLon / 2) ** 2;
 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// --- UPDATE ROUTE ---
+// ================= UPDATE ROUTE =================
 app.get("/update", async (req, res) => {
   const id = req.query.id || "device1";
 
-  const phVal = parseFloat(req.query.pH);
-  const tdsVal = parseFloat(req.query.tds);
-  const tempVal = parseFloat(req.query.temp);
-  const turbVal = parseFloat(req.query.turb);
+  const pH = parseFloat(req.query.pH);
+  const tds = parseFloat(req.query.tds);
+  const temp = parseFloat(req.query.temp);
+  const turb = parseFloat(req.query.turb);
 
   const lat = parseFloat(req.query.lat);
   const lng = parseFloat(req.query.lng);
 
-  if (isNaN(phVal) || isNaN(tdsVal) || isNaN(tempVal) || isNaN(turbVal)) {
-    return res.status(400).send("❌ Invalid sensor values (missing/NaN)");
+  if (isNaN(pH) || isNaN(tds) || isNaN(temp) || isNaN(turb)) {
+    return res.status(400).send("❌ Invalid sensor values");
   }
 
-  let currentStatus = "SAFE";
-  if (
-    phVal < 6.5 ||
-    phVal > 8.5 ||
-    tdsVal > 500 ||
-    tempVal > 35 ||
-    turbVal > 10
-  ) {
-    currentStatus = "UNSAFE";
+  let status = "SAFE";
+  if (pH < 6.5 || pH > 8.5 || tds > 500 || temp > 35 || turb > 10) {
+    status = "UNSAFE";
   }
 
   const entry = {
     ts: Date.now(),
     time: new Date().toLocaleString(),
-    pH: phVal,
-    tds: tdsVal,
-    temp: tempVal,
-    turb: turbVal,
-    status: currentStatus,
+    pH,
+    tds,
+    temp,
+    turb,
+    status,
     lat: isNaN(lat) ? null : lat,
     lng: isNaN(lng) ? null : lng,
   };
 
-  history.push(entry);
-  if (history.length > 50) history.shift();
+  console.log("📡 Data Received:", entry);
 
-  fs.appendFileSync(
-    DATA_FILE,
-    `${entry.ts},${entry.time},${entry.pH},${entry.tds},${entry.temp},${entry.turb},${entry.status},${entry.lat},${entry.lng}\n`
-  );
-
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify({ type: "reading", data: entry }));
-    }
-  });
-
-  console.log("✅ Data Received:", entry);
-
-  // ✅ Firebase save
   try {
+    // Save latest
     await axios.patch(`${FIREBASE_DB}/devices/${id}/latest.json`, entry);
+
+    // Save history
     await axios.post(`${FIREBASE_DB}/devices/${id}/history.json`, entry);
 
-    // ✅ MULTI PIN SYSTEM
+    // ================= MULTI PIN SYSTEM =================
     if (entry.lat !== null && entry.lng !== null) {
-      const pinsRes = await axios.get(`${FIREBASE_DB}/devices/${id}/pins.json`);
+      const pinsRes = await axios.get(
+        `${FIREBASE_DB}/devices/${id}/pins.json`
+      );
+
       const pins = pinsRes.data || {};
 
       let nearestPinId = null;
@@ -174,50 +132,41 @@ app.get("/update", async (req, res) => {
           `${FIREBASE_DB}/devices/${id}/pins/${nearestPinId}.json`,
           entry
         );
-        console.log(`📍 Updated pin ${nearestPinId} (${nearestDist.toFixed(1)}m)`);
+        console.log(`📍 Updated pin (${nearestDist.toFixed(1)}m)`);
       } else {
-        const newPin = await axios.post(
+        await axios.post(
           `${FIREBASE_DB}/devices/${id}/pins.json`,
           entry
         );
-        console.log(`📍 Created new pin: ${newPin.data.name}`);
+        console.log("📍 Created new pin");
       }
     }
-  } catch (e) {
-    console.log("❌ Firebase save error:", e.message);
-  }
 
-  // ✅ NTFY alert
-  if (currentStatus === "UNSAFE") {
-    const now = Date.now();
+    // ================= ALERT SYSTEM =================
+    if (status === "UNSAFE") {
+      const now = Date.now();
 
-    if (now - lastAlertTime > ALERT_COOLDOWN) {
-      try {
+      if (now - lastAlertTime > ALERT_COOLDOWN) {
         await axios.post(
           `https://ntfy.sh/${NTFY_TOPIC}`,
-          `⚠️ DANGER: Water is UNSAFE!\n\n🧪 pH: ${entry.pH}\n💧 TDS: ${entry.tds}\n🌡️ Temp: ${entry.temp}\n🌫️ Turb: ${entry.turb}`,
+          `⚠️ Water is UNSAFE!\n\n🧪 pH: ${pH}\n💧 TDS: ${tds}\n🌡 Temp: ${temp}\n🌫 Turbidity: ${turb}`,
           {
             headers: {
-              Title: "Water Sensor Alert",
-              Tags: "warning,skull",
+              Title: "Water Quality Alert",
               Priority: "high",
             },
           }
         );
+
         lastAlertTime = now;
-      } catch (err) {
-        console.error("❌ Alert Failed:", err.message);
       }
     }
+
+    res.send("✅ Data Stored Successfully");
+  } catch (err) {
+    console.log("❌ Firebase error:", err.message);
+    res.status(500).send("Firebase Error");
   }
-
-  res.send("✅ Data Received");
-});
-
-// --- websocket history ---
-wss.on("connection", (ws) => {
-  console.log("✅ WebSocket Client Connected");
-  ws.send(JSON.stringify({ type: "history", data: history }));
 });
 
 

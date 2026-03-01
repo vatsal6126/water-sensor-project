@@ -2,627 +2,348 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sensor Dashboard</title>
+<title>Water Sensor Dashboard</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- ✅ Leaflet CSS (MAP) -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
 body {
   margin: 0;
-  background: #1b2230;
+  background: #0f172a;
   font-family: 'Inter', sans-serif;
-  color: #e5e7eb;
+  color: white;
 }
+
 header {
-  height: 60px;
-  background: #111827;
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
+  padding: 20px;
+  font-size: 22px;
   font-weight: 600;
+  background: #111827;
 }
+
 .container {
   padding: 20px;
-  max-width: 1300px;
+  max-width: 1400px;
   margin: auto;
 }
-.grid {
+
+/* ================= SENSOR CARDS ================= */
+
+.sensor-cards {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
 }
-.card {
-  background: #222a3b;
-  border-radius: 14px;
+
+.sensor-card {
+  position: relative;
+  height: 200px;
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.sensor-card:hover {
+  transform: scale(1.05);
+}
+
+.card-front,
+.card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
   padding: 20px;
-  min-width: 0;
+  transition: opacity 0.3s ease;
 }
-.card-title {
-  font-size: 13px;
-  color: #9ca3af;
-  margin-bottom: 10px;
+
+.card-front {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
-.value {
+
+.card-front h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.card-front p {
   font-size: 26px;
   font-weight: 600;
 }
 
-.chart-container {
-  display: flex;
-  height: 300px;
-  width: 100%;
-  position: relative;
+.card-back {
+  background: #111827;
+  opacity: 0;
 }
 
-.y-axis-area {
-  width: 120px;
-  flex-shrink: 0;
-  background: #222a3b;
-  z-index: 10;
-  border-right: 1px solid #374151;
+.sensor-card:hover .card-front { opacity: 0; }
+.sensor-card:hover .card-back { opacity: 1; }
+
+.tds { background: #1d4ed8; }
+.ph { background: #16a34a; }
+.temp { background: #f97316; }
+.turb { background: #9333ea; }
+
+.sensor-card canvas {
+  width: 100% !important;
+  height: 150px !important;
 }
 
-.graph-scroll-area {
-  flex-grow: 1;
-  overflow-x: hidden;
-  overflow-y: hidden;
-  position: relative;
+/* ================= WQI ================= */
+
+.wqi-card {
+  margin-top: 30px;
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 16px;
 }
 
-#chartWrapper {
-  width: max-content;
-  height: 100%;
-}
-
-canvas {
-  height: 300px !important;
-}
-
-.controls {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-.nav-btn {
-  background: #374151;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  flex: 1;
-}
-.nav-btn:hover { background: #4b5563; }
-
-.action-btn {
-  margin-top: 15px;
-  padding: 12px;
-  width: 100%;
-  background: #3b82f6;
-  border: none;
-  border-radius: 10px;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 15px;
-  margin-top: 20px;
-}
-.metric {
-  background: #222a3b;
-  border-radius: 14px;
-  padding: 15px;
-}
-.status-safe { color: #22c55e; }
-.status-unsafe { color: #ef4444; }
-
-@media (max-width: 900px) {
-  .grid { grid-template-columns: 1fr; }
-  .metrics { grid-template-columns: repeat(2, 1fr); }
-}
-
-.wqi-card{
-  margin-top: 20px;
-  background: #222a3b;
-  border-radius: 14px;
-  padding: 18px;
-}
-.wqi-top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:12px;
-}
-.wqi-title{
-  font-size: 13px;
-  color:#9ca3af;
-  font-weight:600;
-}
-.wqi-score{
-  font-size:18px;
-  font-weight:700;
-}
-.wqi-bar-bg{
-  width:100%;
-  height:18px;
-  background:#111827;
+.wqi-bar-bg {
+  height: 18px;
+  background: #0f172a;
   border-radius: 999px;
-  overflow:hidden;
-  border:1px solid #374151;
+  overflow: hidden;
 }
-.wqi-bar-fill{
-  height:100%;
-  width:0%;
-  border-radius:999px;
+
+.wqi-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
   transition: width 0.5s ease;
 }
 
+/* ================= MAP ================= */
+
 .map-card {
-  margin-top: 20px;
-  background: #222a3b;
-  border-radius: 14px;
-  padding: 15px;
+  margin-top: 30px;
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 16px;
 }
+
 #map {
-  height: 350px;
-  width: 100%;
+  height: 400px;
   border-radius: 12px;
-  overflow: hidden;
+}
+
+button {
+  margin-top: 15px;
+  padding: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.refresh-btn { background: #2563eb; color: white; }
+.reset-btn { background: #ef4444; color: white; }
+
+@media(max-width: 900px){
+  .sensor-cards { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
 </head>
 
 <body>
 
-<header>Sensor Dashboard</header>
+<header>Water Quality Monitoring Dashboard</header>
 
 <div class="container">
-<div class="grid">
 
-<div class="card">
-  <div class="card-title">HISTORICAL SENSOR DATA</div>
+<!-- SENSOR CARDS -->
+<div class="sensor-cards">
 
-  <select id="metricSelect" style="
-    background:#111827; color:white; border:none;
-    padding:6px 10px; border-radius:6px; margin-bottom:10px;">
-    <option value="tds">TDS</option>
-    <option value="pH">pH</option>
-    <option value="temp">Temperature</option>
-    <option value="turb">Turbidity</option>
-  </select>
-
-  <div class="chart-container">
-    <div class="y-axis-area">
-      <canvas id="axisChart"></canvas>
+  <div class="sensor-card tds">
+    <div class="card-front">
+      <h2>TDS</h2>
+      <p id="tdsMetric">-- ppm</p>
     </div>
-    <div class="graph-scroll-area" id="scrollBox">
-      <div id="chartWrapper">
-        <canvas id="dataChart"></canvas>
-      </div>
+    <div class="card-back">
+      <canvas id="tdsMiniChart"></canvas>
     </div>
   </div>
 
-  <div class="controls">
-    <button class="nav-btn" id="scrollLeft"> &larr; Prev </button>
-    <button class="nav-btn" id="scrollRight"> Next &rarr; </button>
+  <div class="sensor-card ph">
+    <div class="card-front">
+      <h2>pH</h2>
+      <p id="phMetric">--</p>
+    </div>
+    <div class="card-back">
+      <canvas id="phMiniChart"></canvas>
+    </div>
   </div>
+
+  <div class="sensor-card temp">
+    <div class="card-front">
+      <h2>Temperature</h2>
+      <p id="tempMetric">-- °C</p>
+    </div>
+    <div class="card-back">
+      <canvas id="tempMiniChart"></canvas>
+    </div>
+  </div>
+
+  <div class="sensor-card turb">
+    <div class="card-front">
+      <h2>Turbidity</h2>
+      <p id="turbMetric">--</p>
+    </div>
+    <div class="card-back">
+      <canvas id="turbMiniChart"></canvas>
+    </div>
+  </div>
+
 </div>
 
-<div class="card">
-  <div class="card-title">CURRENT READINGS</div>
-  <div class="value" id="ph">pH: --</div>
-  <div class="value" id="tds">TDS: -- ppm</div>
-  <div class="value" id="temp">Temp: -- °C</div>
-  <div class="value" id="turb">Turbidity: --</div>
-  <div class="value" id="status">Status: --</div>
-  <button class="action-btn" id="fetchBtn">Fetch Latest Reading</button>
-</div>
-
-</div>
-
-<div class="metrics">
-  <div class="metric">
-    <div class="card-title">pH LEVEL</div>
-    <div class="value" id="phMetric">--</div>
-  </div>
-  <div class="metric">
-    <div class="card-title">TDS (ppm)</div>
-    <div class="value" id="tdsMetric">--</div>
-  </div>
-  <div class="metric">
-    <div class="card-title">TEMPERATURE</div>
-    <div class="value" id="tempMetric">-- °C</div>
-  </div>
-  <div class="metric">
-    <div class="card-title">TURBIDITY</div>
-    <div class="value" id="turbMetric">--</div>
-  </div>
-</div>
-
+<!-- WQI -->
 <div class="wqi-card">
-  <div class="wqi-top">
-    <div class="wqi-title">WQI (Water Quality Index) • 0 = Bad, 100 = Perfect</div>
-    <div class="wqi-score" id="wqiScore">-- / 100</div>
-  </div>
+  <h3>Water Quality Index (0–100)</h3>
+  <div id="wqiScore">-- / 100</div>
   <div class="wqi-bar-bg">
     <div class="wqi-bar-fill" id="wqiFill"></div>
   </div>
 </div>
 
+<!-- MAP -->
 <div class="map-card">
-  <div class="card-title">LIVE LOCATION MAP</div>
+  <h3>Live Location Map</h3>
   <div id="map"></div>
-
-  <button id="refreshMapBtn" style="
-    margin-top:12px;
-    width:100%;
-    padding:12px;
-    border:none;
-    border-radius:12px;
-    background:#3b82f6;
-    color:white;
-    font-size:15px;
-    font-weight:700;
-    cursor:pointer;
-  ">
-    🔄 Refresh Map
-  </button>
+  <button class="refresh-btn" id="refreshMapBtn">🔄 Refresh Map</button>
+  <button class="reset-btn" id="resetBtn">⚠ Reset All Data</button>
 </div>
 
-</div>
-
-<div style="margin-top:20px;">
-  <button id="resetBtn" style="
-    width:100%;
-    padding:14px;
-    border:none;
-    border-radius:12px;
-    background:#ef4444;
-    color:white;
-    font-size:16px;
-    font-weight:700;
-    cursor:pointer;
-  ">
-    ⚠️ RESET ALL DATA
-  </button>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-const wsProtocol = (location.protocol === "https:") ? "wss://" : "ws://";
-const ws = new WebSocket(wsProtocol + location.host);
-
 const FIREBASE_DB = "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
 const DEVICE_ID = "device1";
-const FIREBASE_HISTORY_URL = `${FIREBASE_DB}/devices/${DEVICE_ID}/history.json`;
-const FIREBASE_LATEST_URL = `${FIREBASE_DB}/devices/${DEVICE_ID}/latest.json`;
 
-const POINT_WIDTH = 100;
 let fullHistory = [];
-let currentMetric = "tds";
 
-const scrollBox = document.getElementById("scrollBox");
-const chartWrapper = document.getElementById("chartWrapper");
+/* ================= MINI CHARTS ================= */
 
-// ✅ WQI
-function calcWQI(d) {
-  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-
-  let scorePH = 100;
-  if (d.pH < 6.5) scorePH = 100 - ((6.5 - d.pH) * 25);
-  if (d.pH > 8.5) scorePH = 100 - ((d.pH - 8.5) * 25);
-  scorePH = clamp(scorePH, 0, 100);
-
-  let scoreTDS = d.tds <= 300 ? 100 : d.tds <= 500 ? 70 : 30;
-  let scoreTEMP = d.temp <= 30 ? 100 : d.temp <= 35 ? 70 : 30;
-  let scoreTURB = d.turb <= 5 ? 100 : d.turb <= 10 ? 70 : 30;
-
-  const wqi = (scorePH * 0.35) + (scoreTDS * 0.25) + (scoreTURB * 0.25) + (scoreTEMP * 0.15);
-  return Math.round(clamp(wqi, 0, 100));
+function createMiniChart(id, color){
+  return new Chart(document.getElementById(id),{
+    type:'line',
+    data:{ labels:[], datasets:[{ data:[], borderColor:color, tension:0.3 }]},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{ legend:{ display:false }},
+      scales:{ x:{ display:false }, y:{ display:false }}
+    }
+  });
 }
 
-function setWQIUI(wqi) {
-  const fill = document.getElementById("wqiFill");
-  const scoreEl = document.getElementById("wqiScore");
-  scoreEl.innerText = `${wqi} / 100`;
-  fill.style.width = `${wqi}%`;
+const tdsMini = createMiniChart("tdsMiniChart","#3b82f6");
+const phMini = createMiniChart("phMiniChart","#22c55e");
+const tempMini = createMiniChart("tempMiniChart","#f97316");
+const turbMini = createMiniChart("turbMiniChart","#a855f7");
 
-  if (wqi <= 40) fill.style.background = "#ef4444";
-  else if (wqi <= 70) fill.style.background = "#f59e0b";
-  else fill.style.background = "#22c55e";
+/* ================= LOAD HISTORY ================= */
+
+async function loadHistory(){
+  const res = await fetch(`${FIREBASE_DB}/devices/${DEVICE_ID}/history.json`);
+  const data = await res.json();
+  if(!data) return;
+
+  fullHistory = Object.values(data).sort((a,b)=>a.ts-b.ts).slice(-50);
+  updateUI();
 }
 
-// ✅ Axis chart
-const axisChart = new Chart(document.getElementById("axisChart"), {
-  type: 'line',
-  data: { labels: [], datasets: [{ data: [], borderWidth: 0, pointRadius: 0 }] },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { display: false },
-      y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { drawBorder: false, display: false } }
+function updateUI(){
+  if(!fullHistory.length) return;
+
+  const last = fullHistory[fullHistory.length-1];
+
+  document.getElementById("tdsMetric").innerText = last.tds+" ppm";
+  document.getElementById("phMetric").innerText = last.pH;
+  document.getElementById("tempMetric").innerText = last.temp+" °C";
+  document.getElementById("turbMetric").innerText = last.turb;
+
+  updateMini();
+  updateWQI(last);
+}
+
+function updateMini(){
+  const labels = fullHistory.map(d=>d.time);
+
+  tdsMini.data.labels = labels;
+  tdsMini.data.datasets[0].data = fullHistory.map(d=>d.tds);
+
+  phMini.data.labels = labels;
+  phMini.data.datasets[0].data = fullHistory.map(d=>d.pH);
+
+  tempMini.data.labels = labels;
+  tempMini.data.datasets[0].data = fullHistory.map(d=>d.temp);
+
+  turbMini.data.labels = labels;
+  turbMini.data.datasets[0].data = fullHistory.map(d=>d.turb);
+
+  tdsMini.update();
+  phMini.update();
+  tempMini.update();
+  turbMini.update();
+}
+
+/* ================= WQI ================= */
+
+function updateWQI(d){
+  let score = 100;
+  if(d.pH<6.5||d.pH>8.5||d.tds>500||d.temp>35||d.turb>10) score=40;
+  document.getElementById("wqiScore").innerText=score+" / 100";
+  document.getElementById("wqiFill").style.width=score+"%";
+}
+
+loadHistory();
+setInterval(loadHistory,10000);
+
+/* ================= MAP ================= */
+
+const map = L.map('map').setView([21.17,72.83],12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+let markers={};
+
+async function loadPins(){
+  const res=await fetch(`${FIREBASE_DB}/devices/${DEVICE_ID}/pins.json`);
+  const pins=await res.json();
+  if(!pins) return;
+
+  for(const id in pins){
+    const d=pins[id];
+    if(!d.lat||!d.lng) continue;
+
+    if(!markers[id]){
+      markers[id]=L.circleMarker([d.lat,d.lng],{
+        radius:10,color:d.status==="UNSAFE"?"red":"green",
+        fillOpacity:0.8
+      }).addTo(map);
     }
   }
-});
+}
 
-// ✅ Data chart
-const dataChart = new Chart(document.getElementById("dataChart"), {
-  type: 'line',
-  data: { labels: [], datasets: [{
-    data: [], borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.1)",
-    borderWidth: 2, tension: 0.3, pointRadius: 4, pointBackgroundColor: "#1b2230", fill: true
-  }]},
-  options: {
-    responsive: false,
-    maintainAspectRatio: false,
-    animation: false,
-    plugins: { legend: { display: false } },
-    scales: { x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } }, y: { display: false } }
-  }
-});
+loadPins();
+setInterval(loadPins,10000);
 
-// ✅ websocket live
-ws.onmessage = (e) => {
-  const msg = JSON.parse(e.data);
+document.getElementById("refreshMapBtn").onclick=loadPins;
 
-  if (msg.type === "reading") {
-    fullHistory.push(msg.data);
-    if (fullHistory.length > 50) fullHistory.shift();
-    updateCards(msg.data);
-    redrawGraph();
-  }
-
-  if (msg.type === "reset") {
-    fullHistory = [];
-    redrawGraph();
-    clearAllMarkers();
-    alert("⚠️ Data Reset Done!");
-  }
+document.getElementById("resetBtn").onclick=async()=>{
+  const pass=prompt("Enter password");
+  if(!pass) return;
+  await fetch(`/reset?password=${pass}&id=${DEVICE_ID}`);
+  alert("Reset Done");
+  location.reload();
 };
-
-// ✅ load history from firebase
-async function loadFirebaseHistory() {
-  try {
-    const res = await fetch(FIREBASE_HISTORY_URL);
-    const histObj = await res.json();
-    if (!histObj) return;
-
-    const arr = Object.values(histObj);
-    arr.sort((a, b) => (a.ts || 0) - (b.ts || 0));
-    fullHistory = arr.slice(-50);
-    redrawGraph();
-
-    if (fullHistory.length > 0) updateCards(fullHistory[fullHistory.length - 1]);
-  } catch (err) {}
-}
-loadFirebaseHistory();
-
-// ✅ fetch latest
-document.getElementById("fetchBtn").addEventListener("click", async () => {
-  try {
-    const res = await fetch(FIREBASE_LATEST_URL);
-    const data = await res.json();
-    if (data && data.pH !== undefined) updateCards(data);
-  } catch (err) {
-    alert("❌ Failed to fetch latest reading");
-  }
-});
-
-document.getElementById("metricSelect").addEventListener("change", (e) => {
-  currentMetric = e.target.value;
-  redrawGraph();
-});
-
-document.getElementById("scrollLeft").addEventListener("click", () => {
-  scrollBox.scrollBy({ left: -200, behavior: "smooth" });
-});
-document.getElementById("scrollRight").addEventListener("click", () => {
-  scrollBox.scrollBy({ left: 200, behavior: "smooth" });
-});
-
-function redrawGraph() {
-  if (!fullHistory || fullHistory.length === 0) {
-    axisChart.data.labels = [];
-    axisChart.data.datasets[0].data = [];
-    dataChart.data.labels = [];
-    dataChart.data.datasets[0].data = [];
-    axisChart.update();
-    dataChart.update();
-    return;
-  }
-
-  const labels = fullHistory.map(d => d.time);
-
-  const data = fullHistory.map(d =>
-    currentMetric === "tds" ? d.tds :
-    currentMetric === "pH" ? d.pH :
-    currentMetric === "temp" ? d.temp :
-    d.turb
-  );
-
-  dataChart.data.labels = labels;
-  dataChart.data.datasets[0].data = data;
-
-  axisChart.data.labels = labels;
-  axisChart.data.datasets[0].data = data;
-
-  let minVal = Math.min(...data);
-  let maxVal = Math.max(...data);
-  let padding = (maxVal - minVal) * 0.1;
-  if (padding === 0) padding = 1;
-
-  minVal -= padding;
-  maxVal += padding;
-
-  axisChart.options.scales.y.min = minVal;
-  axisChart.options.scales.y.max = maxVal;
-  dataChart.options.scales.y.min = minVal;
-  dataChart.options.scales.y.max = maxVal;
-
-  const totalPoints = fullHistory.length;
-  const newWidth = Math.max(scrollBox.clientWidth, totalPoints * POINT_WIDTH);
-
-  chartWrapper.style.width = newWidth + "px";
-
-  const canvas = document.getElementById("dataChart");
-  canvas.style.width = newWidth + "px";
-  canvas.width = newWidth;
-  canvas.height = 300;
-
-  axisChart.update();
-  dataChart.resize();
-  dataChart.update();
-}
-
-function updateCards(d) {
-  document.getElementById("ph").innerText = "pH: " + d.pH;
-  document.getElementById("tds").innerText = "TDS: " + d.tds + " ppm";
-  document.getElementById("temp").innerText = "Temp: " + d.temp + " °C";
-  document.getElementById("turb").innerText = "Turbidity: " + d.turb;
-
-  document.getElementById("phMetric").innerText = d.pH;
-  document.getElementById("tdsMetric").innerText = d.tds;
-  document.getElementById("tempMetric").innerText = d.temp + " °C";
-  document.getElementById("turbMetric").innerText = d.turb;
-
-  const sEl = document.getElementById("status");
-  sEl.innerText = "Status: " + d.status;
-  sEl.className = "value " + (d.status === "SAFE" ? "status-safe" : "status-unsafe");
-
-  setWQIUI(calcWQI(d));
-}
-
-/* ✅ MAP SYSTEM (MANUAL REFRESH ONLY) */
-const map = L.map("map").setView([21.1702, 72.8311], 12);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
-
-setTimeout(() => map.invalidateSize(), 300);
-
-let markers = {};
-
-function getColor(status) {
-  return status === "UNSAFE" ? "red" : "green";
-}
-
-function clearAllMarkers() {
-  for (const key in markers) {
-    map.removeLayer(markers[key]);
-  }
-  markers = {};
-}
-
-async function loadMarkers() {
-  try {
-    const res = await fetch(`${FIREBASE_DB}/devices.json`);
-    const devices = await res.json();
-    if (!devices) return;
-
-    for (const deviceId in devices) {
-      const device = devices[deviceId];
-      if (!device.pins) continue;
-
-      for (const pinId in device.pins) {
-        const d = device.pins[pinId];
-        if (!d.lat || !d.lng) continue;
-
-        const key = `${deviceId}_${pinId}`;
-        const color = getColor(d.status || "SAFE");
-
-        const popupText = `
-          <b>${deviceId}</b><br>
-          🧪 pH: ${d.pH}<br>
-          💧 TDS: ${d.tds}<br>
-          🌡️ Temp: ${d.temp}<br>
-          🌫️ Turb: ${d.turb}<br>
-          ⚠️ Status: <b style="color:${color}">${d.status}</b><br>
-          🕒 Time: ${d.time}
-        `;
-
-        if (markers[key]) {
-          markers[key].setLatLng([d.lat, d.lng]);
-          markers[key].setPopupContent(popupText);
-          markers[key].setStyle({ color, fillColor: color });
-        } else {
-          const marker = L.circleMarker([d.lat, d.lng], {
-            radius: 10,
-            color: color,
-            fillColor: color,
-            fillOpacity: 0.85
-          }).addTo(map);
-
-          marker.bindPopup(popupText);
-          markers[key] = marker;
-        }
-      }
-    }
-  } catch (err) {
-    console.log("❌ map error:", err.message);
-  }
-}
-
-// load once at start
-loadMarkers();
-// ✅ AUTO REFRESH MAP EVERY 10 SECONDS
-setInterval(() => {
-  if (!isMapBusy) loadMarkers();
-}, 10000);
-
-
-// ✅ refresh button
-document.getElementById("refreshMapBtn").addEventListener("click", async () => {
-  const btn = document.getElementById("refreshMapBtn");
-  btn.innerText = "⏳ Refreshing...";
-  btn.disabled = true;
-  btn.style.opacity = "0.7";
-
-  await loadMarkers();
-
-  btn.innerText = "🔄 Refresh Map";
-  btn.disabled = false;
-  btn.style.opacity = "1";
-});
-
-// ✅ RESET BUTTON
-document.getElementById("resetBtn").addEventListener("click", async () => {
-  const pass = prompt("Enter Reset Password:");
-  if (!pass) return;
-
-  const ok = confirm("⚠️ Are you sure? This will delete all old Firebase data!");
-  if (!ok) return;
-
-  try {
-    const res = await fetch(`/reset?password=${encodeURIComponent(pass)}&id=${DEVICE_ID}`);
-    const txt = await res.text();
-
-    if (!res.ok) {
-      alert(txt);
-      return;
-    }
-
-    alert("✅ Reset Done!");
-
-    fullHistory = [];
-    redrawGraph();
-    clearAllMarkers();
-  } catch (err) {
-    alert("❌ Reset failed: " + err.message);
-  }
-});
 </script>
-
 </body>
 </html>
 
