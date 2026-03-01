@@ -659,7 +659,48 @@ function navigate(page) {
 }
 
 /* ================== START ================== */
-window.addEventListener("load", initDashboardMap);
+/* ================== INIT MANUAL ENTRY MAP ================== */
+function initEntryMap() {
+  entryMap = new maplibregl.Map({
+    container: "entry-map",
+    style: MAP_STYLE,
+    center: [72.8311, 21.175],
+    zoom: 11
+  });
+
+  entryMap.addControl(new maplibregl.NavigationControl(), "bottom-right");
+
+  let previewMarker = null;
+
+  entryMap.on("click", (e) => {
+    const { lng, lat } = e.lngLat;
+
+    // Remove old preview
+    if (previewMarker) previewMarker.remove();
+
+    const el = document.createElement("div");
+    el.className = "entry-preview-marker";
+
+    previewMarker = new maplibregl.Marker({ element: el })
+      .setLngLat([lng, lat])
+      .addTo(entryMap);
+
+    document.getElementById("f-lat").value = lat.toFixed(6);
+    document.getElementById("f-lng").value = lng.toFixed(6);
+
+    document.getElementById("coords-text").innerText =
+      `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+    document.getElementById("coords-display").classList.add("visible");
+
+    // Enable save button
+    document.getElementById("add-pin-btn").disabled = false;
+  });
+}
+window.addEventListener("load", () => {
+  initDashboardMap();
+  initEntryMap();
+});
 </script>
 </body>
 </html>

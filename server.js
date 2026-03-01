@@ -34,6 +34,57 @@ function distanceMeters(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// ================= ADD ROUTE (MANUAL LINK ADD) =================
+app.get("/add", async (req, res) => {
+  const id = req.query.id || "device1";
+
+  const pH = parseFloat(req.query.pH);
+  const tds = parseFloat(req.query.tds);
+  const temp = parseFloat(req.query.temp);
+  const turb = parseFloat(req.query.turb);
+  const lat = parseFloat(req.query.lat);
+  const lng = parseFloat(req.query.lng);
+
+  if ([pH, tds, temp, turb, lat, lng].some(isNaN)) {
+    return res.status(400).send("Invalid values");
+  }
+
+  const status =
+    pH < 6.5 || pH > 8.5 || tds > 500 || temp > 35 || turb > 10
+      ? "UNSAFE"
+      : "SAFE";
+
+  const entry = {
+    ts: Date.now(),
+    time: new Date().toLocaleString(),
+    pH,
+    tds,
+    temp,
+    turb,
+    status,
+    lat,
+    lng,
+  };
+
+  try {
+    // Save history
+    await axios.post(
+      `${FIREBASE_DB}/devices/${id}/history.json`,
+      entry
+    );
+
+    // Save as new pin
+    await axios.post(
+      `${FIREBASE_DB}/devices/${id}/pins.json`,
+      entry
+    );
+
+    res.send("Pin added successfully");
+  } catch (err) {
+    res.status(500).send("Firebase Error");
+  }
+});
+
 // ================= UPDATE ROUTE (ESP32) =================
 app.get("/update", async (req, res) => {
   const id = req.query.id || "device1";
@@ -67,19 +118,16 @@ app.get("/update", async (req, res) => {
   };
 
   try {
-    // Save latest
     await axios.patch(
       `${FIREBASE_DB}/devices/${id}/latest.json`,
       entry
     );
 
-    // Save history
     await axios.post(
       `${FIREBASE_DB}/devices/${id}/history.json`,
       entry
     );
 
-    // PIN LOGIC
     if (entry.lat !== null && entry.lng !== null) {
       const pinsRes = await axios.get(
         `${FIREBASE_DB}/devices/${id}/pins.json`
