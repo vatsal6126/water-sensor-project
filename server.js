@@ -86,6 +86,9 @@ app.get("/add", async (req, res) => {
 });
 
 // ================= UPDATE ROUTE (ESP32) =================
+app.get("/ping", (req, res) => {
+  res.status(200).send("Server alive");
+});
 app.get("/update", async (req, res) => {
   const id = req.query.id || "device1";
 
