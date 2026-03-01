@@ -529,7 +529,8 @@ async function loadPins() {
       `<div class="ml-pulse"></div><div class="ml-marker-inner"></div>`;
 
     const marker = new maplibregl.Marker({ element: el, anchor: "bottom" })
-      .setLngLat([pin.lng, pin.lat])
+      .setLngLat([Number(pin.lng),
+      Number(pin.lat)])
       .addTo(mlMap);
 
     el.addEventListener("click", () => selectPin(index));
