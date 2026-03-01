@@ -459,6 +459,7 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
 </div>
 
 <script>
+/* ================== CONFIG ================== */
 const FIREBASE_URL =
 "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
 
@@ -466,43 +467,54 @@ const DEVICE_ID = "device1";
 
 let pinsData = [];
 let mlMap;
-let markers = [];
+let entryMap;
+let mlMarkers = [];
+let entryMarkers = [];
 let activeMetric = "pH";
 let chartData = [];
 
-// ================= INIT MAP =================
-function initMap() {
+/* ================== MAP STYLE ================== */
+const MAP_STYLE = {
+  version: 8,
+  sources: {
+    osm: {
+      type: "raster",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256
+    }
+  },
+  layers: [{ id: "osm", type: "raster", source: "osm" }]
+};
+
+/* ================== INIT DASHBOARD MAP ================== */
+function initDashboardMap() {
   mlMap = new maplibregl.Map({
     container: "maplibre-map",
-    style: {
-      version: 8,
-      sources: {
-        osm: {
-          type: "raster",
-          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-          tileSize: 256,
-        },
-      },
-      layers: [{ id: "osm", type: "raster", source: "osm" }],
-    },
+    style: MAP_STYLE,
     center: [72.8311, 21.175],
-    zoom: 11,
+    zoom: 11
   });
 
   mlMap.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
-  mlMap.on("load", loadPins);
+  mlMap.on("load", loadPinsRealtime);
 }
 
-// ================= LOAD PINS =================
+/* ================== REALTIME LISTENER ================== */
+function loadPinsRealtime() {
+  setInterval(loadPins, 3000); // auto refresh every 3 sec
+  loadPins();
+}
+
+/* ================== LOAD PINS ================== */
 async function loadPins() {
   const res = await fetch(
     `${FIREBASE_URL}/devices/${DEVICE_ID}/pins.json`
   );
   const data = await res.json();
 
-  markers.forEach(m => m.remove());
-  markers = [];
+  mlMarkers.forEach(m => m.remove());
+  mlMarkers = [];
   pinsData = [];
 
   if (!data) return;
@@ -511,19 +523,21 @@ async function loadPins() {
     const pin = { id: key, ...data[key] };
     pinsData.push(pin);
 
-    const marker = new maplibregl.Marker()
+    const el = document.createElement("div");
+    el.className = `ml-marker ${pin.status === "SAFE" ? "safe" : "warning"}`;
+    el.innerHTML =
+      `<div class="ml-pulse"></div><div class="ml-marker-inner"></div>`;
+
+    const marker = new maplibregl.Marker({ element: el, anchor: "bottom" })
       .setLngLat([pin.lng, pin.lat])
       .addTo(mlMap);
 
-    marker.getElement().addEventListener("click", () => {
-      selectPin(index);
-    });
-
-    markers.push(marker);
+    el.addEventListener("click", () => selectPin(index));
+    mlMarkers.push(marker);
   });
 }
 
-// ================= SELECT PIN =================
+/* ================== SELECT PIN ================== */
 async function selectPin(index) {
   const pin = pinsData[index];
 
@@ -538,7 +552,7 @@ async function selectPin(index) {
   loadHistory();
 }
 
-// ================= LOAD HISTORY =================
+/* ================== LOAD HISTORY ================== */
 async function loadHistory() {
   const res = await fetch(
     `${FIREBASE_URL}/devices/${DEVICE_ID}/history.json`
@@ -553,7 +567,7 @@ async function loadHistory() {
   drawChart();
 }
 
-// ================= DRAW SIMPLE SVG CHART =================
+/* ================== DRAW CHART ================== */
 function drawChart() {
   const svg = document.getElementById("area-chart");
   svg.innerHTML = "";
@@ -579,18 +593,73 @@ function drawChart() {
   `;
 }
 
-// ================= RESET =================
-async function confirmReset() {
-  const pass = prompt("Enter LDCHEMICAL");
-  if (pass !== "LDCHEMICAL") return alert("Wrong password");
+/* ================== ADD PIN ================== */
+async function addPin() {
+  const lat = parseFloat(document.getElementById("f-lat").value);
+  const lng = parseFloat(document.getElementById("f-lng").value);
+  const pH = parseFloat(document.getElementById("f-pH").value);
+  const tds = parseFloat(document.getElementById("f-tds").value);
+  const temp = parseFloat(document.getElementById("f-temp").value);
+  const turb = parseFloat(document.getElementById("f-turb").value);
 
-  await fetch(`/reset?id=${DEVICE_ID}&password=LDCHEMICAL`);
+  if ([lat, lng, pH, tds, temp, turb].some(isNaN)) {
+    alert("Fill all fields");
+    return;
+  }
+
+  const status = (pH < 6 || pH > 8.5 || turb > 10)
+    ? "WARNING"
+    : "SAFE";
+
+  await fetch(
+    `${FIREBASE_URL}/devices/${DEVICE_ID}/pins.json`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        lat, lng, pH, tds, temp, turb,
+        status,
+        ts: Date.now()
+      })
+    }
+  );
+
+  alert("Pin saved!");
   loadPins();
-  alert("Reset successful");
 }
 
-// ================= START =================
-window.addEventListener("load", initMap);
+/* ================== RESET ================== */
+async function confirmReset() {
+  const pass = prompt("Enter LDCHEMICAL");
+  if (pass !== "LDCHEMICAL") {
+    alert("Wrong password");
+    return;
+  }
+
+  await fetch(
+    `${FIREBASE_URL}/devices/${DEVICE_ID}.json`,
+    { method: "DELETE" }
+  );
+
+  mlMarkers.forEach(m => m.remove());
+  mlMarkers = [];
+  alert("All data cleared from Firebase.");
+}
+
+/* ================== NAVIGATION ================== */
+function navigate(page) {
+  document.querySelectorAll(".page")
+    .forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item")
+    .forEach(n => n.classList.remove("active"));
+
+  document.getElementById("page-" + page)
+    .classList.add("active");
+  document.getElementById("nav-" + page)
+    .classList.add("active");
+}
+
+/* ================== START ================== */
+window.addEventListener("load", initDashboardMap);
 </script>
 </body>
 </html>
