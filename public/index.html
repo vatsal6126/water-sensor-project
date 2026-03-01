@@ -459,25 +459,30 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
 </div>
 
 <script>
-// ══════════════════════════════
-// DATA
-// ══════════════════════════════
+
+// ==========================
+// FIREBASE CONFIG
+// ==========================
+const FIREBASE_URL =
+"https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+// ==========================
+// GLOBAL DATA
+// ==========================
 let pinsData = [];
 let mlMap = null;
 let entryMap = null;
 let mlMarkers = [];
-let entryMarkers = [];
 let entryTempMarker = null;
 let pendingLat = null;
 let pendingLng = null;
 
-let activeMetric = 'pH';
 let activeColor = '#3b82f6';
 let chartPoints = [];
 
-// ══════════════════════════════
+// ==========================
 // MAP STYLE
-// ══════════════════════════════
+// ==========================
 const MAP_STYLE = {
   version: 8,
   sources: {
@@ -494,11 +499,10 @@ const MAP_STYLE = {
   }]
 };
 
-// ══════════════════════════════
-// DASHBOARD MAP INIT
-// ══════════════════════════════
+// ==========================
+// INIT DASHBOARD MAP
+// ==========================
 function initDashboardMap() {
-  if (mlMap) return;
 
   mlMap = new maplibregl.Map({
     container: 'maplibre-map',
@@ -510,14 +514,98 @@ function initDashboardMap() {
   mlMap.addControl(new maplibregl.NavigationControl(), 'bottom-right');
 
   mlMap.on('load', () => {
-    console.log("Dashboard map loaded");
+    loadPinsFromFirebase();
   });
 }
 
-// ══════════════════════════════
-// ENTRY MAP INIT
-// ══════════════════════════════
+// ==========================
+// LOAD PINS FROM FIREBASE
+// ==========================
+async function loadPinsFromFirebase() {
+
+  const res = await fetch(FIREBASE_URL + "/pins.json");
+  const data = await res.json();
+
+  if (!data) return;
+
+  pinsData = [];
+  mlMarkers.forEach(m => m.remove());
+  mlMarkers = [];
+
+  Object.keys(data).forEach((key, index) => {
+
+    const pin = {
+      id: key,
+      ...data[key]
+    };
+
+    pinsData.push(pin);
+
+    addDashboardMarker(pin, index);
+  });
+}
+
+// ==========================
+// SAVE PIN TO FIREBASE
+// ==========================
+async function savePinToFirebase(pin) {
+
+  await fetch(FIREBASE_URL + "/pins/" + pin.id + ".json", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(pin)
+  });
+}
+
+// ==========================
+// DASHBOARD MARKER
+// ==========================
+function addDashboardMarker(pin, idx) {
+
+  const marker = new maplibregl.Marker()
+    .setLngLat([Number(pin.lng), Number(pin.lat)])
+    .addTo(mlMap);
+
+  marker.getElement().addEventListener('click', () => {
+    selectPin(idx);
+    mlMap.flyTo({ center: [pin.lng, pin.lat], zoom: 14 });
+  });
+
+  mlMarkers.push(marker);
+}
+
+// ==========================
+// SELECT PIN
+// ==========================
+function selectPin(idx) {
+
+  const pin = pinsData[idx];
+
+  document.getElementById('panel-title').textContent = "Location Metrics";
+  document.getElementById('panel-sub').textContent =
+    `${Number(pin.lat).toFixed(4)}, ${Number(pin.lng).toFixed(4)}`;
+
+  document.getElementById('val-pH').innerHTML =
+    pin.pH;
+
+  document.getElementById('val-tds').innerHTML =
+    `${pin.tds} <span class="metric-unit">ppm</span>`;
+
+  document.getElementById('val-temp').innerHTML =
+    `${pin.temp} <span class="metric-unit">°C</span>`;
+
+  document.getElementById('val-turb').innerHTML =
+    `${pin.turb} <span class="metric-unit">NTU</span>`;
+
+  buildChartData(pin);
+  drawChart();
+}
+
+// ==========================
+// INIT ENTRY MAP
+// ==========================
 function initEntryMap() {
+
   if (entryMap) return;
 
   entryMap = new maplibregl.Map({
@@ -530,11 +618,16 @@ function initEntryMap() {
   entryMap.addControl(new maplibregl.NavigationControl(), 'top-right');
 
   entryMap.on('click', e => {
+
     pendingLat = e.lngLat.lat;
     pendingLng = e.lngLat.lng;
 
-    document.getElementById('f-lat').value = pendingLat.toFixed(6);
-    document.getElementById('f-lng').value = pendingLng.toFixed(6);
+    document.getElementById('f-lat').value =
+      pendingLat.toFixed(6);
+
+    document.getElementById('f-lng').value =
+      pendingLng.toFixed(6);
+
     document.getElementById('add-pin-btn').disabled = false;
 
     if (entryTempMarker) entryTempMarker.remove();
@@ -545,52 +638,13 @@ function initEntryMap() {
   });
 }
 
-// ══════════════════════════════
-// MARKER CREATION
-// ══════════════════════════════
-function addDashboardMarker(pin, idx) {
-
-  const marker = new maplibregl.Marker()
-    .setLngLat([pin.lng, pin.lat])
-    .addTo(mlMap);
-
-  marker.getElement().addEventListener('click', () => {
-    selectPin(idx);
-    mlMap.flyTo({ center: [pin.lng, pin.lat], zoom: 14 });
-  });
-
-  mlMarkers[idx] = marker;
-}
-
-// ══════════════════════════════
-// SELECT PIN
-// ══════════════════════════════
-function selectPin(idx) {
-  const pin = pinsData[idx];
-
-  document.getElementById('panel-title').textContent = "Location Metrics";
-  document.getElementById('panel-sub').textContent =
-    `${pin.lat.toFixed(4)}, ${pin.lng.toFixed(4)}`;
-
-  document.getElementById('val-pH').innerHTML = pin.pH;
-  document.getElementById('val-tds').innerHTML =
-    `${pin.tds} <span class="metric-unit">ppm</span>`;
-  document.getElementById('val-temp').innerHTML =
-    `${pin.temp} <span class="metric-unit">°C</span>`;
-  document.getElementById('val-turb').innerHTML =
-    `${pin.turb} <span class="metric-unit">NTU</span>`;
-
-  buildChartData(pin);
-  drawChart();
-}
-
-// ══════════════════════════════
+// ==========================
 // ADD PIN
-// ══════════════════════════════
-function addPin() {
+// ==========================
+async function addPin() {
 
-  if (pendingLat === null || pendingLng === null) {
-    alert("Click on map first");
+  if (pendingLat === null) {
+    alert("Click map first");
     return;
   }
 
@@ -605,18 +659,19 @@ function addPin() {
   }
 
   const pin = {
-    id: Date.now(),
+    id: "pin_" + Date.now(),
     lat: pendingLat,
     lng: pendingLng,
-    pH, tds, temp, turb,
+    pH,
+    tds,
+    temp,
+    turb,
     ts: Date.now()
   };
 
-  const idx = pinsData.push(pin) - 1;
+  await savePinToFirebase(pin);
 
-  mlMap.once('idle', () => {
-    addDashboardMarker(pin, idx);
-  });
+  loadPinsFromFirebase();
 
   if (entryTempMarker) entryTempMarker.remove();
   pendingLat = pendingLng = null;
@@ -626,35 +681,43 @@ function addPin() {
   document.getElementById('add-pin-btn').disabled = true;
 }
 
-// ══════════════════════════════
+// ==========================
 // SIMPLE CHART
-// ══════════════════════════════
+// ==========================
 function buildChartData(pin) {
+
   chartPoints = [];
 
   for (let i = 6; i >= 0; i--) {
     chartPoints.push({
-      val: pin.pH + Math.random(),
+      val: Number(pin.pH) + Math.random(),
       ts: new Date(pin.ts - i * 3600000)
     });
   }
 }
 
 function drawChart() {
+
   const svg = document.getElementById('area-chart');
+
   if (!chartPoints.length) {
     svg.innerHTML = '';
     return;
   }
 
-  const W = 800, H = 200;
+  const W = 800;
+  const H = 200;
+
   const max = Math.max(...chartPoints.map(p => p.val));
   const min = Math.min(...chartPoints.map(p => p.val));
 
   const path = chartPoints.map((p, i) => {
+
     const x = (i / 6) * W;
     const y = H - ((p.val - min) / (max - min)) * H;
+
     return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+
   }).join(' ');
 
   svg.innerHTML = `
@@ -665,15 +728,22 @@ function drawChart() {
   `;
 }
 
-// ══════════════════════════════
+// ==========================
 // NAVIGATION
-// ══════════════════════════════
+// ==========================
 function navigate(page) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
-  document.getElementById('page-' + page).classList.add('active');
-  document.getElementById('nav-' + page).classList.add('active');
+  document.querySelectorAll('.page')
+    .forEach(p => p.classList.remove('active'));
+
+  document.querySelectorAll('.nav-item')
+    .forEach(n => n.classList.remove('active'));
+
+  document.getElementById('page-' + page)
+    .classList.add('active');
+
+  document.getElementById('nav-' + page)
+    .classList.add('active');
 
   if (page === 'options') {
     setTimeout(() => {
@@ -689,12 +759,13 @@ function navigate(page) {
   }
 }
 
-// ══════════════════════════════
-// INIT
-// ══════════════════════════════
+// ==========================
+// START
+// ==========================
 window.addEventListener('load', () => {
   initDashboardMap();
 });
+
 </script>
 </body>
 </html>
