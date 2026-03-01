@@ -523,26 +523,34 @@ function initDashboardMap() {
 // ==========================
 async function loadPinsFromFirebase() {
 
-  const res = await fetch(FIREBASE_URL + "/pins.json");
-  const data = await res.json();
+  try {
 
-  if (!data) return;
+    const res = await fetch(FIREBASE_URL + "/pins.json");
+    const data = await res.json();
 
-  pinsData = [];
-  mlMarkers.forEach(m => m.remove());
-  mlMarkers = [];
+    pinsData = [];
 
-  Object.keys(data).forEach((key, index) => {
+    // remove old markers
+    mlMarkers.forEach(m => m.remove());
+    mlMarkers = [];
 
-    const pin = {
-      id: key,
-      ...data[key]
-    };
+    if (!data) return;
 
-    pinsData.push(pin);
+    Object.keys(data).forEach((key, index) => {
 
-    addDashboardMarker(pin, index);
-  });
+      const pin = {
+        id: key,
+        ...data[key]
+      };
+
+      pinsData.push(pin);
+
+      addDashboardMarker(pin, index);
+    });
+
+  } catch (err) {
+    console.error("Firebase load error:", err);
+  }
 }
 
 // ==========================
@@ -555,6 +563,52 @@ async function savePinToFirebase(pin) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(pin)
   });
+}
+
+// ==========================
+// DELETE ALL FIREBASE DATA
+// ==========================
+async function confirmReset() {
+
+  const code = prompt("Enter LDCHEMICAL to confirm reset:");
+
+  if (code !== "LDCHEMICAL") {
+    alert("Wrong password");
+    return;
+  }
+
+  try {
+
+    await fetch(FIREBASE_URL + "/pins.json", {
+      method: "DELETE"
+    });
+
+    pinsData = [];
+    mlMarkers.forEach(m => m.remove());
+    mlMarkers = [];
+
+    document.getElementById('panel-title').textContent =
+      "Select a Location";
+
+    document.getElementById('panel-sub').textContent =
+      "Click on a map marker to view detailed metrics";
+
+    document.getElementById('val-pH').innerHTML = "--";
+    document.getElementById('val-tds').innerHTML =
+      "-- <span class='metric-unit'>ppm</span>";
+    document.getElementById('val-temp').innerHTML =
+      "-- <span class='metric-unit'>°C</span>";
+    document.getElementById('val-turb').innerHTML =
+      "-- <span class='metric-unit'>NTU</span>";
+
+    chartPoints = [];
+    drawChart();
+
+    alert("All Firebase data deleted.");
+
+  } catch (err) {
+    alert("Error deleting data.");
+  }
 }
 
 // ==========================
@@ -581,12 +635,13 @@ function selectPin(idx) {
 
   const pin = pinsData[idx];
 
-  document.getElementById('panel-title').textContent = "Location Metrics";
+  document.getElementById('panel-title').textContent =
+    "Location Metrics";
+
   document.getElementById('panel-sub').textContent =
     `${Number(pin.lat).toFixed(4)}, ${Number(pin.lng).toFixed(4)}`;
 
-  document.getElementById('val-pH').innerHTML =
-    pin.pH;
+  document.getElementById('val-pH').innerHTML = pin.pH;
 
   document.getElementById('val-tds').innerHTML =
     `${pin.tds} <span class="metric-unit">ppm</span>`;
@@ -712,20 +767,16 @@ function drawChart() {
   const min = Math.min(...chartPoints.map(p => p.val));
 
   const path = chartPoints.map((p, i) => {
-
     const x = (i / 6) * W;
     const y = H - ((p.val - min) / (max - min)) * H;
-
     return `${i === 0 ? 'M' : 'L'}${x},${y}`;
-
   }).join(' ');
 
-  svg.innerHTML = `
-    <path d="${path}"
+  svg.innerHTML =
+    `<path d="${path}"
       fill="none"
       stroke="${activeColor}"
-      stroke-width="3"/>
-  `;
+      stroke-width="3"/>`;
 }
 
 // ==========================
