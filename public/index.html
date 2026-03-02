@@ -12,7 +12,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
 <style>
-/* CSS IS UNTOUCHED - EXACTLY AS PROVIDED */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0f172a;--fg:#f8fafc;--safe-top:env(safe-area-inset-top)}
 body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overflow-x:hidden;min-height:100vh}
@@ -681,18 +680,18 @@ async function addPin() {
     return;
   }
 
-  const status = (pH < 6 || pH > 8.5 || turb > 10) ? "WARNING" : "SAFE";
-
   document.getElementById("add-pin-btn").disabled = true;
 
   try {
-    // Push new pin using the Firebase SDK
-    const pinsRef = database.ref(`devices/${DEVICE_ID}/pins`).push();
-    await pinsRef.set({ lat, lng, pH, tds, temp, turb, status, ts: Date.now() });
+    // Calling YOUR Node server instead of hitting Firebase directly
+    const response = await fetch(`/update?id=${DEVICE_ID}&lat=${lat}&lng=${lng}&pH=${pH}&tds=${tds}&temp=${temp}&turb=${turb}`);
     
-    showToast("Pin saved successfully!");
-    clearForm();
-    // Notice: We don't call loadPins() anymore! The Firebase listener above handles it instantly.
+    if (response.ok) {
+      showToast("Pin saved successfully!");
+      clearForm();
+    } else {
+      throw new Error("Server rejected entry");
+    }
   } catch(e) {
     alert("Error saving pin.");
     document.getElementById("add-pin-btn").disabled = false;
@@ -701,12 +700,19 @@ async function addPin() {
 
 async function confirmReset() {
   const pass = prompt("Enter LDCHEMICAL");
-  if (pass !== "LDCHEMICAL") return alert("Wrong password");
-  
-  // Use Firebase SDK to clear data
-  await database.ref(`devices/${DEVICE_ID}`).remove();
-  
-  alert("All data cleared.");
+  if (!pass) return; 
+
+  try {
+    // Calling YOUR Node server instead of hitting Firebase directly
+    const res = await fetch(`/reset?password=${pass}&id=${DEVICE_ID}`);
+    if (res.ok) {
+      alert("All data cleared.");
+    } else {
+      alert("Wrong password or reset failed.");
+    }
+  } catch (err) {
+    alert("Network error.");
+  }
 }
 
 /* ================== UI ================== */

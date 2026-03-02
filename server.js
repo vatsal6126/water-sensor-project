@@ -49,9 +49,10 @@ app.get("/add", async (req, res) => {
     return res.status(400).send("Invalid values");
   }
 
+  // Changed to "WARNING" to map properly to frontend CSS classes
   const status =
     pH < 6.5 || pH > 8.5 || tds > 500 || temp > 35 || turb > 10
-      ? "UNSAFE"
+      ? "WARNING"
       : "SAFE";
 
   const entry = {
@@ -103,9 +104,10 @@ app.get("/update", async (req, res) => {
     return res.status(400).send("Invalid sensor values");
   }
 
+  // Changed to "WARNING" to map properly to frontend CSS classes
   const status =
     pH < 6.5 || pH > 8.5 || tds > 500 || temp > 35 || turb > 10
-      ? "UNSAFE"
+      ? "WARNING"
       : "SAFE";
 
   const entry = {
