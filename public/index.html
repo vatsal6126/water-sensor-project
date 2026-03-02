@@ -281,7 +281,7 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
             </div>
             <div class="glass-panel" style="pointer-events:auto; padding:14px 24px; border-radius:20px; display:flex; align-items:center; gap:16px; width:100%; max-width:500px; margin:0 auto 10px auto; background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.15);">
                 <div style="display:flex; flex-direction:column; min-width:110px;">
-                    <span style="font-size:0.65rem; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.1em; font-weight:700;">Time Machine</span>
+                    <span style="font-size:0.65rem; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.1em; font-weight:700;">Time Bar</span>
                     <span id="tm-date" style="font-size:0.85rem; color:#93c5fd; font-weight:700;">LIVE</span>
                 </div>
                 <input type="range" id="tm-slider" min="0" max="0" value="0" style="flex:1;" oninput="handleTimeSlider(this.value)">
@@ -733,12 +733,40 @@ function drawChart() {
   const values = chartData.map(d => Number(d[activeMetric]));
   const times = chartData.map(d => d.time ? d.time : new Date(d.ts).toLocaleTimeString());
 
-  let max = Math.max(...values);
-  let min = Math.min(...values);
+  // --- 1. AI LINEAR REGRESSION MATH ---
+  let n = values.length;
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  
+  // We use the array index as 'Time' (x) and the sensor reading as 'Value' (y)
+  for (let i = 0; i < n; i++) {
+    let x = i; 
+    let y = values[i];
+    sumX += x;
+    sumY += y;
+    sumXY += (x * y);
+    sumXX += (x * x);
+  }
+  
+  // Calculate Slope (m) and Intercept (b)
+  let m = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  let b = (sumY - m * sumX) / n;
+
+  // Predict 3 time-steps into the future
+  let futureSteps = 3;
+  let predictedY = m * (n - 1 + futureSteps) + b;
+  
+  // Prevent predicting negative values for things like ppm or NTU
+  if (predictedY < 0) predictedY = 0;
+
+  // Add the predicted value to our Min/Max calculations so the chart scales properly
+  let allValues = [...values, predictedY];
+  let max = Math.max(...allValues);
+  let min = Math.min(...allValues);
   if (max === min) { max += 1; min -= 1; }
   const range = max - min;
   const mid = (max + min) / 2;
 
+  // --- 2. DRAW BACKGROUND GRID ---
   let gridHtml = `
     <line x1="${xOffset}" y1="15" x2="800" y2="15" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4,4"/>
     <text x="0" y="20" fill="rgba(255,255,255,0.4)" font-size="12" font-weight="600" font-family="Outfit">${max.toFixed(1)}</text>
@@ -748,19 +776,53 @@ function drawChart() {
     <text x="0" y="${H - 10}" fill="rgba(255,255,255,0.4)" font-size="12" font-weight="600" font-family="Outfit">${min.toFixed(1)}</text>
   `;
 
+  // --- 3. DRAW HISTORICAL PATH (Solid Line) ---
+  // Leave room on the right side of the chart for the future prediction
+  const chartDrawWidth = W * 0.8; 
   let path = "";
+  let lastX = 0, lastY = 0;
+
   values.forEach((val, i) => {
-    const x = xOffset + (i / (values.length - 1)) * W;
+    const x = xOffset + (i / (values.length - 1)) * chartDrawWidth;
     const y = H - 15 - ((val - min) / range) * (H - 30); 
     path += `${i === 0 ? "M" : "L"}${x},${y} `;
+    
+    // Save the coordinates of the very last historical point
+    if (i === values.length - 1) {
+      lastX = x;
+      lastY = y;
+    }
   });
 
+  // --- 4. DRAW FUTURE PREDICTION (Dotted Line) ---
   const activeColor = document.getElementById("chart-dot").style.background || "#3b82f6";
+  const futureX = xOffset + chartDrawWidth + (W * 0.2); // Push to the far right edge
+  const futureY = H - 15 - ((predictedY - min) / range) * (H - 30);
+  
+  const predictionPath = `M${lastX},${lastY} L${futureX},${futureY}`;
 
+  // Evaluate if the future prediction breaches safety limits
+  let isDanger = false;
+  if (activeMetric === 'pH' && (predictedY < 6.5 || predictedY > 8.5)) isDanger = true;
+  if (activeMetric === 'tds' && predictedY > 500) isDanger = true;
+  if (activeMetric === 'temp' && predictedY > 35) isDanger = true;
+  if (activeMetric === 'turb' && predictedY > 10) isDanger = true;
+
+  const badgeColor = isDanger ? "#ef4444" : "#10b981";
+  const badgeText = isDanger ? "FORECAST: WARNING" : "FORECAST: SAFE";
+
+  // Add the solid historical line, the dotted future line, and the text badge
   svg.innerHTML = gridHtml + `
     <path d="${path}" fill="none" stroke="${activeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <path d="${predictionPath}" fill="none" stroke="${badgeColor}" stroke-width="3" stroke-linecap="round" stroke-dasharray="8,8" opacity="0.8"/>
+    <circle cx="${futureX}" cy="${futureY}" r="4" fill="${badgeColor}" />
+    
+    <rect x="${futureX - 110}" y="${futureY - 30}" width="120" height="20" rx="6" fill="rgba(15,23,42,0.9)" stroke="${badgeColor}" stroke-width="1"/>
+    <text x="${futureX - 50}" y="${futureY - 16}" fill="${badgeColor}" font-size="10" font-weight="700" font-family="Outfit" text-anchor="middle" letter-spacing="0.05em">${badgeText}</text>
   `;
 
+  // --- 5. TOOLTIP INTERACTION ---
   const tooltip = document.getElementById("chart-tooltip");
   svg.onmousemove = function(e) {
     const rect = svg.getBoundingClientRect();
@@ -768,7 +830,19 @@ function drawChart() {
     
     if(mouseX < xOffset) return;
     
-    const index = Math.round(((mouseX - xOffset) / (rect.width - xOffset)) * (values.length - 1));
+    // If hovering over the prediction area
+    if (mouseX > lastX) {
+        tooltip.classList.add("visible");
+        tooltip.style.left = futureX + "px";
+        tooltip.style.top = "30px";
+        document.getElementById("ct-time").innerText = "Predicted Future Value";
+        document.getElementById("ct-val").innerText = predictedY.toFixed(1);
+        document.getElementById("ct-unit").innerText = activeMetric === "tds" ? " ppm" : activeMetric === "temp" ? " °C" : activeMetric === "turb" ? " NTU" : "";
+        return;
+    }
+    
+    // Hovering over historical data
+    const index = Math.round(((mouseX - xOffset) / chartDrawWidth) * (values.length - 1));
     if (!values[index]) return;
 
     tooltip.classList.add("visible");
