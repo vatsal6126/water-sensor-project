@@ -8,6 +8,10 @@ const FIREBASE_DB =
 const RESET_PASSWORD = "LDCHEMICAL";
 const PORT = process.env.PORT || 3000;
 
+// This is your unique channel name for ntfy.
+// You will type this exact name into the ntfy app on your phone.
+const NTFY_TOPIC = "chemeleon_water_alerts"; 
+
 const app = express();
 const server = http.createServer(app);
 
@@ -32,6 +36,25 @@ function distanceMeters(lat1, lon1, lat2, lon2) {
       Math.sin(dLon / 2) ** 2;
 
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ================= NTFY ALERT FUNCTION =================
+async function sendNtfyAlert(entry, deviceId) {
+  try {
+    await axios.post(`https://ntfy.sh/${NTFY_TOPIC}`, 
+      `🚨 CRITICAL WATER ALERT 🚨\nDevice: ${deviceId}\nLocation: ${entry.lat}, ${entry.lng}\npH: ${entry.pH}\nTDS: ${entry.tds} ppm\nTemp: ${entry.temp} °C\nTurbidity: ${entry.turb} NTU`,
+      {
+        headers: {
+          "Title": "Chemeleon: Contamination Detected!",
+          "Tags": "warning,skull,droplet",
+          "Priority": "high" // Makes the phone vibrate/ring loudly
+        }
+      }
+    );
+    console.log("🚨 Ntfy warning sent successfully!");
+  } catch (error) {
+    console.error("Failed to send ntfy alert:", error.message);
+  }
 }
 
 // ================= ADD ROUTE (MANUAL LINK ADD) =================
@@ -80,6 +103,11 @@ app.get("/add", async (req, res) => {
       entry
     );
 
+    // 🔥 Send notification ONLY if water is bad
+    if (status === "WARNING") {
+      sendNtfyAlert(entry, id);
+    }
+
     res.send("Pin added successfully");
   } catch (err) {
     res.status(500).send("Firebase Error");
@@ -90,6 +118,7 @@ app.get("/add", async (req, res) => {
 app.get("/ping", (req, res) => {
   res.status(200).send("Server alive");
 });
+
 app.get("/update", async (req, res) => {
   const id = req.query.id || "device1";
 
@@ -165,6 +194,11 @@ app.get("/update", async (req, res) => {
           entry
         );
       }
+    }
+
+    // 🔥 Send notification ONLY if water is bad
+    if (status === "WARNING") {
+      sendNtfyAlert(entry, id);
     }
 
     res.send("Data Stored Successfully");

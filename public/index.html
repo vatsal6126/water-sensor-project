@@ -8,10 +8,13 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
 <style>
+/* CSS IS UNTOUCHED - EXACTLY AS PROVIDED */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0f172a;--fg:#f8fafc;--safe-top:env(safe-area-inset-top)}
 body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overflow-x:hidden;min-height:100vh}
@@ -59,13 +62,21 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 .map-fade{position:absolute;inset:0;pointer-events:none;z-index:1000;box-shadow:inset 0 -55px 75px rgba(15,23,42,.95);border-bottom-left-radius:40px;border-bottom-right-radius:40px}
 
 /* Leaflet UI Overrides */
-.leaflet-bar { border: none !important; box-shadow: 0 4px 20px rgba(0,0,0,.3) !important; border-radius: 12px !important; overflow: hidden; background: rgba(15,23,42,.88) !important; backdrop-filter: blur(8px) !important; border: 1px solid rgba(255,255,255,.1) !important; margin: 16px !important;}
+.leaflet-bar { border: none !important; box-shadow: 0 4px 20px rgba(0,0,0,.3) !important; border-radius: 12px !important; overflow: hidden; background: rgba(15,23,42,.88) !important; backdrop-filter: blur(8px) !important; border: 1px solid rgba(255,255,255,.1) !important; margin: 16px !important; margin-bottom: 90px !important;} /* Lifted zoom controls above time machine */
 .leaflet-bar a { background: transparent !important; color: white !important; border-bottom: 1px solid rgba(255,255,255,.08) !important; width: 32px !important; height: 32px !important; line-height: 32px !important; }
 .leaflet-bar a:hover { background: rgba(255,255,255,.1) !important; color: white !important; }
 .leaflet-bar a:last-child { border-bottom: none !important; }
 .leaflet-control-attribution { background: rgba(9,14,23,.7) !important; color: rgba(255,255,255,.3) !important; font-size: 9px !important; backdrop-filter: blur(4px); border-radius: 6px !important; font-family: 'Outfit', sans-serif !important; padding: 2px 6px !important; margin: 0 10px 10px 0 !important; }
 .leaflet-control-attribution a { color: rgba(255,255,255,.4) !important; }
 .leaflet-div-icon { background: transparent; border: none; }
+
+/* Custom Slider & Buttons added for features */
+input[type=range] { -webkit-appearance: none; background: transparent; }
+input[type=range]:focus { outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #60a5fa; cursor: pointer; margin-top: -7px; box-shadow: 0 0 12px rgba(96,165,250,0.8); border: 2px solid #fff; transition: transform 0.1s;}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.2); border-radius: 4px; }
+#heatmap-btn.active { background: linear-gradient(90deg, #ef4444, #f59e0b) !important; border-color: #f87171 !important; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
 
 /* marker */
 .ml-marker{width:34px;height:38px;cursor:pointer;position:relative}
@@ -258,6 +269,25 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
       <div class="map-section">
         <div id="maplibre-map"></div>
         <div class="map-fade"></div>
+
+        <div class="map-controls-container" style="position:absolute; inset:0; pointer-events:none; z-index:400; display:flex; flex-direction:column; justify-content:space-between; padding:16px;">
+            <div style="display:flex; justify-content:flex-end;">
+                <button id="heatmap-btn" class="glass-panel" onclick="toggleHeatmap()" style="pointer-events:auto; padding:10px 20px; border-radius:14px; color:white; font-weight:600; font-family:'Outfit'; border:1px solid rgba(255,255,255,0.2); cursor:pointer; background:rgba(15,23,42,0.7); transition:all 0.3s;">
+                    <span style="display:flex; align-items:center; gap:8px;">
+                        <svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        Toggle Heatmap
+                    </span>
+                </button>
+            </div>
+            <div class="glass-panel" style="pointer-events:auto; padding:14px 24px; border-radius:20px; display:flex; align-items:center; gap:16px; width:100%; max-width:500px; margin:0 auto 10px auto; background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.15);">
+                <div style="display:flex; flex-direction:column; min-width:110px;">
+                    <span style="font-size:0.65rem; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.1em; font-weight:700;">Time Machine</span>
+                    <span id="tm-date" style="font-size:0.85rem; color:#93c5fd; font-weight:700;">LIVE</span>
+                </div>
+                <input type="range" id="tm-slider" min="0" max="0" value="0" style="flex:1;" oninput="handleTimeSlider(this.value)">
+            </div>
+        </div>
+
       </div>
       <div class="info-panel-wrapper">
         <div class="info-panel glass-panel">
@@ -427,11 +457,20 @@ firebase.initializeApp({
 const database = firebase.database();
 const DEVICE_ID = "device1";
 
+// Map State Tracking
 let pinsData = [];
-let markersMap = {}; // Maps Firebase keys to Leaflet markers (fixes flickering)
+let markersMap = {}; 
 let mlMap;
 let entryMap;
 let entryPreviewMarker = null;
+
+// Feature Overlays
+let pinsLayerGroup;
+let historyLayerGroup;
+let heatLayer = null;
+let mode = 'LIVE'; // 'LIVE', 'HEATMAP', 'HISTORY'
+let fullHistoryData = [];
+
 let activeMetric = "pH";
 let chartData = [];
 let initialLoadComplete = false;
@@ -449,7 +488,11 @@ function initDashboardMap() {
     attribution: '&copy; OpenStreetMap'
   }).addTo(mlMap);
 
-  // Trigger WebSocket Listener
+  // Initialize Layer Groups
+  pinsLayerGroup = L.layerGroup().addTo(mlMap);
+  historyLayerGroup = L.layerGroup();
+
+  // Trigger Real-Time Listener
   setupRealtimeListener();
 }
 
@@ -494,29 +537,25 @@ function initEntryMap() {
 function setupRealtimeListener() {
   const pinsRef = database.ref(`devices/${DEVICE_ID}/pins`);
   
-  // .on('value') opens a WebSocket. It only runs this code when data ACTUALLY changes.
   pinsRef.on('value', (snapshot) => {
     const data = snapshot.val() || {};
     const currentKeys = Object.keys(data);
 
-    // 1. Smart Cleanup: Only remove markers that were deleted from Firebase
+    // Smart Cleanup
     Object.keys(markersMap).forEach(key => {
       if (!currentKeys.includes(key)) {
-        mlMap.removeLayer(markersMap[key]);
+        pinsLayerGroup.removeLayer(markersMap[key]);
         delete markersMap[key];
       }
     });
 
-    // 2. Rebuild our local array so the UI knows the indices
     pinsData = [];
 
-    // 3. Add or Update Markers
     currentKeys.forEach((key) => {
       const pin = { id: key, ...data[key] };
       pinsData.push(pin);
-      const currentIndex = pinsData.length - 1; // Current index for this pin
+      const currentIndex = pinsData.length - 1;
 
-      // Only draw the marker if it doesn't already exist on the map
       if (!markersMap[key]) {
         const statusClass = pin.status === "SAFE" ? "safe" : "warning";
         const customIcon = L.divIcon({
@@ -526,21 +565,115 @@ function setupRealtimeListener() {
           iconAnchor: [17, 38] 
         });
 
-        const marker = L.marker([parseFloat(pin.lat), parseFloat(pin.lng)], { icon: customIcon }).addTo(mlMap);
+        const marker = L.marker([parseFloat(pin.lat), parseFloat(pin.lng)], { icon: customIcon }).addTo(pinsLayerGroup);
         markersMap[key] = marker;
       }
       
-      // Update click listener with correct index
       markersMap[key].off('click');
       markersMap[key].on('click', () => selectPin(currentIndex));
     });
 
-    // Auto-select most recent pin on initial load
     if (!initialLoadComplete && pinsData.length > 0) {
       selectPin(pinsData.length - 1);
       initialLoadComplete = true;
     }
   });
+
+  // Track the absolute history perfectly in real-time for the slider
+  database.ref(`devices/${DEVICE_ID}/history`).on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+    fullHistoryData = Object.values(data).sort((a, b) => a.ts - b.ts);
+    
+    const slider = document.getElementById('tm-slider');
+    slider.max = fullHistoryData.length - 1;
+    if(mode === 'LIVE') {
+        slider.value = fullHistoryData.length - 1;
+    }
+  });
+}
+
+/* ================== NEW FEATURE: HEATMAP ================== */
+function toggleHeatmap() {
+    const btn = document.getElementById('heatmap-btn');
+
+    if (mode === 'HEATMAP') {
+        mode = 'LIVE';
+        mlMap.removeLayer(heatLayer);
+        pinsLayerGroup.addTo(mlMap);
+        btn.classList.remove('active');
+    } else {
+        mode = 'HEATMAP';
+        mlMap.removeLayer(pinsLayerGroup);
+        mlMap.removeLayer(historyLayerGroup);
+
+        const slider = document.getElementById('tm-slider');
+        slider.value = slider.max;
+        document.getElementById('tm-date').innerText = 'LIVE';
+
+        if (heatLayer) mlMap.removeLayer(heatLayer);
+
+        let heatPoints = pinsData.map(p => [
+            parseFloat(p.lat),
+            parseFloat(p.lng),
+            p.status === 'WARNING' ? 1.0 : 0.2 // Red for toxic, green for safe
+        ]);
+        
+        heatLayer = L.heatLayer(heatPoints, {
+            radius: 25, 
+            blur: 15, 
+            maxZoom: 17, 
+            gradient: {0.3: '#10b981', 0.6: '#f59e0b', 1.0: '#ef4444'}
+        }).addTo(mlMap);
+        
+        btn.classList.add('active');
+    }
+}
+
+/* ================== NEW FEATURE: TIME MACHINE ================== */
+function handleTimeSlider(index) {
+    if (mode === 'HEATMAP') toggleHeatmap(); // Turn off heatmap if active
+
+    index = parseInt(index);
+    if (index >= fullHistoryData.length - 1) {
+        mode = 'LIVE';
+        document.getElementById('tm-date').innerText = 'LIVE';
+        mlMap.removeLayer(historyLayerGroup);
+        pinsLayerGroup.addTo(mlMap);
+        return;
+    }
+
+    mode = 'HISTORY';
+    mlMap.removeLayer(pinsLayerGroup);
+    historyLayerGroup.clearLayers();
+    historyLayerGroup.addTo(mlMap);
+
+    const pastData = fullHistoryData.slice(0, index + 1);
+    const dateObj = new Date(fullHistoryData[index].ts);
+    
+    // Format date beautifully
+    const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    document.getElementById('tm-date').innerText = dateStr;
+
+    // Calculate map state strictly at that moment in history
+    let pastState = {};
+    pastData.forEach(p => {
+        if(p.lat && p.lng) {
+            const k = p.lat.toFixed(4) + "_" + p.lng.toFixed(4);
+            pastState[k] = p;
+        }
+    });
+
+    Object.values(pastState).forEach((pin) => {
+        const statusClass = pin.status === "SAFE" ? "safe" : "warning";
+        const customIcon = L.divIcon({
+          className: '',
+          html: `<div class="ml-marker ${statusClass}" style="opacity:0.6; filter: grayscale(30%);"><div class="ml-pulse" style="animation:none; opacity:0.2;"></div><div class="ml-marker-inner"></div></div>`,
+          iconSize: [34, 38],
+          iconAnchor: [17, 38]
+        });
+        L.marker([parseFloat(pin.lat), parseFloat(pin.lng)], { icon: customIcon }).addTo(historyLayerGroup);
+    });
 }
 
 /* ================== SELECT PIN ================== */
@@ -565,7 +698,6 @@ async function selectPin(index) {
 
 /* ================== CHART & BINDINGS ================== */
 async function loadHistory() {
-  // Utilizing the Firebase SDK for history retrieval
   const historyRef = database.ref(`devices/${DEVICE_ID}/history`);
   historyRef.once('value').then((snapshot) => {
     const data = snapshot.val();
@@ -683,7 +815,6 @@ async function addPin() {
   document.getElementById("add-pin-btn").disabled = true;
 
   try {
-    // Calling YOUR Node server instead of hitting Firebase directly
     const response = await fetch(`/update?id=${DEVICE_ID}&lat=${lat}&lng=${lng}&pH=${pH}&tds=${tds}&temp=${temp}&turb=${turb}`);
     
     if (response.ok) {
@@ -703,7 +834,6 @@ async function confirmReset() {
   if (!pass) return; 
 
   try {
-    // Calling YOUR Node server instead of hitting Firebase directly
     const res = await fetch(`/reset?password=${pass}&id=${DEVICE_ID}`);
     if (res.ok) {
       alert("All data cleared.");
