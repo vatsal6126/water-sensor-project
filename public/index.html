@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
 <style>
-/* CSS IS UNTOUCHED EXCEPT FOR ADDING SCROLL TO INFO PANEL */
+/* CSS IS UNTOUCHED EXCEPT FOR BUTTERY SMOOTH ANIMATIONS */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0f172a;--fg:#f8fafc;--safe-top:env(safe-area-inset-top)}
 body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overflow-x:hidden;min-height:100vh}
@@ -24,8 +24,8 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.2)}
 
 .glass-panel{background:rgba(15,23,42,.4);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,.08);border-left:1px solid rgba(255,255,255,.08)}
-.glass-card{background:linear-gradient(135deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.02) 100%);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 32px rgba(0,0,0,.15);transition:all .3s ease}
-.glass-card:hover{background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.04) 100%);border-color:rgba(255,255,255,.15)}
+.glass-card{background:linear-gradient(135deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.02) 100%);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 32px rgba(0,0,0,.15);transition:all .4s cubic-bezier(0.16, 1, 0.3, 1)}
+.glass-card:hover{background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.04) 100%);border-color:rgba(255,255,255,.15); transform: translateY(-3px);}
 
 .blob{position:fixed;border-radius:50%;filter:blur(120px);z-index:0;opacity:.3;animation:float 20s infinite ease-in-out alternate;pointer-events:none}
 .blob-1{top:-10%;left:-10%;width:50vw;height:50vh;background:#3b82f6}
@@ -35,8 +35,8 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 
 .app{display:flex;min-height:100vh;position:relative}
 
-/* ── SIDEBAR ── */
-.sidebar{position:fixed;top:0;left:0;height:100vh;width:256px;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.1);z-index:200;transform:translateX(-100%);transition:transform .35s cubic-bezier(.4,0,.2,1);}
+/* ── SIDEBAR (Upgraded Animation) ── */
+.sidebar{position:fixed;top:0;left:0;height:100vh;width:256px;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.1);z-index:200;transform:translateX(-100%);transition:transform .4s cubic-bezier(0.16, 1, 0.3, 1);}
 .sidebar.open{transform:translateX(0);}
 .sidebar-logo{height:calc(64px + var(--safe-top));display:flex;align-items:center;justify-content:space-between;padding:var(--safe-top) 24px 0;border-bottom:1px solid rgba(255,255,255,.1)}
 .logo-text{font-weight:800;font-size:1.1rem;letter-spacing:.18em;background:linear-gradient(90deg,#60a5fa,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -48,13 +48,20 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 .nav-icon{width:20px;height:20px;flex-shrink:0}
 
 /* ── MAIN ── */
-.main{flex:1;display:flex;flex-direction:column;min-height:100vh;position:relative;z-index:10;transition:filter .3s ease;padding-top:calc(64px + var(--safe-top));}
+.main{flex:1;display:flex;flex-direction:column;min-height:100vh;position:relative;z-index:10;transition:filter .4s cubic-bezier(0.16, 1, 0.3, 1); padding-top:calc(64px + var(--safe-top));}
 .mobile-header{display:flex;position:fixed;top:0;left:0;right:0;height:calc(64px + var(--safe-top));z-index:101;border-bottom:1px solid rgba(255,255,255,.1);align-items:center;justify-content:space-between;padding:var(--safe-top) 16px 0}
-.hamburger-btn{background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;padding:8px;display:flex;align-items:center}
-.sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .3s ease;z-index:150;}
+.hamburger-btn{background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;padding:8px;display:flex;align-items:center; transition: transform 0.2s;}
+.hamburger-btn:active{transform: scale(0.9);}
+.sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .4s cubic-bezier(0.16, 1, 0.3, 1);z-index:150;}
 .sidebar-overlay.visible{opacity:1;pointer-events:auto;}
+
+/* Page animations */
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .page{display:none;flex:1}
-.page.active{display:flex;flex-direction:column}
+.page.active{display:flex;flex-direction:column; animation: pageFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;}
 
 /* ── MAP ── */
 .map-section{height:45vh;min-height:300px;position:relative;border-bottom-left-radius:40px;border-bottom-right-radius:40px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);border-bottom:1px solid rgba(255,255,255,.1)}
@@ -111,7 +118,7 @@ input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cur
 /* ── METRIC CARDS ── */
 .metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px; flex-shrink: 0;}
 @media(min-width:1024px){.metrics-grid{grid-template-columns:repeat(4,1fr);gap:20px}}
-.metric-card{border-radius:24px;padding:20px;cursor:pointer;transition:all .3s ease}
+.metric-card{border-radius:24px;padding:20px;cursor:pointer;transition:all .4s cubic-bezier(0.16, 1, 0.3, 1)}
 .metric-card:hover{transform:translateY(-2px)}
 .metric-card.active{background:rgba(255,255,255,.1)!important;transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,.3);outline:1px solid rgba(255,255,255,.2)}
 .metric-icon{padding:10px;background:rgba(255,255,255,.05);border-radius:12px;display:inline-flex;margin-bottom:16px;color:rgba(255,255,255,.7)}
@@ -121,14 +128,14 @@ input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cur
 
 /* ── CHART ── */
 .charts-container { display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; padding-bottom: 20px;}
-.chart-section{min-height:180px;background:rgba(0,0,0,.1);border-radius:24px;padding:20px;border:1px solid rgba(255,255,255,.05);position:relative;transition: background 0.5s ease;}
+.chart-section{min-height:180px;background:rgba(0,0,0,.1);border-radius:24px;padding:20px;border:1px solid rgba(255,255,255,.05);position:relative; transition: box-shadow 0.4s ease;}
 .chart-header{color:rgba(255,255,255,.8);font-weight:500;font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:20px;display:flex;align-items:center;gap:8px}
-.chart-dot{width:12px;height:12px;border-radius:50%;background:#60a5fa; transition: background 0.3s ease;}
+.chart-dot{width:12px;height:12px;border-radius:50%;background:#60a5fa; transition: background 0.4s ease;}
 .chart-canvas-wrapper{height:140px;position:relative}
 .svg-chart{width:100%;height:100%;overflow:visible}
 
 /* Chart tooltip */
-.chart-tooltip{position:absolute;background:rgba(15,23,42,.95);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 14px;font-size:.78rem;pointer-events:none;display:none;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:50;transform:translate(-50%,-110%);}
+.chart-tooltip{position:absolute;background:rgba(15,23,42,.95);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 14px;font-size:.78rem;pointer-events:none;display:none;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:50;transform:translate(-50%,-110%); transition: left 0.1s ease;}
 .chart-tooltip.visible{display:block}
 .ct-time{color:rgba(255,255,255,.5);font-size:.7rem;margin-bottom:4px}
 .ct-val{font-weight:800;font-size:1rem;color:#fff}
@@ -171,10 +178,10 @@ input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cur
 
 /* Action Buttons */
 .form-actions{display:flex;gap:16px;margin-top:32px;position:relative;z-index:1}
-.btn-primary{flex:1;background:linear-gradient(90deg,#2563eb,#3b82f6);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s ease;box-shadow:0 0 20px rgba(59,130,246,.3);}
+.btn-primary{flex:1;background:linear-gradient(90deg,#2563eb,#3b82f6);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .3s cubic-bezier(0.16, 1, 0.3, 1);box-shadow:0 0 20px rgba(59,130,246,.3);}
 .btn-primary:hover{background:linear-gradient(90deg,#3b82f6,#60a5fa);box-shadow:0 0 30px rgba(59,130,246,.5);transform:scale(1.02)}
 .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
-.btn-secondary{background:rgba(255,255,255,.05);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:all .2s ease;}
+.btn-secondary{background:rgba(255,255,255,.05);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:all .3s ease;}
 .btn-secondary:hover{background:rgba(255,255,255,.1);}
 
 /* Toast Notification */
@@ -188,7 +195,7 @@ input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cur
 @media(min-width:640px){.danger-inner{flex-direction:row;align-items:center;justify-content:space-between}}
 .danger-title{font-size:1.2rem;font-weight:600;color:#f87171;display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .danger-sub{color:rgba(248,113,113,.6);font-size:.875rem;font-weight:500}
-.btn-danger{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.3);font-family:'Outfit',sans-serif;font-weight:700;font-size:.95rem;padding:14px 28px;border-radius:16px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .2s ease;white-space:nowrap}
+.btn-danger{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.3);font-family:'Outfit',sans-serif;font-weight:700;font-size:.95rem;padding:14px 28px;border-radius:16px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .3s ease;white-space:nowrap}
 .btn-danger:hover{background:rgba(239,68,68,.2);box-shadow:0 0 20px rgba(239,68,68,.2)}
 
 /* ── ABOUT ── */
@@ -236,7 +243,7 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
 <div class="app">
   <aside class="sidebar glass-panel" id="sidebar">
     <div class="sidebar-logo">
-      <button class="hamburger-btn" onclick="openSidebar()">
+      <button class="hamburger-btn" onclick="toggleSidebar()">
         <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <span class="logo-text">WATER QUALITY TEST</span>
@@ -259,7 +266,7 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
 
   <main class="main">
     <header class="mobile-header glass-panel">
-      <button class="hamburger-btn" onclick="openSidebar()">
+      <button class="hamburger-btn" onclick="toggleSidebar()">
         <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <span class="text-gradient-blue" style="font-weight:800;letter-spacing:.15em">CHEMELEON</span>
@@ -727,7 +734,6 @@ function buildSmoothPath(points) {
     for (let i = 0; i < points.length - 1; i++) {
         const p1 = points[i];
         const p2 = points[i + 1];
-        // Control points for a smooth curve
         const cx1 = p1.x + (p2.x - p1.x) / 2;
         const cy1 = p1.y;
         const cx2 = p2.x - (p2.x - p1.x) / 2;
@@ -775,16 +781,27 @@ function drawGlobalChart() {
   svg.innerHTML = gridHtml + `<path d="${pathData}" fill="none" stroke="${activeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
 
   const tooltip = document.getElementById("chart-tooltip-global");
+  
+  // Flawless Mouse Tracking Math
   svg.onmousemove = function(e) {
-    const rect = svg.getBoundingClientRect(); const mouseX = e.clientX - rect.left;
-    if(mouseX < xOffset) return;
-    const index = Math.round(((mouseX - xOffset) / chartDrawWidth) * (values.length - 1));
-    if (!values[index]) return;
+    const rect = svg.getBoundingClientRect(); 
+    const scaleX = W / rect.width;
+    const svgX = (e.clientX - rect.left) * scaleX;
+    
+    if(svgX < xOffset) { tooltip.classList.remove("visible"); return; }
+
+    let closestIndex = 0;
+    let minDiff = Infinity;
+    points.forEach((p, i) => {
+        const diff = Math.abs(svgX - p.x);
+        if(diff < minDiff) { minDiff = diff; closestIndex = i; }
+    });
 
     tooltip.classList.add("visible");
-    tooltip.style.left = points[index].x + "px"; tooltip.style.top = "20px";
-    document.getElementById("ct-time-global").innerText = times[index];
-    document.getElementById("ct-val-global").innerText = values[index];
+    tooltip.style.left = (points[closestIndex].x / scaleX) + "px"; 
+    tooltip.style.top = "20px";
+    document.getElementById("ct-time-global").innerText = times[closestIndex];
+    document.getElementById("ct-val-global").innerText = values[closestIndex];
     document.getElementById("ct-unit-global").innerText = activeMetric === "tds" ? " ppm" : activeMetric === "temp" ? " °C" : activeMetric === "turb" ? " NTU" : "";
   };
   svg.onmouseleave = () => tooltip.classList.remove("visible");
@@ -817,7 +834,7 @@ function drawLocalChart() {
       }
       let m = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
       let b = (sumY - m * sumX) / n;
-      predictedY = m * (n - 1 + 3) + b; // Predict 3 steps ahead
+      predictedY = m * (n - 1 + 3) + b; 
       if (predictedY < 0) predictedY = 0;
       allValues.push(predictedY);
   }
@@ -835,7 +852,7 @@ function drawLocalChart() {
     <text x="0" y="${H - 10}" fill="rgba(255,255,255,0.4)" font-size="12" font-weight="600" font-family="Outfit">${min.toFixed(1)}</text>
   `;
 
-  const chartDrawWidth = hasPrediction ? (W - xOffset) * 0.75 : W - xOffset - 20; 
+  const chartDrawWidth = hasPrediction ? (W - xOffset) * 0.70 : W - xOffset - 20; 
   let points = values.map((val, i) => {
       return {
           x: xOffset + (i / Math.max(1, values.length - 1)) * chartDrawWidth,
@@ -848,10 +865,11 @@ function drawLocalChart() {
   
   let forecastHtml = "";
   let futureX = 0;
+  let futureY = 0;
 
   if (hasPrediction) {
       futureX = xOffset + chartDrawWidth + ((W - xOffset) * 0.2); 
-      const futureY = H - 15 - ((predictedY - min) / range) * (H - 30);
+      futureY = H - 15 - ((predictedY - min) / range) * (H - 30);
       const lastPoint = points[points.length - 1];
       const predictionPath = `M${lastPoint.x},${lastPoint.y} L${futureX},${futureY}`;
 
@@ -877,26 +895,40 @@ function drawLocalChart() {
   svg.innerHTML = gridHtml + `<path d="${pathData}" fill="none" stroke="${activeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>` + forecastHtml;
 
   const tooltip = document.getElementById("chart-tooltip-local");
+  
+  // Flawless Mouse Tracking Math
   svg.onmousemove = function(e) {
-    const rect = svg.getBoundingClientRect(); const mouseX = e.clientX - rect.left;
-    if(mouseX < xOffset) return;
+    const rect = svg.getBoundingClientRect(); 
+    const scaleX = W / rect.width;
+    const svgX = (e.clientX - rect.left) * scaleX;
     
-    if (hasPrediction && mouseX > points[points.length - 1].x) {
-        tooltip.classList.add("visible");
-        tooltip.style.left = futureX + "px"; tooltip.style.top = "20px";
-        document.getElementById("ct-time-local").innerText = "Predicted Future Value";
-        document.getElementById("ct-val-local").innerText = predictedY.toFixed(1);
-        document.getElementById("ct-unit-local").innerText = activeMetric === "tds" ? " ppm" : activeMetric === "temp" ? " °C" : activeMetric === "turb" ? " NTU" : "";
-        return;
+    if(svgX < xOffset) { tooltip.classList.remove("visible"); return; }
+    
+    let closestIndex = 0;
+    let minDiff = Infinity;
+    points.forEach((p, i) => {
+        const diff = Math.abs(svgX - p.x);
+        if(diff < minDiff) { minDiff = diff; closestIndex = i; }
+    });
+
+    if (hasPrediction) {
+        const predDiff = Math.abs(svgX - futureX);
+        if (predDiff < minDiff) {
+            tooltip.classList.add("visible");
+            tooltip.style.left = (futureX / scaleX) + "px"; 
+            tooltip.style.top = "20px";
+            document.getElementById("ct-time-local").innerText = "Predicted Future Value";
+            document.getElementById("ct-val-local").innerText = predictedY.toFixed(1);
+            document.getElementById("ct-unit-local").innerText = activeMetric === "tds" ? " ppm" : activeMetric === "temp" ? " °C" : activeMetric === "turb" ? " NTU" : "";
+            return;
+        }
     }
     
-    const index = Math.round(((mouseX - xOffset) / chartDrawWidth) * (values.length - 1));
-    if (!values[index]) return;
-
     tooltip.classList.add("visible");
-    tooltip.style.left = points[index].x + "px"; tooltip.style.top = "20px";
-    document.getElementById("ct-time-local").innerText = times[index];
-    document.getElementById("ct-val-local").innerText = values[index];
+    tooltip.style.left = (points[closestIndex].x / scaleX) + "px"; 
+    tooltip.style.top = "20px";
+    document.getElementById("ct-time-local").innerText = times[closestIndex];
+    document.getElementById("ct-val-local").innerText = values[closestIndex];
     document.getElementById("ct-unit-local").innerText = activeMetric === "tds" ? " ppm" : activeMetric === "temp" ? " °C" : activeMetric === "turb" ? " NTU" : "";
   };
   svg.onmouseleave = () => tooltip.classList.remove("visible");
@@ -973,10 +1005,22 @@ function navigate(page) {
   document.getElementById("page-" + page).classList.add("active");
   document.getElementById("nav-" + page).classList.add("active");
   
+  // Close menu if an item is clicked
+  closeSidebar();
+
   setTimeout(() => {
     if(page === 'dashboard' && mlMap) mlMap.invalidateSize();
     if(page === 'options' && entryMap) entryMap.invalidateSize();
   }, 50);
+}
+
+function toggleSidebar(){
+  const sidebar = document.getElementById("sidebar");
+  if (sidebar.classList.contains("open")) {
+    closeSidebar();
+  } else {
+    openSidebar();
+  }
 }
 
 function openSidebar(){
