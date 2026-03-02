@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Water Quality Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0f172a;--fg:#f8fafc}
+:root{--bg:#0f172a;--fg:#f8fafc;--safe-top:env(safe-area-inset-top)}
 body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overflow-x:hidden;min-height:100vh}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -29,23 +29,9 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 .app{display:flex;min-height:100vh;position:relative}
 
 /* ── SIDEBAR ── */
-.sidebar{
-  position:fixed;
-  top:0;
-  left:0;
-  height:100vh;
-  width:256px;
-  display:flex;
-  flex-direction:column;
-  border-right:1px solid rgba(255,255,255,.1);
-  z-index:200;
-  transform:translateX(-100%);
-  transition:transform .35s cubic-bezier(.4,0,.2,1);
-}
-.sidebar.open{
-  transform:translateX(0);
-}
-.sidebar-logo{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sidebar{position:fixed;top:0;left:0;height:100vh;width:256px;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.1);z-index:200;transform:translateX(-100%);transition:transform .35s cubic-bezier(.4,0,.2,1);}
+.sidebar.open{transform:translateX(0);}
+.sidebar-logo{height:calc(64px + var(--safe-top));display:flex;align-items:center;justify-content:space-between;padding:var(--safe-top) 24px 0;border-bottom:1px solid rgba(255,255,255,.1)}
 .logo-text{font-weight:800;font-size:1.1rem;letter-spacing:.18em;background:linear-gradient(90deg,#60a5fa,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sidebar-nav{flex:1;padding:32px 16px;display:flex;flex-direction:column;gap:12px}
 .nav-item{display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:16px;cursor:pointer;transition:all .3s ease;color:rgba(255,255,255,.6);border:1px solid transparent;font-weight:500;letter-spacing:.02em;text-decoration:none;font-size:.95rem}
@@ -55,47 +41,27 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 .nav-icon{width:20px;height:20px;flex-shrink:0}
 
 /* ── MAIN ── */
-.main{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  min-height:100vh;
-  position:relative;
-  z-index:10;
-  transition:filter .3s ease;
-  padding-top:64px;
-}
-.mobile-header{display:flex;position:fixed;top:0;left:0;right:0;height:64px;z-index:101;border-bottom:1px solid rgba(255,255,255,.1);align-items:center;justify-content:space-between;padding:0 16px}
+.main{flex:1;display:flex;flex-direction:column;min-height:100vh;position:relative;z-index:10;transition:filter .3s ease;padding-top:calc(64px + var(--safe-top));}
+.mobile-header{display:flex;position:fixed;top:0;left:0;right:0;height:calc(64px + var(--safe-top));z-index:101;border-bottom:1px solid rgba(255,255,255,.1);align-items:center;justify-content:space-between;padding:var(--safe-top) 16px 0}
 .hamburger-btn{background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;padding:8px;display:flex;align-items:center}
-.sidebar-overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.45);
-  backdrop-filter:blur(8px);
-  opacity:0;
-  pointer-events:none;
-  transition:opacity .3s ease;
-  z-index:150;
-}
-.sidebar-overlay.visible{
-  opacity:1;
-  pointer-events:auto;
-}
+.sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .3s ease;z-index:150;}
+.sidebar-overlay.visible{opacity:1;pointer-events:auto;}
 .page{display:none;flex:1}
 .page.active{display:flex;flex-direction:column}
 
 /* ── MAP ── */
 .map-section{height:45vh;min-height:300px;position:relative;border-bottom-left-radius:40px;border-bottom-right-radius:40px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);border-bottom:1px solid rgba(255,255,255,.1)}
-#maplibre-map,#entry-map{width:100%;height:100%}
-.map-fade{position:absolute;inset:0;pointer-events:none;z-index:10;box-shadow:inset 0 -55px 75px rgba(15,23,42,.95);border-bottom-left-radius:40px;border-bottom-right-radius:40px}
+#maplibre-map,#entry-map{width:100%;height:100%; background: transparent;}
+.map-fade{position:absolute;inset:0;pointer-events:none;z-index:1000;box-shadow:inset 0 -55px 75px rgba(15,23,42,.95);border-bottom-left-radius:40px;border-bottom-right-radius:40px}
 
-.maplibregl-ctrl-group{background:rgba(15,23,42,.88)!important;backdrop-filter:blur(8px)!important;border:1px solid rgba(255,255,255,.1)!important;border-radius:12px!important;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.3)!important}
-.maplibregl-ctrl-group button{background:transparent!important;border-bottom:1px solid rgba(255,255,255,.08)!important;width:32px!important;height:32px!important}
-.maplibregl-ctrl-group button:last-child{border-bottom:none!important}
-.maplibregl-ctrl-group button:hover{background:rgba(255,255,255,.1)!important}
-.maplibregl-ctrl-group button .maplibregl-ctrl-icon{filter:invert(1)}
-.maplibregl-ctrl-attrib{background:rgba(9,14,23,.7)!important;color:rgba(255,255,255,.3)!important;font-size:9px!important;backdrop-filter:blur(4px);border-radius:6px!important;font-family:'Outfit',sans-serif!important}
-.maplibregl-ctrl-attrib a{color:rgba(255,255,255,.4)!important}
+/* Leaflet UI Overrides to match previous aesthetic */
+.leaflet-bar { border: none !important; box-shadow: 0 4px 20px rgba(0,0,0,.3) !important; border-radius: 12px !important; overflow: hidden; background: rgba(15,23,42,.88) !important; backdrop-filter: blur(8px) !important; border: 1px solid rgba(255,255,255,.1) !important; margin: 16px !important;}
+.leaflet-bar a { background: transparent !important; color: white !important; border-bottom: 1px solid rgba(255,255,255,.08) !important; width: 32px !important; height: 32px !important; line-height: 32px !important; }
+.leaflet-bar a:hover { background: rgba(255,255,255,.1) !important; color: white !important; }
+.leaflet-bar a:last-child { border-bottom: none !important; }
+.leaflet-control-attribution { background: rgba(9,14,23,.7) !important; color: rgba(255,255,255,.3) !important; font-size: 9px !important; backdrop-filter: blur(4px); border-radius: 6px !important; font-family: 'Outfit', sans-serif !important; padding: 2px 6px !important; margin: 0 10px 10px 0 !important; }
+.leaflet-control-attribution a { color: rgba(255,255,255,.4) !important; }
+.leaflet-div-icon { background: transparent; border: none; }
 
 /* marker */
 .ml-marker{width:34px;height:38px;cursor:pointer;position:relative}
@@ -108,23 +74,6 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 .ml-marker.warning .ml-marker-inner{background:linear-gradient(135deg,#ef4444,#dc2626)}
 .ml-marker.selected .ml-marker-inner{box-shadow:0 0 22px rgba(59,130,246,.9);transform:rotate(-45deg) scale(1.15)}
 @keyframes pulse-ring{0%{transform:scale(1);opacity:.8}100%{transform:scale(2.8);opacity:0}}
-
-/* popup */
-.maplibregl-popup-content{background:rgba(15,23,42,.92)!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:18px!important;box-shadow:0 12px 40px rgba(0,0,0,.6)!important;color:#fff!important;padding:0!important;min-width:170px;font-family:'Outfit',sans-serif!important}
-.maplibregl-popup-tip{border-top-color:rgba(15,23,42,.92)!important}
-.maplibregl-popup-close-button{color:rgba(255,255,255,.45)!important;font-size:18px!important;top:8px!important;right:10px!important;background:none!important;border:none!important;cursor:pointer;padding:0!important;line-height:1}
-.maplibregl-popup-close-button:hover{color:#fff!important}
-.popup-inner{padding:14px 16px 12px}
-.popup-name{font-weight:700;font-size:.85rem;color:#93c5fd;margin-bottom:8px;letter-spacing:.04em}
-.popup-row{display:flex;justify-content:space-between;gap:16px;font-size:.75rem;color:rgba(255,255,255,.5);padding:2px 0}
-.popup-val{color:#fff;font-weight:600}
-.popup-status{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:4px 10px;border-radius:20px;font-size:.7rem;font-weight:700;letter-spacing:.06em}
-.popup-status.safe{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.25)}
-.popup-status.warning{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
-.s-dot{width:6px;height:6px;border-radius:50%}
-.s-dot.safe{background:#34d399;animation:blink 1.5s infinite}
-.s-dot.warning{background:#f87171;animation:blink 1.5s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* ── INFO PANEL ── */
 .info-panel-wrapper{flex:1;padding:16px;margin-top:-48px;z-index:20;position:relative}
@@ -156,28 +105,14 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 .metric-unit{font-size:.875rem;font-weight:500;color:rgba(255,255,255,.4)}
 
 /* ── CHART ── */
-.chart-section{flex:1;min-height:240px;background:rgba(0,0,0,.1);border-radius:24px;padding:20px;border:1px solid rgba(255,255,255,.05);margin-top:auto;position:relative}
+.chart-section{flex:1;min-height:240px;background:rgba(0,0,0,.1);border-radius:24px;padding:20px;border:1px solid rgba(255,255,255,.05);margin-top:auto;position:relative;transition: background 0.5s ease;}
 .chart-header{color:rgba(255,255,255,.8);font-weight:500;font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:20px;display:flex;align-items:center;gap:8px}
-.chart-dot{width:12px;height:12px;border-radius:50%;background:#60a5fa}
+.chart-dot{width:12px;height:12px;border-radius:50%;background:#60a5fa; transition: background 0.3s ease;}
 .chart-canvas-wrapper{height:200px;position:relative}
 .svg-chart{width:100%;height:100%;overflow:visible}
 
 /* Chart tooltip */
-.chart-tooltip{
-  position:absolute;
-  background:rgba(15,23,42,.95);
-  backdrop-filter:blur(16px);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:14px;
-  padding:10px 14px;
-  font-size:.78rem;
-  pointer-events:none;
-  display:none;
-  white-space:nowrap;
-  box-shadow:0 8px 30px rgba(0,0,0,.5);
-  z-index:50;
-  transform:translate(-50%,-110%);
-}
+.chart-tooltip{position:absolute;background:rgba(15,23,42,.95);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 14px;font-size:.78rem;pointer-events:none;display:none;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:50;transform:translate(-50%,-110%);}
 .chart-tooltip.visible{display:block}
 .ct-time{color:rgba(255,255,255,.5);font-size:.7rem;margin-bottom:4px}
 .ct-val{font-weight:800;font-size:1rem;color:#fff}
@@ -195,16 +130,13 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 /* Entry map card */
 .entry-map-card{border-radius:28px;overflow:hidden;margin-bottom:28px;position:relative;height:300px;border:1px solid rgba(255,255,255,.08)}
 @media(min-width:768px){.entry-map-card{height:360px}}
-.entry-map-overlay{position:absolute;inset:0;pointer-events:none;z-index:5;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
-.entry-map-hint{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(15,23,42,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:30px;padding:8px 18px;font-size:.78rem;font-weight:600;color:rgba(255,255,255,.7);pointer-events:none;white-space:nowrap;display:flex;align-items:center;gap:8px;transition:opacity .4s}
+.entry-map-overlay{position:absolute;inset:0;pointer-events:none;z-index:400;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.entry-map-hint{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:420;background:rgba(15,23,42,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:30px;padding:8px 18px;font-size:.78rem;font-weight:600;color:rgba(255,255,255,.7);pointer-events:none;white-space:nowrap;display:flex;align-items:center;gap:8px;transition:opacity .4s}
 .entry-map-hint.hidden{opacity:0}
 .entry-map-hint-dot{width:8px;height:8px;border-radius:50%;background:#60a5fa;animation:blink 1.5s infinite}
 
-/* Cursor crosshair when picking */
 #entry-map.picking{cursor:crosshair!important}
-
-/* Coords display */
-.coords-display{display:none;position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(15,23,42,.88);backdrop-filter:blur(12px);border:1px solid rgba(16,185,129,.25);border-radius:30px;padding:7px 18px;font-size:.78rem;font-weight:600;color:#34d399;pointer-events:none;white-space:nowrap;gap:8px;align-items:center}
+.coords-display{display:none;position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:420;background:rgba(15,23,42,.88);backdrop-filter:blur(12px);border:1px solid rgba(16,185,129,.25);border-radius:30px;padding:7px 18px;font-size:.78rem;font-weight:600;color:#34d399;pointer-events:none;white-space:nowrap;gap:8px;align-items:center}
 .coords-display.visible{display:flex}
 
 /* Form panel */
@@ -220,9 +152,19 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 .form-input:hover{background:rgba(0,0,0,.3)}
 .form-input:focus{border-color:rgba(59,130,246,.5);box-shadow:0 0 0 1px rgba(59,130,246,.5)}
 .form-input:read-only{color:rgba(255,255,255,.4);cursor:default}
-.btn-primary{margin-top:32px;background:linear-gradient(90deg,#2563eb,#3b82f6);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .2s ease;box-shadow:0 0 20px rgba(59,130,246,.3);position:relative;z-index:1}
+
+/* Action Buttons */
+.form-actions{display:flex;gap:16px;margin-top:32px;position:relative;z-index:1}
+.btn-primary{flex:1;background:linear-gradient(90deg,#2563eb,#3b82f6);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s ease;box-shadow:0 0 20px rgba(59,130,246,.3);}
 .btn-primary:hover{background:linear-gradient(90deg,#3b82f6,#60a5fa);box-shadow:0 0 30px rgba(59,130,246,.5);transform:scale(1.02)}
 .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-secondary{background:rgba(255,255,255,.05);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:all .2s ease;}
+.btn-secondary:hover{background:rgba(255,255,255,.1);}
+
+/* Toast Notification */
+.toast{position:fixed;bottom:32px;right:32px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);backdrop-filter:blur(12px);color:#34d399;padding:14px 28px;border-radius:16px;font-weight:600;font-size:0.95rem;transform:translateY(100px);opacity:0;transition:all 0.4s cubic-bezier(0.4, 0, 0.2, 1);z-index:9999;box-shadow:0 10px 40px rgba(0,0,0,.4);display:flex;align-items:center;gap:12px;}
+.toast.visible{transform:translateY(0);opacity:1;}
+.toast-icon{width:20px;height:20px;}
 
 /* Danger zone */
 .danger-panel{border-radius:32px;padding:32px;border:1px solid rgba(239,68,68,.2);background:rgba(127,29,29,.2)!important}
@@ -260,21 +202,8 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .text-gradient-blue{background:linear-gradient(90deg,#60a5fa,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent}
 
-/* Entry temporary pin (crosshair preview marker) */
+/* Entry temporary pin */
 .entry-preview-marker{width:24px;height:24px;border-radius:50%;background:rgba(59,130,246,.5);border:2px solid #60a5fa;box-shadow:0 0 12px rgba(59,130,246,.6)}
-
-/* Pins list in manual entry */
-.pins-list{margin-top:28px;display:flex;flex-direction:column;gap:10px;position:relative;z-index:1}
-.pin-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
-.pin-item-name{font-weight:600;font-size:.9rem;color:rgba(255,255,255,.85)}
-.pin-item-coords{font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px}
-.pin-item-badge{font-size:.65rem;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.06em}
-.pin-item-badge.safe{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.25)}
-.pin-item-badge.warning{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
-.pin-del-btn{background:none;border:none;color:rgba(255,255,255,.2);cursor:pointer;padding:6px;border-radius:8px;transition:all .2s;display:flex;align-items:center}
-.pin-del-btn:hover{background:rgba(239,68,68,.15);color:#f87171}
-.pins-empty{color:rgba(255,255,255,.25);font-size:.85rem;text-align:center;padding:20px 0;font-weight:500}
-
 
 </style>
 </head>
@@ -284,19 +213,19 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
 <div class="blob blob-3"></div>
 <div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
 
-<div class="app">
-  <!-- ── SIDEBAR ── -->
-  <aside class="sidebar glass-panel" id="sidebar">
-    <div style="display:flex;align-items:center;gap:12px">
-  <button class="hamburger-btn" onclick="openSidebar()">
-    <svg class="icon" viewBox="0 0 24 24">
-      <line x1="3" y1="12" x2="21" y2="12"/>
-      <line x1="3" y1="6" x2="21" y2="6"/>
-      <line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-  </button>
-  <span class="logo-text">WATER QUALITY TEST</span>
+<div id="toast" class="toast">
+  <svg class="toast-icon icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+  <span id="toast-msg">Pin saved successfully!</span>
 </div>
+
+<div class="app">
+  <aside class="sidebar glass-panel" id="sidebar">
+    <div class="sidebar-logo">
+      <button class="hamburger-btn" onclick="openSidebar()">
+        <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="logo-text">WATER QUALITY TEST</span>
+    </div>
     <nav class="sidebar-nav">
       <a class="nav-item active" id="nav-dashboard" onclick="navigate('dashboard')">
         <svg class="nav-icon icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
@@ -315,15 +244,12 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
 
   <main class="main">
     <header class="mobile-header glass-panel">
-      <div style="display:flex;align-items:center;gap:12px">
-        <button class="hamburger-btn" onclick="openSidebar()">
-          <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-        <span class="text-gradient-blue" style="font-weight:800;letter-spacing:.15em">CHEMELEON</span>
-      </div>
-    </header>
+      <button class="hamburger-btn" onclick="openSidebar()">
+        <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="text-gradient-blue" style="font-weight:800;letter-spacing:.15em">CHEMELEON</span>
+      <div style="width: 36px"></div> </header>
 
-    <!-- ══ DASHBOARD ══ -->
     <div class="page active" id="page-dashboard" style="flex-direction:column;min-height:100vh">
       <div class="map-section">
         <div id="maplibre-map"></div>
@@ -363,7 +289,7 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
               <div class="metric-value" id="val-turb">-- <span class="metric-unit">NTU</span></div>
             </div>
           </div>
-          <div class="chart-section glass-card">
+          <div class="chart-section glass-card" id="chart-section-bg">
             <div class="chart-header">
               <div class="chart-dot" id="chart-dot"></div>
               Historical Trend (<span id="chart-metric-label">pH</span>)
@@ -380,14 +306,12 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
       </div>
     </div>
 
-    <!-- ══ MANUAL ENTRY ══ -->
     <div class="page" id="page-options">
       <div class="page-content">
         <div class="page-inner">
           <h1 class="page-title">Device Configuration</h1>
           <p class="page-sub">Click anywhere on the map to drop a pin, fill in the sensor values, then save.</p>
 
-          <!-- Map picker -->
           <div class="entry-map-card glass-panel">
             <div id="entry-map"></div>
             <div class="entry-map-overlay"></div>
@@ -401,7 +325,6 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
             </div>
           </div>
 
-          <!-- Form -->
           <div class="form-panel glass-panel">
             <div class="form-deco"></div>
             <div class="form-title">
@@ -434,18 +357,18 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
                 <input type="number" class="form-input" id="f-turb" placeholder="e.g. 5" step="0.1"/>
               </div>
             </div>
-            <button class="btn-primary" id="add-pin-btn" onclick="addPin()" disabled>
-              <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 6.9 8 11.7z"/></svg>
-              Save Pin
-            </button>
-
-            <!-- Pins list -->
-            <div class="pins-list" id="pins-list">
-              <p class="pins-empty" id="pins-empty">No pins added yet. Drop one on the map above.</p>
+            
+            <div class="form-actions">
+              <button class="btn-primary" id="add-pin-btn" onclick="addPin()" disabled>
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 6.9 8 11.7z"/></svg>
+                Save Pin
+              </button>
+              <button class="btn-secondary" onclick="clearForm()">
+                Clear Form
+              </button>
             </div>
           </div>
 
-          <!-- Danger zone -->
           <div class="form-panel danger-panel glass-panel">
             <div class="danger-inner">
               <div>
@@ -465,7 +388,6 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
       </div>
     </div>
 
-    <!-- ══ ABOUT ══ -->
     <div class="page" id="page-about">
       <div class="about-page">
         <div class="about-inner">
@@ -486,7 +408,7 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
               <div class="team-card glass-card"><div class="team-avatar"><span class="team-avatar-letter">R</span></div><div><div class="team-name">RAHUL DORA</div><div class="team-role">UDAIPUR KA SAPNA</div></div></div>
             </div>
           </div>
-          <div class="about-footer">© <span id="year"></span> CHEMELEON PROJECT. ALL RIGHTS RESERVED.</div>
+          <div class="about-footer">© <span id="year">2026</span> CHEMELEON PROJECT. ALL RIGHTS RESERVED.</div>
         </div>
       </div>
     </div>
@@ -494,196 +416,242 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
 </div>
 
 <script>
-/* ================== CONFIG ================== */
-const FIREBASE_URL =
-"https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
-
+const FIREBASE_URL = "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
 const DEVICE_ID = "device1";
 
 let pinsData = [];
 let mlMap;
 let entryMap;
 let mlMarkers = [];
-let entryMarkers = [];
+let entryPreviewMarker = null;
 let activeMetric = "pH";
 let chartData = [];
+let initialLoadComplete = false;
 
-/* ================== MAP STYLE ================== */
-const MAP_STYLE = {
-  version: 8,
-  sources: {
-    osm: {
-      type: "raster",
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-      tileSize: 256
-    }
-  },
-  layers: [{ id: "osm", type: "raster", source: "osm" }]
-};
-
-/* ================== INIT DASHBOARD MAP ================== */
+/* ================== LEAFLET INIT ================== */
 function initDashboardMap() {
-  mlMap = new maplibregl.Map({
-    container: "maplibre-map",
-    style: MAP_STYLE,
-    center: [72.8311, 21.175],
-    zoom: 11
-  });
+  mlMap = L.map('maplibre-map', {
+    zoomControl: false // Move to bottom right
+  }).setView([21.175, 72.8311], 11);
 
-  mlMap.addControl(new maplibregl.NavigationControl(), "bottom-right");
+  L.control.zoom({ position: 'bottomright' }).addTo(mlMap);
 
-  mlMap.on("load", loadPinsRealtime);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(mlMap);
+
+  loadPinsRealtime();
 }
 
-/* ================== REALTIME LISTENER ================== */
+function initEntryMap() {
+  entryMap = L.map('entry-map', {
+    zoomControl: false
+  }).setView([21.175, 72.8311], 11);
+
+  L.control.zoom({ position: 'bottomright' }).addTo(mlMap);
+
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(entryMap);
+
+  entryMap.on("click", (e) => {
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+
+    if (entryPreviewMarker) {
+      entryMap.removeLayer(entryPreviewMarker);
+    }
+
+    const icon = L.divIcon({
+      className: '',
+      html: '<div class="entry-preview-marker"></div>',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
+    });
+
+    entryPreviewMarker = L.marker([lat, lng], { icon: icon }).addTo(entryMap);
+
+    document.getElementById("f-lat").value = lat.toFixed(6);
+    document.getElementById("f-lng").value = lng.toFixed(6);
+    document.getElementById("coords-text").innerText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    document.getElementById("coords-display").classList.add("visible");
+    document.getElementById("add-pin-btn").disabled = false;
+  });
+}
+
+/* ================== REALTIME PINS ================== */
 function loadPinsRealtime() {
-  setInterval(loadPins, 3000); // auto refresh every 3 sec
+  setInterval(loadPins, 3000);
   loadPins();
 }
 
-/* ================== LOAD PINS ================== */
 async function loadPins() {
-  const res = await fetch(
-    `${FIREBASE_URL}/devices/${DEVICE_ID}/pins.json`
-  );
-  const data = await res.json();
+  try {
+    const res = await fetch(`${FIREBASE_URL}/devices/${DEVICE_ID}/pins.json`);
+    const data = await res.json();
 
-  mlMarkers.forEach(m => m.remove());
-  mlMarkers = [];
-  pinsData = [];
+    mlMarkers.forEach(m => mlMap.removeLayer(m));
+    mlMarkers = [];
+    pinsData = [];
 
-  if (!data) return;
+    if (!data) return;
 
-  Object.keys(data).forEach((key, index) => {
-    const pin = { id: key, ...data[key] };
-    pinsData.push(pin);
+    Object.keys(data).forEach((key, index) => {
+      const pin = { id: key, ...data[key] };
+      pinsData.push(pin);
 
-    const el = document.createElement("div");
-    el.className = `ml-marker ${pin.status === "SAFE" ? "safe" : "warning"}`;
-    el.innerHTML =
-      `<div class="ml-pulse"></div><div class="ml-marker-inner"></div>`;
+      const statusClass = pin.status === "SAFE" ? "safe" : "warning";
+      
+      // Port custom marker to Leaflet divIcon
+      const customIcon = L.divIcon({
+        className: '',
+        html: `<div class="ml-marker ${statusClass}"><div class="ml-pulse"></div><div class="ml-marker-inner"></div></div>`,
+        iconSize: [34, 38],
+        iconAnchor: [17, 38] // This perfectly fixes the gliding issue!
+      });
 
-    const marker = new maplibregl.Marker({
-  element: el,
-  anchor: "bottom"   // ✅ change bottom → center
-})
-.setLngLat([
-  parseFloat(pin.lng),
-  parseFloat(pin.lat)
-])
-.addTo(mlMap);
+      const marker = L.marker([parseFloat(pin.lat), parseFloat(pin.lng)], { icon: customIcon }).addTo(mlMap);
+      
+      marker.on('click', () => selectPin(index));
+      mlMarkers.push(marker);
+    });
 
-    el.addEventListener("click", () => selectPin(index));
-    mlMarkers.push(marker);
-  });
+    // Auto-select most recent pin on initial load
+    if (!initialLoadComplete && pinsData.length > 0) {
+      selectPin(pinsData.length - 1);
+      initialLoadComplete = true;
+    }
+  } catch(e) { console.error(e); }
 }
 
 /* ================== SELECT PIN ================== */
 async function selectPin(index) {
   const pin = pinsData[index];
 
+  document.getElementById("panel-title").innerText = "Location " + (index + 1);
+  document.getElementById("panel-sub").innerText = `${pin.lat.toFixed(4)}, ${pin.lng.toFixed(4)}`;
+  
+  const badge = document.getElementById("status-badge");
+  badge.className = "status-badge visible " + (pin.status === "SAFE" ? "safe" : "warning");
+  document.getElementById("status-dot").className = "status-dot " + (pin.status === "SAFE" ? "safe" : "warning");
+  document.getElementById("status-text").innerText = pin.status;
+
   document.getElementById("val-pH").innerText = pin.pH;
-  document.getElementById("val-tds").innerHTML =
-    `${pin.tds} <span class="metric-unit">ppm</span>`;
-  document.getElementById("val-temp").innerHTML =
-    `${pin.temp} <span class="metric-unit">°C</span>`;
-  document.getElementById("val-turb").innerHTML =
-    `${pin.turb} <span class="metric-unit">NTU</span>`;
+  document.getElementById("val-tds").innerHTML = `${pin.tds} <span class="metric-unit">ppm</span>`;
+  document.getElementById("val-temp").innerHTML = `${pin.temp} <span class="metric-unit">°C</span>`;
+  document.getElementById("val-turb").innerHTML = `${pin.turb} <span class="metric-unit">NTU</span>`;
 
   loadHistory();
 }
 
-/* ================== LOAD HISTORY ================== */
+/* ================== CHART & BINDINGS ================== */
 async function loadHistory() {
-  const res = await fetch(
-    `${FIREBASE_URL}/devices/${DEVICE_ID}/history.json`
-  );
+  const res = await fetch(`${FIREBASE_URL}/devices/${DEVICE_ID}/history.json`);
   const data = await res.json();
   if (!data) return;
-
-  chartData = Object.values(data)
-    .sort((a, b) => a.ts - b.ts)
-    .slice(-20);
-
+  chartData = Object.values(data).sort((a, b) => a.ts - b.ts).slice(-20);
   drawChart();
 }
 
-/* ================== DRAW CHART ================== */
 function setActiveMetric(metric, color) {
   activeMetric = metric;
 
-  document.querySelectorAll(".metric-card")
-    .forEach(c => c.classList.remove("active"));
-
-  document.getElementById("metric-" + metric)
-    .classList.add("active");
+  document.querySelectorAll(".metric-card").forEach(c => c.classList.remove("active"));
+  document.getElementById("metric-" + metric).classList.add("active");
 
   document.getElementById("chart-dot").style.background = color;
   document.getElementById("chart-metric-label").innerText = metric;
+  
+  // Update Chart Section Background Gradient dynamically
+  document.getElementById("chart-section-bg").style.background = `radial-gradient(circle at top right, ${color}22 0%, rgba(0,0,0,0.1) 70%)`;
 
   drawChart();
 }
+
 function drawChart() {
   const svg = document.getElementById("area-chart");
   svg.innerHTML = "";
-
   if (!chartData.length) return;
 
-  const W = 800;
+  const W = 750; // Chart width adjusted for side padding
   const H = 200;
+  const xOffset = 40; // Space for Y-axis labels
 
   const values = chartData.map(d => Number(d[activeMetric]));
-  const times = chartData.map(d =>
-    d.time ? d.time : new Date(d.ts).toLocaleTimeString()
-  );
+  const times = chartData.map(d => d.time ? d.time : new Date(d.ts).toLocaleTimeString());
 
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const range = max - min || 1;
+  let max = Math.max(...values);
+  let min = Math.min(...values);
+  if (max === min) { max += 1; min -= 1; }
+  const range = max - min;
+  const mid = (max + min) / 2;
+
+  // Draw Gridlines and Y-Axis Labels
+  let gridHtml = `
+    <line x1="${xOffset}" y1="15" x2="800" y2="15" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="0" y="20" fill="rgba(255,255,255,0.4)" font-size="12" font-weight="600" font-family="Outfit">${max.toFixed(1)}</text>
+    <line x1="${xOffset}" y1="${H/2}" x2="800" y2="${H/2}" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="0" y="${H/2 + 4}" fill="rgba(255,255,255,0.4)" font-size="12" font-weight="600" font-family="Outfit">${mid.toFixed(1)}</text>
+    <line x1="${xOffset}" y1="${H - 15}" x2="800" y2="${H - 15}" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="0" y="${H - 10}" fill="rgba(255,255,255,0.4)" font-size="12" font-weight="600" font-family="Outfit">${min.toFixed(1)}</text>
+  `;
 
   let path = "";
-
   values.forEach((val, i) => {
-    const x = (i / (values.length - 1)) * W;
-    const y = H - ((val - min) / range) * H;
-
+    const x = xOffset + (i / (values.length - 1)) * W;
+    const y = H - 15 - ((val - min) / range) * (H - 30); // 15px padding top/bottom
     path += `${i === 0 ? "M" : "L"}${x},${y} `;
   });
 
-  svg.innerHTML = `
-    <path d="${path}" fill="none" stroke="#3b82f6" stroke-width="3"/>
+  // Get active color dynamically
+  const activeColor = document.getElementById("chart-dot").style.background || "#3b82f6";
+
+  svg.innerHTML = gridHtml + `
+    <path d="${path}" fill="none" stroke="${activeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
   `;
 
   // Tooltip
   const tooltip = document.getElementById("chart-tooltip");
-
   svg.onmousemove = function(e) {
     const rect = svg.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
-    const index = Math.round((mouseX / rect.width) * (values.length - 1));
-
+    
+    // Check bounds
+    if(mouseX < xOffset) return;
+    
+    const index = Math.round(((mouseX - xOffset) / (rect.width - xOffset)) * (values.length - 1));
     if (!values[index]) return;
 
     tooltip.classList.add("visible");
     tooltip.style.left = mouseX + "px";
-    tooltip.style.top = "40px";
-
+    tooltip.style.top = "30px";
     document.getElementById("ct-time").innerText = times[index];
     document.getElementById("ct-val").innerText = values[index];
-
-    document.getElementById("ct-unit").innerText =
-      activeMetric === "tds" ? " ppm" :
-      activeMetric === "temp" ? " °C" :
-      activeMetric === "turb" ? " NTU" :
-      "";
+    document.getElementById("ct-unit").innerText = activeMetric === "tds" ? " ppm" : activeMetric === "temp" ? " °C" : activeMetric === "turb" ? " NTU" : "";
   };
-
-  svg.onmouseleave = function() {
-    tooltip.classList.remove("visible");
-  };
+  svg.onmouseleave = () => tooltip.classList.remove("visible");
 }
 
-/* ================== ADD PIN ================== */
+/* ================== MANUAL ENTRY FUNCTIONS ================== */
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.querySelector('span').innerText = msg;
+  toast.classList.add("visible");
+  setTimeout(() => toast.classList.remove("visible"), 3000);
+}
+
+function clearForm() {
+  document.querySelectorAll(".form-input").forEach(input => input.value = "");
+  document.getElementById("coords-display").classList.remove("visible");
+  document.getElementById("add-pin-btn").disabled = true;
+  if (entryPreviewMarker) {
+    entryMap.removeLayer(entryPreviewMarker);
+    entryPreviewMarker = null;
+  }
+}
+
 async function addPin() {
   const lat = parseFloat(document.getElementById("f-lat").value);
   const lng = parseFloat(document.getElementById("f-lng").value);
@@ -697,100 +665,47 @@ async function addPin() {
     return;
   }
 
-  const status = (pH < 6 || pH > 8.5 || turb > 10)
-    ? "WARNING"
-    : "SAFE";
+  const status = (pH < 6 || pH > 8.5 || turb > 10) ? "WARNING" : "SAFE";
 
-  await fetch(
-    `${FIREBASE_URL}/devices/${DEVICE_ID}/pins.json`,
-    {
+  document.getElementById("add-pin-btn").disabled = true;
+
+  try {
+    await fetch(`${FIREBASE_URL}/devices/${DEVICE_ID}/pins.json`, {
       method: "POST",
-      body: JSON.stringify({
-        lat, lng, pH, tds, temp, turb,
-        status,
-        ts: Date.now()
-      })
-    }
-  );
-
-  alert("Pin saved!");
-  loadPins();
+      body: JSON.stringify({ lat, lng, pH, tds, temp, turb, status, ts: Date.now() })
+    });
+    showToast("Pin saved successfully!");
+    clearForm();
+    loadPins(); // Refresh map immediately
+  } catch(e) {
+    alert("Error saving pin.");
+    document.getElementById("add-pin-btn").disabled = false;
+  }
 }
 
-/* ================== RESET ================== */
 async function confirmReset() {
   const pass = prompt("Enter LDCHEMICAL");
-  if (pass !== "LDCHEMICAL") {
-    alert("Wrong password");
-    return;
-  }
-
-  await fetch(
-    `${FIREBASE_URL}/devices/${DEVICE_ID}.json`,
-    { method: "DELETE" }
-  );
-
-  mlMarkers.forEach(m => m.remove());
+  if (pass !== "LDCHEMICAL") return alert("Wrong password");
+  await fetch(`${FIREBASE_URL}/devices/${DEVICE_ID}.json`, { method: "DELETE" });
+  mlMarkers.forEach(m => mlMap.removeLayer(m));
   mlMarkers = [];
-  alert("All data cleared from Firebase.");
+  alert("All data cleared.");
 }
 
-/* ================== NAVIGATION ================== */
+/* ================== UI ================== */
 function navigate(page) {
-  document.querySelectorAll(".page")
-    .forEach(p => p.classList.remove("active"));
-  document.querySelectorAll(".nav-item")
-    .forEach(n => n.classList.remove("active"));
-
-  document.getElementById("page-" + page)
-    .classList.add("active");
-  document.getElementById("nav-" + page)
-    .classList.add("active");
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById("page-" + page).classList.add("active");
+  document.getElementById("nav-" + page).classList.add("active");
+  
+  // Force map resize when tab changes to avoid Leaflet gray-box rendering bug
+  setTimeout(() => {
+    if(page === 'dashboard' && mlMap) mlMap.invalidateSize();
+    if(page === 'options' && entryMap) entryMap.invalidateSize();
+  }, 50);
 }
 
-/* ================== START ================== */
-/* ================== INIT MANUAL ENTRY MAP ================== */
-function initEntryMap() {
-  entryMap = new maplibregl.Map({
-    container: "entry-map",
-    style: MAP_STYLE,
-    center: [72.8311, 21.175],
-    zoom: 11
-  });
-
-  entryMap.addControl(new maplibregl.NavigationControl(), "bottom-right");
-
-  let previewMarker = null;
-
-  entryMap.on("click", (e) => {
-    const { lng, lat } = e.lngLat;
-
-    // Remove old preview
-    if (previewMarker) previewMarker.remove();
-
-    const el = document.createElement("div");
-    el.className = "entry-preview-marker";
-
-    previewMarker = new maplibregl.Marker({ element: el })
-      .setLngLat([lng, lat])
-      .addTo(entryMap);
-
-    document.getElementById("f-lat").value = lat.toFixed(6);
-    document.getElementById("f-lng").value = lng.toFixed(6);
-
-    document.getElementById("coords-text").innerText =
-      `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-
-    document.getElementById("coords-display").classList.add("visible");
-
-    // Enable save button
-    document.getElementById("add-pin-btn").disabled = false;
-  });
-}
-window.addEventListener("load", () => {
-  initDashboardMap();
-  initEntryMap();
-});
 function openSidebar(){
   document.getElementById("sidebar").classList.add("open");
   document.getElementById("overlay").classList.add("visible");
@@ -802,6 +717,11 @@ function closeSidebar(){
   document.getElementById("overlay").classList.remove("visible");
   document.querySelector(".main").style.filter = "blur(0)";
 }
+
+window.addEventListener("load", () => {
+  initDashboardMap();
+  initEntryMap();
+});
 </script>
 </body>
 </html>
