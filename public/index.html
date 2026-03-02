@@ -7,7 +7,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+
 <style>
+/* CSS IS UNTOUCHED - EXACTLY AS PROVIDED */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0f172a;--fg:#f8fafc;--safe-top:env(safe-area-inset-top)}
 body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overflow-x:hidden;min-height:100vh}
@@ -54,7 +59,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 #maplibre-map,#entry-map{width:100%;height:100%; background: transparent;}
 .map-fade{position:absolute;inset:0;pointer-events:none;z-index:1000;box-shadow:inset 0 -55px 75px rgba(15,23,42,.95);border-bottom-left-radius:40px;border-bottom-right-radius:40px}
 
-/* Leaflet UI Overrides to match previous aesthetic */
+/* Leaflet UI Overrides */
 .leaflet-bar { border: none !important; box-shadow: 0 4px 20px rgba(0,0,0,.3) !important; border-radius: 12px !important; overflow: hidden; background: rgba(15,23,42,.88) !important; backdrop-filter: blur(8px) !important; border: 1px solid rgba(255,255,255,.1) !important; margin: 16px !important;}
 .leaflet-bar a { background: transparent !important; color: white !important; border-bottom: 1px solid rgba(255,255,255,.08) !important; width: 32px !important; height: 32px !important; line-height: 32px !important; }
 .leaflet-bar a:hover { background: rgba(255,255,255,.1) !important; color: white !important; }
@@ -204,7 +209,6 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
 
 /* Entry temporary pin */
 .entry-preview-marker{width:24px;height:24px;border-radius:50%;background:rgba(59,130,246,.5);border:2px solid #60a5fa;box-shadow:0 0 12px rgba(59,130,246,.6)}
-
 </style>
 </head>
 <body>
@@ -248,7 +252,8 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
         <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <span class="text-gradient-blue" style="font-weight:800;letter-spacing:.15em">CHEMELEON</span>
-      <div style="width: 36px"></div> </header>
+      <div style="width: 36px"></div> 
+    </header>
 
     <div class="page active" id="page-dashboard" style="flex-direction:column;min-height:100vh">
       <div class="map-section">
@@ -416,13 +421,17 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
 </div>
 
 <script>
-const FIREBASE_URL = "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
+// 1. INITIALIZE FIREBASE SDK
+firebase.initializeApp({
+  databaseURL: "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app"
+});
+const database = firebase.database();
 const DEVICE_ID = "device1";
 
 let pinsData = [];
+let markersMap = {}; // Maps Firebase keys to Leaflet markers (fixes flickering)
 let mlMap;
 let entryMap;
-let mlMarkers = [];
 let entryPreviewMarker = null;
 let activeMetric = "pH";
 let chartData = [];
@@ -431,7 +440,7 @@ let initialLoadComplete = false;
 /* ================== LEAFLET INIT ================== */
 function initDashboardMap() {
   mlMap = L.map('maplibre-map', {
-    zoomControl: false // Move to bottom right
+    zoomControl: false 
   }).setView([21.175, 72.8311], 11);
 
   L.control.zoom({ position: 'bottomright' }).addTo(mlMap);
@@ -441,7 +450,8 @@ function initDashboardMap() {
     attribution: '&copy; OpenStreetMap'
   }).addTo(mlMap);
 
-  loadPinsRealtime();
+  // Trigger WebSocket Listener
+  setupRealtimeListener();
 }
 
 function initEntryMap() {
@@ -481,41 +491,49 @@ function initEntryMap() {
   });
 }
 
-/* ================== REALTIME PINS ================== */
-function loadPinsRealtime() {
-  setInterval(loadPins, 3000);
-  loadPins();
-}
+/* ================== FIREBASE REALTIME WEBSOCKET (ZERO POLLING) ================== */
+function setupRealtimeListener() {
+  const pinsRef = database.ref(`devices/${DEVICE_ID}/pins`);
+  
+  // .on('value') opens a WebSocket. It only runs this code when data ACTUALLY changes.
+  pinsRef.on('value', (snapshot) => {
+    const data = snapshot.val() || {};
+    const currentKeys = Object.keys(data);
 
-async function loadPins() {
-  try {
-    const res = await fetch(`${FIREBASE_URL}/devices/${DEVICE_ID}/pins.json`);
-    const data = await res.json();
+    // 1. Smart Cleanup: Only remove markers that were deleted from Firebase
+    Object.keys(markersMap).forEach(key => {
+      if (!currentKeys.includes(key)) {
+        mlMap.removeLayer(markersMap[key]);
+        delete markersMap[key];
+      }
+    });
 
-    mlMarkers.forEach(m => mlMap.removeLayer(m));
-    mlMarkers = [];
+    // 2. Rebuild our local array so the UI knows the indices
     pinsData = [];
 
-    if (!data) return;
-
-    Object.keys(data).forEach((key, index) => {
+    // 3. Add or Update Markers
+    currentKeys.forEach((key) => {
       const pin = { id: key, ...data[key] };
       pinsData.push(pin);
+      const currentIndex = pinsData.length - 1; // Current index for this pin
 
-      const statusClass = pin.status === "SAFE" ? "safe" : "warning";
-      
-      // Port custom marker to Leaflet divIcon
-      const customIcon = L.divIcon({
-        className: '',
-        html: `<div class="ml-marker ${statusClass}"><div class="ml-pulse"></div><div class="ml-marker-inner"></div></div>`,
-        iconSize: [34, 38],
-        iconAnchor: [17, 38] // This perfectly fixes the gliding issue!
-      });
+      // Only draw the marker if it doesn't already exist on the map
+      if (!markersMap[key]) {
+        const statusClass = pin.status === "SAFE" ? "safe" : "warning";
+        const customIcon = L.divIcon({
+          className: '',
+          html: `<div class="ml-marker ${statusClass}"><div class="ml-pulse"></div><div class="ml-marker-inner"></div></div>`,
+          iconSize: [34, 38],
+          iconAnchor: [17, 38] 
+        });
 
-      const marker = L.marker([parseFloat(pin.lat), parseFloat(pin.lng)], { icon: customIcon }).addTo(mlMap);
+        const marker = L.marker([parseFloat(pin.lat), parseFloat(pin.lng)], { icon: customIcon }).addTo(mlMap);
+        markersMap[key] = marker;
+      }
       
-      marker.on('click', () => selectPin(index));
-      mlMarkers.push(marker);
+      // Update click listener with correct index
+      markersMap[key].off('click');
+      markersMap[key].on('click', () => selectPin(currentIndex));
     });
 
     // Auto-select most recent pin on initial load
@@ -523,7 +541,7 @@ async function loadPins() {
       selectPin(pinsData.length - 1);
       initialLoadComplete = true;
     }
-  } catch(e) { console.error(e); }
+  });
 }
 
 /* ================== SELECT PIN ================== */
@@ -548,11 +566,14 @@ async function selectPin(index) {
 
 /* ================== CHART & BINDINGS ================== */
 async function loadHistory() {
-  const res = await fetch(`${FIREBASE_URL}/devices/${DEVICE_ID}/history.json`);
-  const data = await res.json();
-  if (!data) return;
-  chartData = Object.values(data).sort((a, b) => a.ts - b.ts).slice(-20);
-  drawChart();
+  // Utilizing the Firebase SDK for history retrieval
+  const historyRef = database.ref(`devices/${DEVICE_ID}/history`);
+  historyRef.once('value').then((snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+    chartData = Object.values(data).sort((a, b) => a.ts - b.ts).slice(-20);
+    drawChart();
+  });
 }
 
 function setActiveMetric(metric, color) {
@@ -564,7 +585,6 @@ function setActiveMetric(metric, color) {
   document.getElementById("chart-dot").style.background = color;
   document.getElementById("chart-metric-label").innerText = metric;
   
-  // Update Chart Section Background Gradient dynamically
   document.getElementById("chart-section-bg").style.background = `radial-gradient(circle at top right, ${color}22 0%, rgba(0,0,0,0.1) 70%)`;
 
   drawChart();
@@ -575,9 +595,9 @@ function drawChart() {
   svg.innerHTML = "";
   if (!chartData.length) return;
 
-  const W = 750; // Chart width adjusted for side padding
+  const W = 750;
   const H = 200;
-  const xOffset = 40; // Space for Y-axis labels
+  const xOffset = 40;
 
   const values = chartData.map(d => Number(d[activeMetric]));
   const times = chartData.map(d => d.time ? d.time : new Date(d.ts).toLocaleTimeString());
@@ -588,7 +608,6 @@ function drawChart() {
   const range = max - min;
   const mid = (max + min) / 2;
 
-  // Draw Gridlines and Y-Axis Labels
   let gridHtml = `
     <line x1="${xOffset}" y1="15" x2="800" y2="15" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4,4"/>
     <text x="0" y="20" fill="rgba(255,255,255,0.4)" font-size="12" font-weight="600" font-family="Outfit">${max.toFixed(1)}</text>
@@ -601,24 +620,21 @@ function drawChart() {
   let path = "";
   values.forEach((val, i) => {
     const x = xOffset + (i / (values.length - 1)) * W;
-    const y = H - 15 - ((val - min) / range) * (H - 30); // 15px padding top/bottom
+    const y = H - 15 - ((val - min) / range) * (H - 30); 
     path += `${i === 0 ? "M" : "L"}${x},${y} `;
   });
 
-  // Get active color dynamically
   const activeColor = document.getElementById("chart-dot").style.background || "#3b82f6";
 
   svg.innerHTML = gridHtml + `
     <path d="${path}" fill="none" stroke="${activeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
   `;
 
-  // Tooltip
   const tooltip = document.getElementById("chart-tooltip");
   svg.onmousemove = function(e) {
     const rect = svg.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     
-    // Check bounds
     if(mouseX < xOffset) return;
     
     const index = Math.round(((mouseX - xOffset) / (rect.width - xOffset)) * (values.length - 1));
@@ -670,13 +686,13 @@ async function addPin() {
   document.getElementById("add-pin-btn").disabled = true;
 
   try {
-    await fetch(`${FIREBASE_URL}/devices/${DEVICE_ID}/pins.json`, {
-      method: "POST",
-      body: JSON.stringify({ lat, lng, pH, tds, temp, turb, status, ts: Date.now() })
-    });
+    // Push new pin using the Firebase SDK
+    const pinsRef = database.ref(`devices/${DEVICE_ID}/pins`).push();
+    await pinsRef.set({ lat, lng, pH, tds, temp, turb, status, ts: Date.now() });
+    
     showToast("Pin saved successfully!");
     clearForm();
-    loadPins(); // Refresh map immediately
+    // Notice: We don't call loadPins() anymore! The Firebase listener above handles it instantly.
   } catch(e) {
     alert("Error saving pin.");
     document.getElementById("add-pin-btn").disabled = false;
@@ -686,9 +702,10 @@ async function addPin() {
 async function confirmReset() {
   const pass = prompt("Enter LDCHEMICAL");
   if (pass !== "LDCHEMICAL") return alert("Wrong password");
-  await fetch(`${FIREBASE_URL}/devices/${DEVICE_ID}.json`, { method: "DELETE" });
-  mlMarkers.forEach(m => mlMap.removeLayer(m));
-  mlMarkers = [];
+  
+  // Use Firebase SDK to clear data
+  await database.ref(`devices/${DEVICE_ID}`).remove();
+  
   alert("All data cleared.");
 }
 
@@ -699,7 +716,6 @@ function navigate(page) {
   document.getElementById("page-" + page).classList.add("active");
   document.getElementById("nav-" + page).classList.add("active");
   
-  // Force map resize when tab changes to avoid Leaflet gray-box rendering bug
   setTimeout(() => {
     if(page === 'dashboard' && mlMap) mlMap.invalidateSize();
     if(page === 'options' && entryMap) entryMap.invalidateSize();
