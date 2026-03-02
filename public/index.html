@@ -474,6 +474,17 @@ let fullHistoryData = [];
 let activeMetric = "pH";
 let chartData = [];
 let initialLoadComplete = false;
+let currentSelectedPin = null;
+
+/* ================== DISTANCE FILTER ================== */
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = (x) => (x * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 /* ================== LEAFLET INIT ================== */
 function initDashboardMap() {
@@ -488,11 +499,9 @@ function initDashboardMap() {
     attribution: '&copy; OpenStreetMap'
   }).addTo(mlMap);
 
-  // Initialize Layer Groups
   pinsLayerGroup = L.layerGroup().addTo(mlMap);
   historyLayerGroup = L.layerGroup();
 
-  // Trigger Real-Time Listener
   setupRealtimeListener();
 }
 
@@ -533,7 +542,7 @@ function initEntryMap() {
   });
 }
 
-/* ================== FIREBASE REALTIME WEBSOCKET (ZERO POLLING) ================== */
+/* ================== FIREBASE REALTIME WEBSOCKET ================== */
 function setupRealtimeListener() {
   const pinsRef = database.ref(`devices/${DEVICE_ID}/pins`);
   
@@ -541,7 +550,6 @@ function setupRealtimeListener() {
     const data = snapshot.val() || {};
     const currentKeys = Object.keys(data);
 
-    // Smart Cleanup
     Object.keys(markersMap).forEach(key => {
       if (!currentKeys.includes(key)) {
         pinsLayerGroup.removeLayer(markersMap[key]);
@@ -579,7 +587,6 @@ function setupRealtimeListener() {
     }
   });
 
-  // Track the absolute history perfectly in real-time for the slider
   database.ref(`devices/${DEVICE_ID}/history`).on('value', (snapshot) => {
     const data = snapshot.val();
     if (!data) return;
@@ -590,6 +597,8 @@ function setupRealtimeListener() {
     if(mode === 'LIVE') {
         slider.value = fullHistoryData.length - 1;
     }
+
+    if (currentSelectedPin) updateChartForSelectedPin();
   });
 }
 
@@ -616,7 +625,7 @@ function toggleHeatmap() {
         let heatPoints = pinsData.map(p => [
             parseFloat(p.lat),
             parseFloat(p.lng),
-            p.status === 'WARNING' ? 1.0 : 0.2 // Red for toxic, green for safe
+            p.status === 'WARNING' ? 1.0 : 0.2
         ]);
         
         heatLayer = L.heatLayer(heatPoints, {
@@ -632,7 +641,7 @@ function toggleHeatmap() {
 
 /* ================== NEW FEATURE: TIME MACHINE ================== */
 function handleTimeSlider(index) {
-    if (mode === 'HEATMAP') toggleHeatmap(); // Turn off heatmap if active
+    if (mode === 'HEATMAP') toggleHeatmap(); 
 
     index = parseInt(index);
     if (index >= fullHistoryData.length - 1) {
@@ -651,11 +660,9 @@ function handleTimeSlider(index) {
     const pastData = fullHistoryData.slice(0, index + 1);
     const dateObj = new Date(fullHistoryData[index].ts);
     
-    // Format date beautifully
     const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     document.getElementById('tm-date').innerText = dateStr;
 
-    // Calculate map state strictly at that moment in history
     let pastState = {};
     pastData.forEach(p => {
         if(p.lat && p.lng) {
@@ -679,6 +686,7 @@ function handleTimeSlider(index) {
 /* ================== SELECT PIN ================== */
 async function selectPin(index) {
   const pin = pinsData[index];
+  currentSelectedPin = pin; 
 
   document.getElementById("panel-title").innerText = "Location " + (index + 1);
   document.getElementById("panel-sub").innerText = `${pin.lat.toFixed(4)}, ${pin.lng.toFixed(4)}`;
@@ -693,18 +701,20 @@ async function selectPin(index) {
   document.getElementById("val-temp").innerHTML = `${pin.temp} <span class="metric-unit">°C</span>`;
   document.getElementById("val-turb").innerHTML = `${pin.turb} <span class="metric-unit">NTU</span>`;
 
-  loadHistory();
+  updateChartForSelectedPin();
 }
 
-/* ================== CHART & BINDINGS ================== */
-async function loadHistory() {
-  const historyRef = database.ref(`devices/${DEVICE_ID}/history`);
-  historyRef.once('value').then((snapshot) => {
-    const data = snapshot.val();
-    if (!data) return;
-    chartData = Object.values(data).sort((a, b) => a.ts - b.ts).slice(-20);
-    drawChart();
+function updateChartForSelectedPin() {
+  if (!currentSelectedPin) return;
+
+  const locationHistory = fullHistoryData.filter(entry => {
+    if (!entry.lat || !entry.lng) return false;
+    const distance = getDistance(currentSelectedPin.lat, currentSelectedPin.lng, entry.lat, entry.lng);
+    return distance <= 25; 
   });
+
+  chartData = locationHistory.slice(-20);
+  drawChart();
 }
 
 function setActiveMetric(metric, color) {
@@ -721,6 +731,7 @@ function setActiveMetric(metric, color) {
   drawChart();
 }
 
+/* ================== NEW FEATURE: AI REGRESSION CHART ================== */
 function drawChart() {
   const svg = document.getElementById("area-chart");
   svg.innerHTML = "";
@@ -737,7 +748,6 @@ function drawChart() {
   let n = values.length;
   let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
   
-  // We use the array index as 'Time' (x) and the sensor reading as 'Value' (y)
   for (let i = 0; i < n; i++) {
     let x = i; 
     let y = values[i];
@@ -747,18 +757,14 @@ function drawChart() {
     sumXX += (x * x);
   }
   
-  // Calculate Slope (m) and Intercept (b)
   let m = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
   let b = (sumY - m * sumX) / n;
 
-  // Predict 3 time-steps into the future
   let futureSteps = 3;
   let predictedY = m * (n - 1 + futureSteps) + b;
   
-  // Prevent predicting negative values for things like ppm or NTU
   if (predictedY < 0) predictedY = 0;
 
-  // Add the predicted value to our Min/Max calculations so the chart scales properly
   let allValues = [...values, predictedY];
   let max = Math.max(...allValues);
   let min = Math.min(...allValues);
@@ -777,7 +783,6 @@ function drawChart() {
   `;
 
   // --- 3. DRAW HISTORICAL PATH (Solid Line) ---
-  // Leave room on the right side of the chart for the future prediction
   const chartDrawWidth = W * 0.8; 
   let path = "";
   let lastX = 0, lastY = 0;
@@ -787,7 +792,6 @@ function drawChart() {
     const y = H - 15 - ((val - min) / range) * (H - 30); 
     path += `${i === 0 ? "M" : "L"}${x},${y} `;
     
-    // Save the coordinates of the very last historical point
     if (i === values.length - 1) {
       lastX = x;
       lastY = y;
@@ -796,12 +800,11 @@ function drawChart() {
 
   // --- 4. DRAW FUTURE PREDICTION (Dotted Line) ---
   const activeColor = document.getElementById("chart-dot").style.background || "#3b82f6";
-  const futureX = xOffset + chartDrawWidth + (W * 0.2); // Push to the far right edge
+  const futureX = xOffset + chartDrawWidth + (W * 0.2); 
   const futureY = H - 15 - ((predictedY - min) / range) * (H - 30);
   
   const predictionPath = `M${lastX},${lastY} L${futureX},${futureY}`;
 
-  // Evaluate if the future prediction breaches safety limits
   let isDanger = false;
   if (activeMetric === 'pH' && (predictedY < 6.5 || predictedY > 8.5)) isDanger = true;
   if (activeMetric === 'tds' && predictedY > 500) isDanger = true;
@@ -811,7 +814,6 @@ function drawChart() {
   const badgeColor = isDanger ? "#ef4444" : "#10b981";
   const badgeText = isDanger ? "FORECAST: WARNING" : "FORECAST: SAFE";
 
-  // Add the solid historical line, the dotted future line, and the text badge
   svg.innerHTML = gridHtml + `
     <path d="${path}" fill="none" stroke="${activeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     
@@ -830,7 +832,6 @@ function drawChart() {
     
     if(mouseX < xOffset) return;
     
-    // If hovering over the prediction area
     if (mouseX > lastX) {
         tooltip.classList.add("visible");
         tooltip.style.left = futureX + "px";
@@ -841,7 +842,6 @@ function drawChart() {
         return;
     }
     
-    // Hovering over historical data
     const index = Math.round(((mouseX - xOffset) / chartDrawWidth) * (values.length - 1));
     if (!values[index]) return;
 
