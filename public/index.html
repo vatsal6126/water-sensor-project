@@ -8,8 +8,6 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
@@ -35,12 +33,12 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 
 .app{display:flex;min-height:100vh;position:relative}
 
-/* ── SIDEBAR (Upgraded Animation) ── */
+/* ── SIDEBAR ── */
 .sidebar{position:fixed;top:0;left:0;height:100vh;width:256px;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.1);z-index:200;transform:translateX(-100%);transition:transform .4s cubic-bezier(0.16, 1, 0.3, 1);}
 .sidebar.open{transform:translateX(0);}
 .sidebar-logo{height:calc(64px + var(--safe-top));display:flex;align-items:center;justify-content:space-between;padding:var(--safe-top) 24px 0;border-bottom:1px solid rgba(255,255,255,.1)}
 .logo-text{font-weight:800;font-size:1.1rem;letter-spacing:.18em;background:linear-gradient(90deg,#60a5fa,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent}
-.sidebar-nav{flex:1;padding:32px 16px;display:flex;flex-direction:column;gap:12px}
+.sidebar-nav{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px}
 .nav-item{display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:16px;cursor:pointer;transition:all .3s ease;color:rgba(255,255,255,.6);border:1px solid transparent;font-weight:500;letter-spacing:.02em;text-decoration:none;font-size:.95rem}
 .nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
 .nav-item.active{background:linear-gradient(90deg,rgba(59,130,246,.2) 0%,rgba(59,130,246,.05) 100%);color:#93c5fd;border-color:rgba(59,130,246,.2);box-shadow:0 0 15px rgba(59,130,246,.1)}
@@ -77,13 +75,12 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 .leaflet-control-attribution a { color: rgba(255,255,255,.4) !important; }
 .leaflet-div-icon { background: transparent; border: none; }
 
-/* Custom Slider & Buttons */
+/* Custom Slider */
 input[type=range] { -webkit-appearance: none; background: transparent; }
 input[type=range]:focus { outline: none; }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #60a5fa; cursor: pointer; margin-top: -7px; box-shadow: 0 0 12px rgba(96,165,250,0.8); border: 2px solid #fff; transition: transform 0.1s;}
 input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.2); border-radius: 4px; }
-#heatmap-btn.active { background: linear-gradient(90deg, #ef4444, #f59e0b) !important; border-color: #f87171 !important; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
 
 /* marker */
 .ml-marker{width:34px;height:38px;cursor:pointer;position:relative}
@@ -227,6 +224,9 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
 
 /* Entry temporary pin */
 .entry-preview-marker{width:24px;height:24px;border-radius:50%;background:rgba(59,130,246,.5);border:2px solid #60a5fa;box-shadow:0 0 12px rgba(59,130,246,.6)}
+
+/* Device select override */
+select option { background: #0f172a; color: white; }
 </style>
 </head>
 <body>
@@ -248,6 +248,16 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
       </button>
       <span class="logo-text">WATER QUALITY TEST</span>
     </div>
+    
+    <div style="padding: 24px 16px 0;">
+      <label style="font-size:.75rem;color:rgba(255,255,255,.6);text-transform:uppercase;font-weight:700;margin-bottom:8px;display:block;letter-spacing:0.05em">Select Device</label>
+      <select id="device-selector" onchange="switchDevice(this.value)" class="form-input" style="padding: 12px; cursor: pointer;">
+        <option value="device1">Device 1 (Main River)</option>
+        <option value="device2">Device 2 (Lake View)</option>
+        <option value="device3">Device 3 (Reservoir Alpha)</option>
+      </select>
+    </div>
+
     <nav class="sidebar-nav">
       <a class="nav-item active" id="nav-dashboard" onclick="navigate('dashboard')">
         <svg class="nav-icon icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
@@ -278,15 +288,7 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
         <div id="maplibre-map"></div>
         <div class="map-fade"></div>
 
-        <div class="map-controls-container" style="position:absolute; inset:0; pointer-events:none; z-index:400; display:flex; flex-direction:column; justify-content:space-between; padding:16px;">
-            <div style="display:flex; justify-content:flex-end;">
-                <button id="heatmap-btn" class="glass-panel" onclick="toggleHeatmap()" style="pointer-events:auto; padding:10px 20px; border-radius:14px; color:white; font-weight:600; font-family:'Outfit'; border:1px solid rgba(255,255,255,0.2); cursor:pointer; background:rgba(15,23,42,0.7); transition:all 0.3s;">
-                    <span style="display:flex; align-items:center; gap:8px;">
-                        <svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                        Toggle Heatmap
-                    </span>
-                </button>
-            </div>
+        <div class="map-controls-container" style="position:absolute; inset:0; pointer-events:none; z-index:400; display:flex; flex-direction:column; justify-content:flex-end; padding:16px;">
             <div class="glass-panel" style="pointer-events:auto; padding:14px 24px; border-radius:20px; display:flex; align-items:center; gap:16px; width:100%; max-width:500px; margin:0 auto 10px auto; background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.15);">
                 <div style="display:flex; flex-direction:column; min-width:110px;">
                     <span style="font-size:0.65rem; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.1em; font-weight:700;">Time Bar</span>
@@ -304,9 +306,15 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
               <h1 class="panel-title" id="panel-title">Select a Location</h1>
               <p class="panel-sub" id="panel-sub">Click on a map marker to view detailed metrics</p>
             </div>
-            <div class="status-badge" id="status-badge">
-              <div class="status-dot" id="status-dot"></div>
-              <span id="status-text">SAFE</span>
+            <div style="display:flex; align-items:center; gap:16px;">
+              <button class="btn-secondary" onclick="exportToCSV()" style="padding:10px 16px; font-size:0.85rem; border-radius:12px; display:flex; align-items:center; gap:8px;">
+                <svg class="icon" style="width:16px; height:16px;" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export CSV
+              </button>
+              <div class="status-badge" id="status-badge">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">SAFE</span>
+              </div>
             </div>
           </div>
           <div class="metrics-grid">
@@ -436,7 +444,7 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
                   <svg class="icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   Danger Zone
                 </div>
-                <p class="danger-sub">Resetting data will permanently purge all pins and history.</p>
+                <p class="danger-sub">Resetting data will permanently purge all pins and history for the currently selected device.</p>
               </div>
               <button class="btn-danger" onclick="confirmReset()">
                 <svg class="icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
@@ -481,7 +489,11 @@ firebase.initializeApp({
   databaseURL: "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app"
 });
 const database = firebase.database();
-const DEVICE_ID = "device1";
+
+// CURRENT DEVICE TRACKING
+let currentDeviceId = "device1";
+let pinsRef = null;
+let historyRef = null;
 
 // Map State Tracking
 let pinsData = [];
@@ -493,7 +505,6 @@ let entryPreviewMarker = null;
 // Feature Overlays
 let pinsLayerGroup;
 let historyLayerGroup;
-let heatLayer = null;
 let mode = 'LIVE'; 
 let fullHistoryData = [];
 
@@ -550,9 +561,60 @@ function initEntryMap() {
   });
 }
 
+/* ================== DEVICE SWITCHING ================== */
+function switchDevice(newId) {
+  currentDeviceId = newId;
+  
+  // Cleanup map layers & variables
+  Object.keys(markersMap).forEach(key => {
+    pinsLayerGroup.removeLayer(markersMap[key]);
+  });
+  markersMap = {};
+  pinsData = [];
+  fullHistoryData = [];
+  globalChartData = [];
+  localChartData = [];
+  currentSelectedPin = null;
+  initialLoadComplete = false;
+  
+  historyLayerGroup.clearLayers();
+  
+  // Reset UI elements
+  document.getElementById("panel-title").innerText = "Select a Location";
+  document.getElementById("panel-sub").innerText = "Click on a map marker to view detailed metrics";
+  document.getElementById("status-badge").classList.remove("visible");
+  
+  document.getElementById("val-pH").innerText = "--";
+  document.getElementById("val-tds").innerHTML = '-- <span class="metric-unit">ppm</span>';
+  document.getElementById("val-temp").innerHTML = '-- <span class="metric-unit">°C</span>';
+  document.getElementById("val-turb").innerHTML = '-- <span class="metric-unit">NTU</span>';
+  
+  document.getElementById("area-chart-global").innerHTML = "";
+  document.getElementById("area-chart-local").innerHTML = "";
+  
+  // Reset time slider
+  const slider = document.getElementById("tm-slider");
+  slider.max = 0;
+  slider.value = 0;
+  document.getElementById("tm-date").innerText = "LIVE";
+  mode = 'LIVE';
+  mlMap.removeLayer(historyLayerGroup);
+  pinsLayerGroup.addTo(mlMap);
+
+  // Restart data listeners
+  setupRealtimeListener();
+  showToast("Switched to " + newId);
+}
+
 /* ================== FIREBASE REALTIME WEBSOCKET ================== */
 function setupRealtimeListener() {
-  const pinsRef = database.ref(`devices/${DEVICE_ID}/pins`);
+  // Disconnect previous listeners if they exist
+  if (pinsRef) pinsRef.off();
+  if (historyRef) historyRef.off();
+
+  pinsRef = database.ref(`devices/${currentDeviceId}/pins`);
+  historyRef = database.ref(`devices/${currentDeviceId}/history`);
+
   pinsRef.on('value', (snapshot) => {
     const data = snapshot.val() || {};
     const currentKeys = Object.keys(data);
@@ -591,7 +653,7 @@ function setupRealtimeListener() {
     }
   });
 
-  database.ref(`devices/${DEVICE_ID}/history`).on('value', (snapshot) => {
+  historyRef.on('value', (snapshot) => {
     const data = snapshot.val();
     if (!data) return;
     fullHistoryData = Object.values(data).sort((a, b) => a.ts - b.ts);
@@ -610,67 +672,44 @@ function setupRealtimeListener() {
   });
 }
 
-/* ================== NEW FEATURE: HEATMAP & TIME MACHINE ================== */
-function toggleHeatmap() {
-    const btn = document.getElementById('heatmap-btn');
-    if (mode === 'HEATMAP') {
-        mode = 'LIVE';
-        mlMap.removeLayer(heatLayer);
-        pinsLayerGroup.addTo(mlMap);
-        btn.classList.remove('active');
-    } else {
-        mode = 'HEATMAP';
-        mlMap.removeLayer(pinsLayerGroup);
-        mlMap.removeLayer(historyLayerGroup);
-        const slider = document.getElementById('tm-slider');
-        slider.value = slider.max;
-        document.getElementById('tm-date').innerText = 'LIVE';
-
-        if (heatLayer) mlMap.removeLayer(heatLayer);
-        let heatPoints = pinsData.map(p => [parseFloat(p.lat), parseFloat(p.lng), p.status === 'WARNING' ? 1.0 : 0.2]);
-        heatLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15, maxZoom: 17, gradient: {0.3: '#10b981', 0.6: '#f59e0b', 1.0: '#ef4444'} }).addTo(mlMap);
-        btn.classList.add('active');
-    }
-}
-
+/* ================== TIME MACHINE ================== */
 function handleTimeSlider(index) {
-    if (mode === 'HEATMAP') toggleHeatmap(); 
-    index = parseInt(index);
-    if (index >= fullHistoryData.length - 1) {
-        mode = 'LIVE';
-        document.getElementById('tm-date').innerText = 'LIVE';
-        mlMap.removeLayer(historyLayerGroup);
-        pinsLayerGroup.addTo(mlMap);
-        return;
-    }
+  index = parseInt(index);
+  if (index >= fullHistoryData.length - 1) {
+      mode = 'LIVE';
+      document.getElementById('tm-date').innerText = 'LIVE';
+      mlMap.removeLayer(historyLayerGroup);
+      pinsLayerGroup.addTo(mlMap);
+      return;
+  }
 
-    mode = 'HISTORY';
-    mlMap.removeLayer(pinsLayerGroup);
-    historyLayerGroup.clearLayers();
-    historyLayerGroup.addTo(mlMap);
+  mode = 'HISTORY';
+  mlMap.removeLayer(pinsLayerGroup);
+  historyLayerGroup.clearLayers();
+  historyLayerGroup.addTo(mlMap);
 
-    const pastData = fullHistoryData.slice(0, index + 1);
-    const dateObj = new Date(fullHistoryData[index].ts);
-    const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    document.getElementById('tm-date').innerText = dateStr;
+  const pastData = fullHistoryData.slice(0, index + 1);
+  const dateObj = new Date(fullHistoryData[index].ts);
+  const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  document.getElementById('tm-date').innerText = dateStr;
 
-    let pastState = {};
-    pastData.forEach(p => {
-        if(p.lat && p.lng) {
-            const k = p.lat.toFixed(4) + "_" + p.lng.toFixed(4);
-            pastState[k] = p;
-        }
-    });
+  let pastState = {};
+  pastData.forEach(p => {
+      if(p.lat && p.lng) {
+          const k = p.lat.toFixed(4) + "_" + p.lng.toFixed(4);
+          pastState[k] = p;
+      }
+  });
 
-    Object.values(pastState).forEach((pin) => {
-        const statusClass = pin.status === "SAFE" ? "safe" : "warning";
-        const customIcon = L.divIcon({
-          className: '',
-          html: `<div class="ml-marker ${statusClass}" style="opacity:0.6; filter: grayscale(30%);"><div class="ml-pulse" style="animation:none; opacity:0.2;"></div><div class="ml-marker-inner"></div></div>`,
-          iconSize: [34, 38], iconAnchor: [17, 38]
-        });
-        L.marker([parseFloat(pin.lat), parseFloat(pin.lng)], { icon: customIcon }).addTo(historyLayerGroup);
-    });
+  Object.values(pastState).forEach((pin) => {
+      const statusClass = pin.status === "SAFE" ? "safe" : "warning";
+      const customIcon = L.divIcon({
+        className: '',
+        html: `<div class="ml-marker ${statusClass}" style="opacity:0.6; filter: grayscale(30%);"><div class="ml-pulse" style="animation:none; opacity:0.2;"></div><div class="ml-marker-inner"></div></div>`,
+        iconSize: [34, 38], iconAnchor: [17, 38]
+      });
+      L.marker([parseFloat(pin.lat), parseFloat(pin.lng)], { icon: customIcon }).addTo(historyLayerGroup);
+  });
 }
 
 /* ================== SELECT PIN ================== */
@@ -934,7 +973,7 @@ function drawLocalChart() {
   svg.onmouseleave = () => tooltip.classList.remove("visible");
 }
 
-/* ================== MANUAL ENTRY FUNCTIONS ================== */
+/* ================== MANUAL ENTRY & UTILS ================== */
 function showToast(msg) {
   const toast = document.getElementById("toast");
   toast.querySelector('span').innerText = msg;
@@ -943,7 +982,9 @@ function showToast(msg) {
 }
 
 function clearForm() {
-  document.querySelectorAll(".form-input").forEach(input => input.value = "");
+  document.querySelectorAll(".form-input").forEach(input => {
+    if (input.id !== "device-selector") input.value = "";
+  });
   document.getElementById("coords-display").classList.remove("visible");
   document.getElementById("add-pin-btn").disabled = true;
   if (entryPreviewMarker) {
@@ -968,7 +1009,7 @@ async function addPin() {
   document.getElementById("add-pin-btn").disabled = true;
 
   try {
-    const response = await fetch(`/update?id=${DEVICE_ID}&lat=${lat}&lng=${lng}&pH=${pH}&tds=${tds}&temp=${temp}&turb=${turb}`);
+    const response = await fetch(`/update?id=${currentDeviceId}&lat=${lat}&lng=${lng}&pH=${pH}&tds=${tds}&temp=${temp}&turb=${turb}`);
     
     if (response.ok) {
       showToast("Pin saved successfully!");
@@ -987,15 +1028,53 @@ async function confirmReset() {
   if (!pass) return; 
 
   try {
-    const res = await fetch(`/reset?password=${pass}&id=${DEVICE_ID}`);
+    const res = await fetch(`/reset?password=${pass}&id=${currentDeviceId}`);
     if (res.ok) {
-      alert("All data cleared.");
+      alert(`All data cleared for ${currentDeviceId}.`);
     } else {
       alert("Wrong password or reset failed.");
     }
   } catch (err) {
     alert("Network error.");
   }
+}
+
+/* ================== EXPORT TO CSV ================== */
+function exportToCSV() {
+  if (!fullHistoryData || fullHistoryData.length === 0) {
+    showToast("No data available to export!");
+    return;
+  }
+
+  const headers = ["Timestamp", "Date/Time", "Latitude", "Longitude", "Status", "pH Level", "TDS (ppm)", "Temp (°C)", "Turbidity (NTU)"];
+  let csvContent = headers.join(",") + "\n";
+
+  fullHistoryData.forEach(row => {
+    const rowData = [
+      row.ts || "",
+      `"${row.time || ""}"`, 
+      row.lat || "",
+      row.lng || "",
+      row.status || "",
+      row.pH || "",
+      row.tds || "",
+      row.temp || "",
+      row.turb || ""
+    ];
+    csvContent += rowData.join(",") + "\n";
+  });
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `${currentDeviceId}_data_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showToast("CSV Exported!");
 }
 
 /* ================== UI ================== */
@@ -1005,7 +1084,6 @@ function navigate(page) {
   document.getElementById("page-" + page).classList.add("active");
   document.getElementById("nav-" + page).classList.add("active");
   
-  // Close menu if an item is clicked
   closeSidebar();
 
   setTimeout(() => {
