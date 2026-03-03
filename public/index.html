@@ -12,7 +12,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
 <style>
-/* CSS IS UNTOUCHED EXCEPT FOR BUTTERY SMOOTH ANIMATIONS */
+/* CSS IS UNTOUCHED EXCEPT FOR BUTTERY SMOOTH ANIMATIONS & RESPONSIVE GRID TWEAK */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0f172a;--fg:#f8fafc;--safe-top:env(safe-area-inset-top)}
 body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overflow-x:hidden;min-height:100vh}
@@ -99,7 +99,7 @@ input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cur
 @media(min-width:768px){.info-panel-wrapper{padding:32px; max-height: 55vh;}}
 .info-panel{border-radius:24px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3);height:100%; width: 100%; display:flex;flex-direction:column; overflow-y: auto;}
 @media(min-width:768px){.info-panel{padding:32px}}
-.panel-header{display:flex;flex-direction:column;gap:12px;margin-bottom:28px; flex-shrink: 0;}
+.panel-header{display:flex;flex-direction:column;gap:12px;margin-bottom:24px; flex-shrink: 0;}
 @media(min-width:640px){.panel-header{flex-direction:row;align-items:center;justify-content:space-between}}
 .panel-title{font-size:1.5rem;font-weight:800;background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.7) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 @media(min-width:768px){.panel-title{font-size:1.875rem}}
@@ -112,15 +112,25 @@ input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cur
 .status-dot.safe{background:#34d399;animation:blink 1.5s infinite}
 .status-dot.warning{background:#f87171;animation:blink 1.5s infinite}
 
+/* ── WQI BAR ── */
+.wqi-container{margin-bottom:24px;padding:16px 24px;border-radius:20px;background:rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.05); flex-shrink: 0;}
+.wqi-header{display:flex;justify-content:space-between;margin-bottom:12px;align-items:center}
+.wqi-title{font-weight:700;font-size:.75rem;letter-spacing:.1em;color:rgba(255,255,255,.6);text-transform:uppercase}
+.wqi-score{font-weight:800;font-size:1.4rem;color:#fff;line-height:1}
+.wqi-track{width:100%;height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;position:relative}
+.wqi-fill{height:100%;width:0%;background:#ef4444;border-radius:4px;transition:all 1s cubic-bezier(0.16, 1, 0.3, 1);box-shadow:0 0 15px rgba(239,68,68,0.5)}
+
 /* ── METRIC CARDS ── */
 .metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px; flex-shrink: 0;}
-@media(min-width:1024px){.metrics-grid{grid-template-columns:repeat(4,1fr);gap:20px}}
+@media(min-width:768px){.metrics-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:1024px){.metrics-grid{grid-template-columns:repeat(5,1fr);gap:16px}}
 .metric-card{border-radius:24px;padding:20px;cursor:pointer;transition:all .4s cubic-bezier(0.16, 1, 0.3, 1)}
 .metric-card:hover{transform:translateY(-2px)}
 .metric-card.active{background:rgba(255,255,255,.1)!important;transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,.3);outline:1px solid rgba(255,255,255,.2)}
 .metric-icon{padding:10px;background:rgba(255,255,255,.05);border-radius:12px;display:inline-flex;margin-bottom:16px;color:rgba(255,255,255,.7)}
 .metric-label{color:rgba(255,255,255,.5);font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:4px}
-.metric-value{font-size:2rem;font-weight:800;color:#fff;line-height:1}
+.metric-value{font-size:1.75rem;font-weight:800;color:#fff;line-height:1}
+@media(min-width:1024px){.metric-value{font-size:2rem;}}
 .metric-unit{font-size:.875rem;font-weight:500;color:rgba(255,255,255,.4)}
 
 /* ── CHART ── */
@@ -301,6 +311,7 @@ select option { background: #0f172a; color: white; }
       </div>
       <div class="info-panel-wrapper">
         <div class="info-panel glass-panel">
+          
           <div class="panel-header">
             <div>
               <h1 class="panel-title" id="panel-title">Select a Location</h1>
@@ -317,6 +328,17 @@ select option { background: #0f172a; color: white; }
               </div>
             </div>
           </div>
+
+          <div class="wqi-container">
+            <div class="wqi-header">
+              <span class="wqi-title">Water Quality Index (WQI)</span>
+              <span class="wqi-score" id="wqi-score">-- / 100</span>
+            </div>
+            <div class="wqi-track">
+              <div class="wqi-fill" id="wqi-fill"></div>
+            </div>
+          </div>
+
           <div class="metrics-grid">
             <div class="metric-card glass-card active" id="metric-pH" onclick="setActiveMetric('pH','#3b82f6')">
               <div class="metric-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></div>
@@ -337,6 +359,11 @@ select option { background: #0f172a; color: white; }
               <div class="metric-icon"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
               <div class="metric-label">Turbidity</div>
               <div class="metric-value" id="val-turb">-- <span class="metric-unit">NTU</span></div>
+            </div>
+            <div class="metric-card glass-card" id="metric-ec" onclick="setActiveMetric('ec','#f59e0b')">
+              <div class="metric-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+              <div class="metric-label">Conductivity</div>
+              <div class="metric-value" id="val-ec">-- <span class="metric-unit">µS/cm</span></div>
             </div>
           </div>
           
@@ -588,6 +615,11 @@ function switchDevice(newId) {
   document.getElementById("val-tds").innerHTML = '-- <span class="metric-unit">ppm</span>';
   document.getElementById("val-temp").innerHTML = '-- <span class="metric-unit">°C</span>';
   document.getElementById("val-turb").innerHTML = '-- <span class="metric-unit">NTU</span>';
+  document.getElementById("val-ec").innerHTML = '-- <span class="metric-unit">µS/cm</span>';
+
+  // Reset WQI Bar
+  document.getElementById("wqi-score").innerText = "-- / 100";
+  document.getElementById("wqi-fill").style.width = "0%";
   
   document.getElementById("area-chart-global").innerHTML = "";
   document.getElementById("area-chart-local").innerHTML = "";
@@ -608,7 +640,6 @@ function switchDevice(newId) {
 
 /* ================== FIREBASE REALTIME WEBSOCKET ================== */
 function setupRealtimeListener() {
-  // Disconnect previous listeners if they exist
   if (pinsRef) pinsRef.off();
   if (historyRef) historyRef.off();
 
@@ -658,16 +689,13 @@ function setupRealtimeListener() {
     if (!data) return;
     fullHistoryData = Object.values(data).sort((a, b) => a.ts - b.ts);
     
-    // Update Slider
     const slider = document.getElementById('tm-slider');
     slider.max = fullHistoryData.length - 1;
     if(mode === 'LIVE') slider.value = fullHistoryData.length - 1;
 
-    // Update Global Chart
     globalChartData = fullHistoryData.slice(-20);
     drawGlobalChart();
 
-    // Update Local Chart
     if (currentSelectedPin) updateChartForSelectedPin();
   });
 }
@@ -712,7 +740,7 @@ function handleTimeSlider(index) {
   });
 }
 
-/* ================== SELECT PIN ================== */
+/* ================== SELECT PIN & CALCULATE WQI ================== */
 async function selectPin(index) {
   const pin = pinsData[index];
   currentSelectedPin = pin; 
@@ -725,10 +753,42 @@ async function selectPin(index) {
   document.getElementById("status-dot").className = "status-dot " + (pin.status === "SAFE" ? "safe" : "warning");
   document.getElementById("status-text").innerText = pin.status;
 
+  // Basic Metrics
   document.getElementById("val-pH").innerText = pin.pH;
   document.getElementById("val-tds").innerHTML = `${pin.tds} <span class="metric-unit">ppm</span>`;
   document.getElementById("val-temp").innerHTML = `${pin.temp} <span class="metric-unit">°C</span>`;
   document.getElementById("val-turb").innerHTML = `${pin.turb} <span class="metric-unit">NTU</span>`;
+
+  // Calculated EC (TDS / 0.67)
+  const ecCalculated = (pin.tds / 0.67).toFixed(0);
+  document.getElementById("val-ec").innerHTML = `${ecCalculated} <span class="metric-unit">µS/cm</span>`;
+
+  // Calculate WQI (0-100 Algorithm)
+  let qPH = 100 - (Math.abs(pin.pH - 7) * 20); // Perfect 7 = 100 score
+  if (qPH < 0) qPH = 0;
+  
+  let qTDS = 100 - (pin.tds * 0.1); // 0 ppm = 100, 500 ppm = 50 score
+  if (qTDS < 0) qTDS = 0;
+  
+  let qTurb = 100 - (pin.turb * 10); // 0 NTU = 100, 5 NTU = 50 score
+  if (qTurb < 0) qTurb = 0;
+
+  // Weighted average: pH (30%), TDS (40%), Turbidity (30%)
+  let wqi = (qPH * 0.3) + (qTDS * 0.4) + (qTurb * 0.3);
+  wqi = Math.max(0, Math.min(100, wqi)).toFixed(0);
+
+  // Update WQI UI Elements
+  document.getElementById("wqi-score").innerText = `${wqi} / 100`;
+  
+  // Calculate dynamic color (Red -> Yellow -> Green) using HSL
+  // 0 wqi = 0 hue (red), 50 wqi = 60 hue (yellow), 100 wqi = 120 hue (green)
+  const hue = (wqi / 100) * 120; 
+  const color = `hsl(${hue}, 80%, 50%)`;
+  
+  const fillEl = document.getElementById("wqi-fill");
+  fillEl.style.width = `${wqi}%`;
+  fillEl.style.backgroundColor = color;
+  fillEl.style.boxShadow = `0 0 15px ${color}`;
 
   updateChartForSelectedPin();
 }
@@ -753,11 +813,11 @@ function setActiveMetric(metric, color) {
   document.getElementById("metric-" + metric).classList.add("active");
 
   document.getElementById("chart-dot-global").style.background = color;
-  document.getElementById("chart-metric-label-global").innerText = metric;
+  document.getElementById("chart-metric-label-global").innerText = metric === "ec" ? "Conductivity" : metric;
   document.getElementById("chart-section-bg-global").style.background = `radial-gradient(circle at top right, ${color}22 0%, rgba(0,0,0,0.1) 70%)`;
 
   document.getElementById("chart-dot-local").style.background = color;
-  document.getElementById("chart-metric-label-local").innerText = metric;
+  document.getElementById("chart-metric-label-local").innerText = metric === "ec" ? "Conductivity" : metric;
   document.getElementById("chart-section-bg-local").style.background = `radial-gradient(circle at top right, ${color}22 0%, rgba(0,0,0,0.1) 70%)`;
 
   drawGlobalChart();
@@ -782,7 +842,7 @@ function buildSmoothPath(points) {
     return path;
 }
 
-/* ================== DRAW GLOBAL CHART (NO AI) ================== */
+/* ================== DRAW GLOBAL CHART ================== */
 function drawGlobalChart() {
   const svg = document.getElementById("area-chart-global");
   svg.innerHTML = "";
@@ -791,7 +851,11 @@ function drawGlobalChart() {
   const W = 800; const H = 150; const xOffset = 40;
   const chartDrawWidth = W - xOffset - 20;
 
-  const values = globalChartData.map(d => Number(d[activeMetric]));
+  // Handle EC Calculation specifically for charting
+  const values = globalChartData.map(d => {
+      if (activeMetric === 'ec') return Number((d.tds / 0.67).toFixed(1));
+      return Number(d[activeMetric]);
+  });
   const times = globalChartData.map(d => d.time ? d.time : new Date(d.ts).toLocaleTimeString());
 
   let max = Math.max(...values); let min = Math.min(...values);
@@ -821,7 +885,6 @@ function drawGlobalChart() {
 
   const tooltip = document.getElementById("chart-tooltip-global");
   
-  // Flawless Mouse Tracking Math
   svg.onmousemove = function(e) {
     const rect = svg.getBoundingClientRect(); 
     const scaleX = W / rect.width;
@@ -841,12 +904,14 @@ function drawGlobalChart() {
     tooltip.style.top = "20px";
     document.getElementById("ct-time-global").innerText = times[closestIndex];
     document.getElementById("ct-val-global").innerText = values[closestIndex];
-    document.getElementById("ct-unit-global").innerText = activeMetric === "tds" ? " ppm" : activeMetric === "temp" ? " °C" : activeMetric === "turb" ? " NTU" : "";
+    
+    const unit = activeMetric === "tds" ? " ppm" : activeMetric === "temp" ? " °C" : activeMetric === "turb" ? " NTU" : activeMetric === "ec" ? " µS/cm" : "";
+    document.getElementById("ct-unit-global").innerText = unit;
   };
   svg.onmouseleave = () => tooltip.classList.remove("visible");
 }
 
-/* ================== DRAW LOCAL CHART (WITH AI REGRESSION) ================== */
+/* ================== DRAW LOCAL CHART ================== */
 function drawLocalChart() {
   const svg = document.getElementById("area-chart-local");
   svg.innerHTML = "";
@@ -857,7 +922,12 @@ function drawLocalChart() {
   }
 
   const W = 800; const H = 150; const xOffset = 40;
-  const values = localChartData.map(d => Number(d[activeMetric]));
+  
+  // Handle EC Calculation specifically for charting
+  const values = localChartData.map(d => {
+      if (activeMetric === 'ec') return Number((d.tds / 0.67).toFixed(1));
+      return Number(d[activeMetric]);
+  });
   const times = localChartData.map(d => d.time ? d.time : new Date(d.ts).toLocaleTimeString());
 
   let allValues = [...values];
@@ -917,6 +987,7 @@ function drawLocalChart() {
       if (activeMetric === 'tds' && predictedY > 500) isDanger = true;
       if (activeMetric === 'temp' && predictedY > 35) isDanger = true;
       if (activeMetric === 'turb' && predictedY > 10) isDanger = true;
+      if (activeMetric === 'ec' && predictedY > 800) isDanger = true;
 
       const badgeColor = isDanger ? "#ef4444" : "#10b981";
       const badgeText = isDanger ? "FORECAST: WARNING" : "FORECAST: SAFE";
@@ -935,7 +1006,6 @@ function drawLocalChart() {
 
   const tooltip = document.getElementById("chart-tooltip-local");
   
-  // Flawless Mouse Tracking Math
   svg.onmousemove = function(e) {
     const rect = svg.getBoundingClientRect(); 
     const scaleX = W / rect.width;
@@ -950,6 +1020,8 @@ function drawLocalChart() {
         if(diff < minDiff) { minDiff = diff; closestIndex = i; }
     });
 
+    const unit = activeMetric === "tds" ? " ppm" : activeMetric === "temp" ? " °C" : activeMetric === "turb" ? " NTU" : activeMetric === "ec" ? " µS/cm" : "";
+
     if (hasPrediction) {
         const predDiff = Math.abs(svgX - futureX);
         if (predDiff < minDiff) {
@@ -958,7 +1030,7 @@ function drawLocalChart() {
             tooltip.style.top = "20px";
             document.getElementById("ct-time-local").innerText = "Predicted Future Value";
             document.getElementById("ct-val-local").innerText = predictedY.toFixed(1);
-            document.getElementById("ct-unit-local").innerText = activeMetric === "tds" ? " ppm" : activeMetric === "temp" ? " °C" : activeMetric === "turb" ? " NTU" : "";
+            document.getElementById("ct-unit-local").innerText = unit;
             return;
         }
     }
@@ -968,7 +1040,7 @@ function drawLocalChart() {
     tooltip.style.top = "20px";
     document.getElementById("ct-time-local").innerText = times[closestIndex];
     document.getElementById("ct-val-local").innerText = values[closestIndex];
-    document.getElementById("ct-unit-local").innerText = activeMetric === "tds" ? " ppm" : activeMetric === "temp" ? " °C" : activeMetric === "turb" ? " NTU" : "";
+    document.getElementById("ct-unit-local").innerText = unit;
   };
   svg.onmouseleave = () => tooltip.classList.remove("visible");
 }
@@ -1046,10 +1118,13 @@ function exportToCSV() {
     return;
   }
 
-  const headers = ["Timestamp", "Date/Time", "Latitude", "Longitude", "Status", "pH Level", "TDS (ppm)", "Temp (°C)", "Turbidity (NTU)"];
+  // Updated headers to include EC
+  const headers = ["Timestamp", "Date/Time", "Latitude", "Longitude", "Status", "pH Level", "TDS (ppm)", "EC (µS/cm)", "Temp (°C)", "Turbidity (NTU)"];
   let csvContent = headers.join(",") + "\n";
 
   fullHistoryData.forEach(row => {
+    const calculatedEC = row.tds ? (row.tds / 0.67).toFixed(1) : "";
+    
     const rowData = [
       row.ts || "",
       `"${row.time || ""}"`, 
@@ -1058,6 +1133,7 @@ function exportToCSV() {
       row.status || "",
       row.pH || "",
       row.tds || "",
+      calculatedEC,
       row.temp || "",
       row.turb || ""
     ];
