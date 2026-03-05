@@ -1347,9 +1347,16 @@ function readInputs() {
 }
 
 // ── NEW SECURE AI FETCH FUNCTION ──
+// ── NEW SECURE AI FETCH FUNCTION ──
 async function generateAISummary(data) {
     const aiText = document.getElementById('ai-summary-text');
     const aiLoading = document.getElementById('ai-loading');
+    
+    // Prevent fetching if core data is missing
+    if (data.ph === null || data.tds === null) {
+        aiText.innerText = "Need more sensor data (pH and TDS) to generate a summary.";
+        return;
+    }
     
     aiText.style.opacity = '0.5';
     aiLoading.style.display = 'flex';
@@ -1361,8 +1368,8 @@ async function generateAISummary(data) {
             body: JSON.stringify({
                 ph: data.ph,
                 tds: data.tds,
-                temp: data.temp,
-                turb: data.turb
+                temp: data.temp || 25, // default fallback
+                turb: data.turb || 0
             })
         });
 
@@ -1371,11 +1378,12 @@ async function generateAISummary(data) {
         if (response.ok) {
             aiText.innerHTML = result.summary.replace(/\n/g, '<br>'); 
         } else {
-            throw new Error(result.error);
+            console.error("Server API Error:", result.error);
+            aiText.innerText = `Server Error: ${result.error} (Check terminal logs)`;
         }
     } catch (error) {
-        aiText.innerText = "AI summary unavailable at the moment. Please check your connection or API key.";
-        console.error("AI Error:", error);
+        aiText.innerText = "Cannot connect to server. Ensure your Node.js backend is running on the correct port.";
+        console.error("Fetch Error:", error);
     } finally {
         aiText.style.opacity = '1';
         aiLoading.style.display = 'none';

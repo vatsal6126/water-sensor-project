@@ -6,7 +6,7 @@ const axios = require("axios");
 const FIREBASE_DB = "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
 const RESET_PASSWORD = "LDCHEMICAL";
 const PORT = process.env.PORT || 3000;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY; // Pulled securely from .env
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 
 const NTFY_TOPIC = "chemeleon_water_alerts"; 
 
@@ -14,10 +14,15 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(express.static("public"));
-app.use(express.json()); // CRITICAL: Allows server to read JSON data from frontend
+app.use(express.json()); 
 
 server.listen(PORT, () => {
   console.log("✅ Server running on port " + PORT);
+  if (!GEMINI_API_KEY) {
+      console.log("⚠️ WARNING: GEMINI_API_KEY is not set in your .env file. The AI Insight feature will fail.");
+  } else {
+      console.log("🤖 Gemini API Key loaded successfully.");
+  }
 });
 
 // ================= DISTANCE FUNCTION =================
@@ -60,7 +65,10 @@ async function sendNtfyAlert(entry, deviceId) {
 app.post("/api/ai-summary", async (req, res) => {
   const { ph, tds, temp, turb } = req.body;
 
+  console.log(`🤖 Received AI request for pH:${ph}, TDS:${tds}, Temp:${temp}, Turb:${turb}`);
+
   if (!GEMINI_API_KEY) {
+    console.error("❌ Server missing GEMINI_API_KEY");
     return res.status(500).json({ error: "Server missing API Key configuration." });
   }
 
@@ -84,9 +92,10 @@ app.post("/api/ai-summary", async (req, res) => {
     );
 
     const output = response.data.candidates[0].content.parts[0].text;
+    console.log("✅ Successfully generated Gemini response.");
     res.json({ summary: output });
   } catch (error) {
-    console.error("Gemini API Error:", error.response ? error.response.data : error.message);
+    console.error("❌ Gemini API Error:", error.response ? JSON.stringify(error.response.data) : error.message);
     res.status(500).json({ error: "Failed to generate AI summary." });
   }
 });
