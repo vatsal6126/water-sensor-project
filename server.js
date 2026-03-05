@@ -82,7 +82,9 @@ app.post("/api/ai-summary", async (req, res) => {
   1. Overall health of the water.
   2. The most concerning parameter (if any).
   3. A practical recommendation for the user.
-  Use simple, friendly, and highly professional language. Format it nicely.`;
+  4. what problem it leads to if this water is used in anyway.
+  Use simple, friendly language. Format it nicely.
+  try to keep it small easy to understand.`;
 
   try {
     // UPDATED TO USE GEMINI 2.5 FLASH
