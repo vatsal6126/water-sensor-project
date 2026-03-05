@@ -78,16 +78,15 @@ app.post("/api/ai-summary", async (req, res) => {
 
   const prompt = `You are a professional environmental scientist. Analyze this water data: 
   pH: ${ph}, TDS: ${tds} mg/L, Temp: ${temp}°C, Turbidity: ${turb} NTU.
-  Provide a concise 3-sentence summary: 
+  Provide a concise 4-sentence summary: 
   1. Overall health of the water.
   2. The most concerning parameter (if any).
   3. A practical recommendation for the user.
-  4. what problem it leads to if this water is used in anyway.
-  Use simple, friendly language. Format it nicely.
-  try to keep it small easy to understand.`;
+  4. What problem it leads to if this water is used in anyway.
+  Use simple, friendly language. Format it nicely. Try to keep it small and easy to understand.`;
 
   try {
-    // UPDATED TO USE GEMINI 2.5 FLASH
+    // USING GEMINI 2.5 FLASH
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -103,7 +102,7 @@ app.post("/api/ai-summary", async (req, res) => {
     res.json({ summary: output });
   } catch (error) {
     console.error("❌ Gemini API Error:", error.response ? JSON.stringify(error.response.data) : error.message);
-    res.status(500).json({ error: "Failed to generate AI summary." });
+    res.status(500).json({ error: "Failed to generate AI summary. You may have hit a rate limit." });
   }
 });
 

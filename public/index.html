@@ -633,15 +633,23 @@ select option{background:#0f172a;color:white}
             </div>
 
             <div class="glass-panel" style="border-radius:26px;padding:24px 28px;margin-bottom:16px; border: 1px solid rgba(147, 197, 253, 0.3); background: rgba(30, 41, 59, 0.5);">
-              <div class="form-title" style="margin-bottom:12px;font-size:1rem; color: #93c5fd;">
-                <div class="form-title-icon" style="background:rgba(59, 130, 246, 0.2); color:#60a5fa; padding:6px; border-radius:8px;">
-                  <svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v5a1 1 0 0 0 .29.71l3 3a1 1 0 0 0 1.42-1.42L13 11.58V7a1 1 0 0 0-1-1z"/></svg>
+              <div class="form-title" style="margin-bottom:12px;font-size:1rem; color: #93c5fd; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="form-title-icon" style="background:rgba(59, 130, 246, 0.2); color:#60a5fa; padding:6px; border-radius:8px;">
+                    <svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v5a1 1 0 0 0 .29.71l3 3a1 1 0 0 0 1.42-1.42L13 11.58V7a1 1 0 0 0-1-1z"/></svg>
+                  </div>
+                  GEMINI AI SUMMARY
                 </div>
-                GEMINI AI SUMMARY
+                
+                <button id="ai-trigger-btn" class="btn-primary" style="padding: 8px 16px; font-size: 0.85rem; border-radius: 12px; flex: 0 1 auto;" onclick="handleManualAIRequest()">
+                  Generate Report ✨
+                </button>
               </div>
-              <div id="ai-summary-text" style="font-size:0.9rem; line-height:1.6; color:rgba(255,255,255,0.8); min-height: 60px;">
-                Select a location to generate a deep AI analysis...
+              
+              <div id="ai-summary-text" style="font-size:0.9rem; line-height:1.6; color:rgba(255,255,255,0.8); min-height: 40px;">
+                <i style="color: rgba(255,255,255,0.4);">Click "Generate Report" above to request a professional analysis from Gemini AI.</i>
               </div>
+              
               <div id="ai-loading" style="display:none; align-items:center; gap:10px; margin-top:10px; color:#60a5fa; font-size:0.8rem;">
                 <div class="rain-spin"></div> AI is analyzing chemical signatures...
               </div>
@@ -1118,6 +1126,9 @@ function selectPredPin(pin, idx) {
     document.getElementById('pi-datetime').value = now.toISOString().slice(0, 16);
   }
 
+  // Clear any existing AI output when switching pins to avoid confusion
+  document.getElementById('ai-summary-text').innerHTML = `<i style="color: rgba(255,255,255,0.4);">Click "Generate Report ✨" above to request a professional analysis from Gemini AI for this new location.</i>`;
+
   fetchRainfallIfReady();
   livePredict();
 }
@@ -1259,7 +1270,7 @@ function ruleEngine(inp, rf) {
   if (inp.nit  !== null && inp.nit>10)                 sources.push('Farming / Fertilizers');
   if (inp.ars  !== null && inp.ars>0.01)               sources.push('Arsenic Warning');
   if (inp.lead !== null && inp.lead>0.01)              sources.push('Heavy Metals / Bad Pipes');
-  if (inp.ph   !== null && (inp.ph<5||inp.ph>10))       sources.push('Chemical Discharge');
+  if (inp.ph   !== null && (inp.ph<5||inp.ph>10))      sources.push('Chemical Discharge');
   const cp = inp.cond ?? (inp.tds ? inp.tds/0.67 : null);
   if (cp !== null && cp > T.cond.saline)               sources.push('Seawater / Salt Mixing');
   if (inp.turb !== null && inp.turb>10 && !inp.fc)     sources.push('Heavy Mud / Sediment');
@@ -1287,10 +1298,10 @@ function ruleEngine(inp, rf) {
   const h = inp.hard;
   let hard, hardDesc;
   if (h !== null) {
-    if      (h < 75)  { hard='SOFT WATER';              hardDesc=`${h} mg/L — Very soft. Great for washing, but might be slightly corrosive to pipes.`; }
-    else if (h < 150) { hard='MODERATELY SOFT';         hardDesc=`${h} mg/L — Excellent balance. Very little scaling.`; }
-    else if (h < 300) { hard='MODERATELY HARD';         hardDesc=`${h} mg/L — Standard range. Might leave minor soap scum.`; }
-    else if (h < 500) { hard='HARD — SCALING RISK';     hardDesc=`${h} mg/L — Hard water. Will likely leave white scale in pipes/heaters. Softener recommended.`; }
+    if      (h < 75)  { hard='SOFT WATER';               hardDesc=`${h} mg/L — Very soft. Great for washing, but might be slightly corrosive to pipes.`; }
+    else if (h < 150) { hard='MODERATELY SOFT';          hardDesc=`${h} mg/L — Excellent balance. Very little scaling.`; }
+    else if (h < 300) { hard='MODERATELY HARD';          hardDesc=`${h} mg/L — Standard range. Might leave minor soap scum.`; }
+    else if (h < 500) { hard='HARD — SCALING RISK';      hardDesc=`${h} mg/L — Hard water. Will likely leave white scale in pipes/heaters. Softener recommended.`; }
     else              { hard='VERY HARD — HIGH SCALING'; hardDesc=`${h} mg/L — Extremely hard. Will damage appliances without a softening system.`; }
   } else { hard='NOT PROVIDED'; hardDesc='Enter a hardness value to check scaling risks.'; }
 
@@ -1346,20 +1357,26 @@ function readInputs() {
     lead:gf('pi-lead'), al:gf('pi-al') };
 }
 
-// ── NEW SECURE AI FETCH FUNCTION ──
-// ── NEW SECURE AI FETCH FUNCTION ──
-async function generateAISummary(data) {
+// ── NEW SECURE AI FETCH FUNCTION (MANUAL TRIGGER) ──
+async function handleManualAIRequest() {
+    const btn = document.getElementById('ai-trigger-btn');
     const aiText = document.getElementById('ai-summary-text');
     const aiLoading = document.getElementById('ai-loading');
     
+    const data = readInputs();
+    
     // Prevent fetching if core data is missing
     if (data.ph === null || data.tds === null) {
-        aiText.innerText = "Need more sensor data (pH and TDS) to generate a summary.";
+        aiText.innerText = "Need more sensor data (pH and TDS) to generate a summary. Please enter them above.";
         return;
     }
     
+    // UI Feedback
+    btn.disabled = true;
+    btn.innerHTML = "Processing... ⏳";
     aiText.style.opacity = '0.5';
     aiLoading.style.display = 'flex';
+    aiText.innerText = "Generating custom analysis...";
 
     try {
         const response = await fetch(`/api/ai-summary`, {
@@ -1368,7 +1385,7 @@ async function generateAISummary(data) {
             body: JSON.stringify({
                 ph: data.ph,
                 tds: data.tds,
-                temp: data.temp || 25, // default fallback
+                temp: data.temp || 25, 
                 turb: data.turb || 0
             })
         });
@@ -1385,6 +1402,9 @@ async function generateAISummary(data) {
         aiText.innerText = "Cannot connect to server. Ensure your Node.js backend is running on the correct port.";
         console.error("Fetch Error:", error);
     } finally {
+        // Restore UI
+        btn.disabled = false;
+        btn.innerHTML = "Generate Report ✨";
         aiText.style.opacity = '1';
         aiLoading.style.display = 'none';
     }
@@ -1552,8 +1572,8 @@ function livePredict() {
       <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Automatically reaches out to global weather satellites to check if it rained in the last 7 days at your selected map pin. If it did, the AI instantly increases the danger rating for flood-borne bacteria and surface dirt mixing into the water.</div>
     </div></div>`;
     
-  // ── FIRE OFF THE GEMINI AI SUMMARY IN THE BACKGROUND ──
-  generateAISummary(inp);
+  // NOT CALLING THE BACKGROUND AI SCRIPT ANYMORE. 
+  // It waits for the user to click the button!
 }
 
 const PRESETS = {
@@ -1577,6 +1597,10 @@ function loadPreset(name) {
     set('pi-nit',p.nit); set('pi-sulf',p.sulf);
     if(p.ars)set('pi-ars',p.ars); if(p.lead)set('pi-lead',p.lead); if(p.al)set('pi-al',p.al);
   }
+  
+  // Clear any existing AI output when switching presets to avoid confusion
+  document.getElementById('ai-summary-text').innerHTML = `<i style="color: rgba(255,255,255,0.4);">Click "Generate Report ✨" above to request a professional analysis from Gemini AI for this preset.</i>`;
+
   livePredict();
 }
 
