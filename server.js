@@ -1,4 +1,8 @@
-require('dotenv').config(); // Loads variables from .env file
+// Conditionally load .env only in local development, not on Render
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
 const express = require("express");
 const http = require("http");
 const axios = require("axios");
@@ -19,7 +23,7 @@ app.use(express.json());
 server.listen(PORT, () => {
   console.log("✅ Server running on port " + PORT);
   if (!GEMINI_API_KEY) {
-      console.log("⚠️ WARNING: GEMINI_API_KEY is not set in your .env file. The AI Insight feature will fail.");
+      console.log("⚠️ WARNING: GEMINI_API_KEY is missing. Add it to Render Environment Variables.");
   } else {
       console.log("🤖 Gemini API Key loaded successfully.");
   }
@@ -69,7 +73,7 @@ app.post("/api/ai-summary", async (req, res) => {
 
   if (!GEMINI_API_KEY) {
     console.error("❌ Server missing GEMINI_API_KEY");
-    return res.status(500).json({ error: "Server missing API Key configuration." });
+    return res.status(500).json({ error: "Server missing API Key configuration in Render." });
   }
 
   const prompt = `You are a professional environmental scientist. Analyze this water data: 
