@@ -188,7 +188,7 @@ input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cur
 .form-title-icon{padding:8px;background:rgba(59,130,246,.2);border-radius:12px;display:flex;color:#60a5fa}
 .form-grid{display:grid;grid-template-columns:1fr;gap:20px;position:relative;z-index:1}
 @media(min-width:640px){.form-grid{grid-template-columns:1fr 1fr}}
-.form-label{font-size:.75rem;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:8px;padding-left:4px}
+.form-label{font-size:.75rem;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;display:flex; justify-content:space-between; margin-bottom:8px;padding-left:4px}
 .form-input{width:100%;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:16px 20px;color:#fff;font-family:'Outfit',sans-serif;font-size:1rem;outline:none;transition:all .2s ease}
 .form-input::placeholder{color:rgba(255,255,255,.2)}
 .form-input:hover{background:rgba(0,0,0,.3)}
@@ -242,6 +242,10 @@ svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;str
 .text-gradient-blue{background:linear-gradient(90deg,#60a5fa,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent}
 .entry-preview-marker{width:24px;height:24px;border-radius:50%;background:rgba(59,130,246,.5);border:2px solid #60a5fa;box-shadow:0 0 12px rgba(59,130,246,.6)}
 select option { background: #0f172a; color: white; }
+
+/* Small inline spinner for weather fetch */
+.spin-anim { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -439,7 +443,13 @@ select option { background: #0f172a; color: white; }
                 </select>
               </div>
               <div>
-                <label class="form-label">Recent Rainfall (mm in 24h)</label>
+                <label class="form-label">
+                  <span>Recent Rainfall (mm in 24h)</span>
+                  <a href="#" onclick="autoFetchWeather(event)" style="color:#60a5fa; text-decoration:none; font-size:0.7rem; display:flex; align-items:center; gap:4px;" id="fetch-weather-btn">
+                    <svg class="icon" style="width:12px;height:12px;" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                    Auto-Fetch
+                  </a>
+                </label>
                 <input type="number" id="pred-rain" class="form-input" placeholder="e.g. 15" value="0" oninput="runPredictions()"/>
               </div>
             </div>
@@ -685,6 +695,7 @@ function switchDevice(newId) {
   // Reset Predictions
   document.getElementById("pred-summary").innerHTML = `<span style="color:rgba(255,255,255,0.5); font-size:0.9rem;">Please select a pin on the Dashboard first.</span>`;
   document.getElementById("prediction-results").innerHTML = "";
+  window.weatherFetchedForPin = null; // Reset weather fetch memory
   
   // Reset time slider
   const slider = document.getElementById("tm-slider");
@@ -849,7 +860,9 @@ async function selectPin(index) {
   updateChartForSelectedPin();
   
   // Auto-run predictions if they are looking at the predictions page
-  runPredictions();
+  if (document.getElementById("page-predictions").classList.contains("active")) {
+      runPredictions();
+  }
 }
 
 function updateChartForSelectedPin() {
@@ -1102,7 +1115,54 @@ function drawLocalChart() {
 }
 
 
-/* ================== RULE-BASED PREDICTION ENGINE ================== */
+/* ================== AI DIAGNOSTICS & WEATHER API ================== */
+window.weatherFetchedForPin = null; 
+
+async function autoFetchWeather(e) {
+  if (e) e.preventDefault(); // Prevent link jump if clicked manually
+  
+  if (!currentSelectedPin) {
+    showToast("Select a pin on the Dashboard first!");
+    return;
+  }
+
+  const rainInput = document.getElementById("pred-rain");
+  const btnIcon = document.getElementById("fetch-weather-btn").querySelector("svg");
+  
+  // Add spin animation
+  btnIcon.classList.add("spin-anim");
+  rainInput.placeholder = "Fetching live weather...";
+  
+  try {
+    const lat = currentSelectedPin.lat;
+    const lng = currentSelectedPin.lng;
+    
+    // Call the free Open-Meteo API
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=precipitation_sum&timezone=auto&past_days=1&forecast_days=1`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    // Sum up yesterday's and today's precipitation
+    let totalRain = 0;
+    if (data.daily && data.daily.precipitation_sum) {
+        totalRain = (data.daily.precipitation_sum[0] || 0) + (data.daily.precipitation_sum[1] || 0);
+    }
+    
+    rainInput.value = totalRain.toFixed(1);
+    window.weatherFetchedForPin = currentSelectedPin.id; // Remember we fetched it
+    
+    showToast("Live weather loaded!");
+    runPredictions(); // Re-run AI rules with new data
+
+  } catch (error) {
+    console.error("Weather API error:", error);
+    rainInput.placeholder = "Failed to fetch API.";
+    showToast("Failed to fetch weather automatically.");
+  } finally {
+    btnIcon.classList.remove("spin-anim");
+  }
+}
+
 function runPredictions() {
   const resultsGrid = document.getElementById("prediction-results");
   const summaryDiv = document.getElementById("pred-summary");
@@ -1348,7 +1408,15 @@ function navigate(page) {
   setTimeout(() => {
     if(page === 'dashboard' && mlMap) mlMap.invalidateSize();
     if(page === 'options' && entryMap) entryMap.invalidateSize();
-    if(page === 'predictions') runPredictions(); // Auto-run if they visit the page
+    
+    // Auto-fetch weather & run predictions immediately when the tab is opened
+    if(page === 'predictions') {
+      if (currentSelectedPin && window.weatherFetchedForPin !== currentSelectedPin.id) {
+         autoFetchWeather();
+      } else {
+         runPredictions();
+      }
+    }
   }, 50);
 }
 
