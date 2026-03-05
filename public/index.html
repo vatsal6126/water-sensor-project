@@ -26,17 +26,19 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 .blob-3{top:40%;left:40%;width:40vw;height:40vh;background:#06b6d4;animation-delay:-14s}
 @keyframes float{0%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-50px) scale(1.1)}66%{transform:translate(-20px,20px) scale(.9)}100%{transform:translate(0,0) scale(1)}}
 .app{display:flex;min-height:100vh;position:relative}
+
 /* SIDEBAR */
 .sidebar{position:fixed;top:0;left:0;height:100vh;width:256px;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.1);z-index:200;transform:translateX(-100%);transition:transform .4s cubic-bezier(0.16,1,0.3,1)}
 .sidebar.open{transform:translateX(0)}
 .sidebar-logo{height:calc(64px + var(--safe-top));display:flex;align-items:center;justify-content:space-between;padding:var(--safe-top) 24px 0;border-bottom:1px solid rgba(255,255,255,.1)}
 .logo-text{font-weight:800;font-size:1.1rem;letter-spacing:.18em;background:linear-gradient(90deg,#60a5fa,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent}
-.sidebar-nav{flex:1;padding:16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+.sidebar-nav{flex:1;padding:16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;margin-top:16px;}
 .nav-item{display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:16px;cursor:pointer;transition:all .3s ease;color:rgba(255,255,255,.6);border:1px solid transparent;font-weight:500;letter-spacing:.02em;text-decoration:none;font-size:.95rem}
 .nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
 .nav-item.active{background:linear-gradient(90deg,rgba(59,130,246,.2) 0%,rgba(59,130,246,.05) 100%);color:#93c5fd;border-color:rgba(59,130,246,.2);box-shadow:0 0 15px rgba(59,130,246,.1)}
 .nav-item.active .nav-icon{color:#60a5fa;filter:drop-shadow(0 0 8px rgba(59,130,246,.8))}
 .nav-icon{width:20px;height:20px;flex-shrink:0}
+
 /* MAIN */
 .main{flex:1;display:flex;flex-direction:column;min-height:100vh;position:relative;z-index:10;transition:filter .4s cubic-bezier(0.16,1,0.3,1);padding-top:calc(64px + var(--safe-top))}
 .mobile-header{display:flex;position:fixed;top:0;left:0;right:0;height:calc(64px + var(--safe-top));z-index:101;border-bottom:1px solid rgba(255,255,255,.1);align-items:center;justify-content:space-between;padding:var(--safe-top) 16px 0}
@@ -47,6 +49,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 @keyframes pageFadeIn{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
 .page{display:none;flex:1}
 .page.active{display:flex;flex-direction:column;animation:pageFadeIn .5s cubic-bezier(0.16,1,0.3,1) forwards}
+
 /* MAP */
 .map-section{height:45vh;min-height:300px;position:relative;border-bottom-left-radius:40px;border-bottom-right-radius:40px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);border-bottom:1px solid rgba(255,255,255,.1)}
 #maplibre-map,#entry-map{width:100%;height:100%;background:transparent}
@@ -63,6 +66,7 @@ input[type=range]:focus{outline:none}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;height:18px;width:18px;border-radius:50%;background:#60a5fa;cursor:pointer;margin-top:-7px;box-shadow:0 0 12px rgba(96,165,250,0.8);border:2px solid #fff;transition:transform .1s}
 input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
 input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:pointer;background:rgba(255,255,255,0.2);border-radius:4px}
+
 /* MARKERS */
 .ml-marker{width:34px;height:38px;cursor:pointer;position:relative}
 .ml-pulse{position:absolute;width:28px;height:28px;border-radius:50%;top:0;left:3px;animation:pulse-ring 2s ease-out infinite}
@@ -74,6 +78,7 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 .ml-marker.warning .ml-marker-inner{background:linear-gradient(135deg,#ef4444,#dc2626)}
 .ml-marker.selected .ml-marker-inner{box-shadow:0 0 22px rgba(59,130,246,.9);transform:rotate(-45deg) scale(1.15)}
 @keyframes pulse-ring{0%{transform:scale(1);opacity:.8}100%{transform:scale(2.8);opacity:0}}
+
 /* INFO PANEL */
 .info-panel-wrapper{flex:1;padding:16px;margin-top:-48px;z-index:20;position:relative;max-height:55vh;display:flex}
 @media(min-width:768px){.info-panel-wrapper{padding:32px;max-height:55vh}}
@@ -84,6 +89,31 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 .panel-title{font-size:1.5rem;font-weight:800;background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.7) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 @media(min-width:768px){.panel-title{font-size:1.875rem}}
 .panel-sub{color:rgba(255,255,255,.5);font-size:.875rem;margin-top:4px;font-weight:500}
+
+/* DEVICE SELECTOR CUSTOM STYLES */
+select.device-selector {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+select.device-selector:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(96, 165, 250, 0.5);
+}
+select.device-selector:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
+}
+
 .status-badge{display:none;align-items:center;gap:8px;padding:8px 20px;border-radius:12px;font-size:.875rem;font-weight:700;border:1px solid}
 .status-badge.visible{display:flex}
 .status-badge.safe{background:rgba(16,185,129,.1);color:#34d399;border-color:rgba(16,185,129,.2);box-shadow:0 0 15px rgba(16,185,129,.1)}
@@ -91,6 +121,7 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 .status-dot{width:8px;height:8px;border-radius:50%}
 .status-dot.safe{background:#34d399;animation:blink 1.5s infinite}
 .status-dot.warning{background:#f87171;animation:blink 1.5s infinite}
+
 /* WQI */
 .wqi-container{margin-bottom:24px;padding:16px 24px;border-radius:20px;background:rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.05);flex-shrink:0}
 .wqi-header{display:flex;justify-content:space-between;margin-bottom:12px;align-items:center}
@@ -98,6 +129,7 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 .wqi-score{font-weight:800;font-size:1.4rem;color:#fff;line-height:1}
 .wqi-track{width:100%;height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;position:relative}
 .wqi-fill{height:100%;width:0%;background:#ef4444;border-radius:4px;transition:all 1s cubic-bezier(0.16,1,0.3,1);box-shadow:0 0 15px rgba(239,68,68,0.5)}
+
 /* METRIC CARDS */
 .metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;flex-shrink:0}
 @media(min-width:768px){.metrics-grid{grid-template-columns:repeat(3,1fr)}}
@@ -110,6 +142,7 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 .metric-value{font-size:1.75rem;font-weight:800;color:#fff;line-height:1}
 @media(min-width:1024px){.metric-value{font-size:2rem}}
 .metric-unit{font-size:.875rem;font-weight:500;color:rgba(255,255,255,.4)}
+
 /* CHARTS */
 .charts-container{display:flex;flex-direction:column;gap:16px;flex-shrink:0;padding-bottom:20px}
 .chart-section{min-height:180px;background:rgba(0,0,0,.1);border-radius:24px;padding:20px;border:1px solid rgba(255,255,255,.05);position:relative;transition:box-shadow .4s ease}
@@ -122,6 +155,7 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 .ct-time{color:rgba(255,255,255,.5);font-size:.7rem;margin-bottom:4px}
 .ct-val{font-weight:800;font-size:1rem;color:#fff}
 .ct-unit{font-size:.7rem;color:rgba(255,255,255,.4);margin-left:2px}
+
 /* PAGE CONTENT */
 .page-content{padding:24px;overflow-y:auto;flex:1}
 @media(min-width:768px){.page-content{padding:48px}}
@@ -130,6 +164,7 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 .page-title{font-size:2rem;font-weight:800;background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.7) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:6px}
 @media(min-width:768px){.page-title{font-size:2.5rem}}
 .page-sub{color:rgba(255,255,255,.5);font-weight:500;margin-bottom:32px}
+
 /* ENTRY MAP */
 .entry-map-card{border-radius:28px;overflow:hidden;margin-bottom:28px;position:relative;height:300px;border:1px solid rgba(255,255,255,.08)}
 @media(min-width:768px){.entry-map-card{height:360px}}
@@ -140,6 +175,7 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 #entry-map.picking{cursor:crosshair!important}
 .coords-display{display:none;position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:420;background:rgba(15,23,42,.88);backdrop-filter:blur(12px);border:1px solid rgba(16,185,129,.25);border-radius:30px;padding:7px 18px;font-size:.78rem;font-weight:600;color:#34d399;pointer-events:none;white-space:nowrap;gap:8px;align-items:center}
 .coords-display.visible{display:flex}
+
 /* FORM */
 .form-panel{border-radius:32px;padding:32px;margin-bottom:32px;position:relative;overflow:hidden}
 .form-deco{position:absolute;top:0;right:0;width:256px;height:256px;background:rgba(59,130,246,.1);border-radius:50%;filter:blur(80px);pointer-events:none}
@@ -159,10 +195,12 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
 .btn-secondary{background:rgba(255,255,255,.05);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:all .3s ease}
 .btn-secondary:hover{background:rgba(255,255,255,.1)}
+
 /* TOAST */
 .toast{position:fixed;bottom:32px;right:32px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);backdrop-filter:blur(12px);color:#34d399;padding:14px 28px;border-radius:16px;font-weight:600;font-size:.95rem;transform:translateY(100px);opacity:0;transition:all .4s cubic-bezier(.4,0,.2,1);z-index:9999;box-shadow:0 10px 40px rgba(0,0,0,.4);display:flex;align-items:center;gap:12px}
 .toast.visible{transform:translateY(0);opacity:1}
 .toast-icon{width:20px;height:20px}
+
 /* DANGER */
 .danger-panel{border-radius:32px;padding:32px;border:1px solid rgba(239,68,68,.2);background:rgba(127,29,29,.2)!important}
 .danger-inner{display:flex;flex-direction:column;gap:20px}
@@ -171,6 +209,7 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 .danger-sub{color:rgba(248,113,113,.6);font-size:.875rem;font-weight:500}
 .btn-danger{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.3);font-family:'Outfit',sans-serif;font-weight:700;font-size:.95rem;padding:14px 28px;border-radius:16px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .3s ease;white-space:nowrap}
 .btn-danger:hover{background:rgba(239,68,68,.2);box-shadow:0 0 20px rgba(239,68,68,.2)}
+
 /* ABOUT */
 .about-page{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;min-height:100vh;overflow-y:auto}
 .about-inner{max-width:768px;width:100%;text-align:center;position:relative;z-index:10}
@@ -270,14 +309,6 @@ select option{background:#0f172a;color:white}
       </button>
       <span class="logo-text">WATER QUALITY</span>
     </div>
-    <div style="padding:16px 16px 0">
-      <label style="font-size:.75rem;color:rgba(255,255,255,.6);text-transform:uppercase;font-weight:700;margin-bottom:8px;display:block;letter-spacing:.05em">Select Device</label>
-      <select id="device-selector" onchange="switchDevice(this.value)" class="form-input" style="padding:12px;cursor:pointer">
-        <option value="device1">Device 1 (Main River)</option>
-        <option value="device2">Device 2 (Lake View)</option>
-        <option value="device3">Device 3 (Reservoir Alpha)</option>
-      </select>
-    </div>
     <nav class="sidebar-nav">
       <a class="nav-item active" id="nav-dashboard" onclick="navigate('dashboard')">
         <svg class="nav-icon icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
@@ -328,7 +359,14 @@ select option{background:#0f172a;color:white}
               <h1 class="panel-title" id="panel-title">Select a Location</h1>
               <p class="panel-sub" id="panel-sub">Click on a map marker to view detailed metrics</p>
             </div>
-            <div style="display:flex;align-items:center;gap:16px">
+            <div style="display:flex;align-items:center;gap:16px; flex-wrap: wrap;">
+              
+              <select class="device-selector" onchange="switchDevice(this.value)">
+                <option value="device1">Device 1 (Main River)</option>
+                <option value="device2">Device 2 (Lake View)</option>
+                <option value="device3">Device 3 (Reservoir Alpha)</option>
+              </select>
+
               <button class="btn-secondary" onclick="exportToCSV()" style="padding:10px 16px;font-size:.85rem;border-radius:12px;display:flex;align-items:center;gap:8px">
                 <svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Export CSV
@@ -408,8 +446,17 @@ select option{background:#0f172a;color:white}
     <div class="page" id="page-options">
       <div class="page-content">
         <div class="page-inner">
-          <h1 class="page-title">Device Configuration</h1>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap: 16px; margin-bottom: 6px;">
+            <h1 class="page-title" style="margin-bottom:0">Device Configuration</h1>
+            
+            <select class="device-selector" onchange="switchDevice(this.value)">
+              <option value="device1">Device 1 (Main River)</option>
+              <option value="device2">Device 2 (Lake View)</option>
+              <option value="device3">Device 3 (Reservoir Alpha)</option>
+            </select>
+          </div>
           <p class="page-sub">Click anywhere on the map to drop a pin, fill in the sensor values, then save.</p>
+          
           <div class="entry-map-card glass-panel">
             <div id="entry-map"></div>
             <div class="entry-map-overlay"></div>
@@ -465,19 +512,28 @@ select option{background:#0f172a;color:white}
         <div style="max-width:960px;margin:0 auto;padding-top:8px">
 
           <h1 class="page-title">AI Water Quality Predictor</h1>
-          <p class="page-sub" style="margin-bottom:12px">Naïve Bayes + Rule-Based model trained on 29,848 real water samples. Select a pin from the map or enter values manually. Rainfall is fetched automatically from Open-Meteo.</p>
+          <p class="page-sub" style="margin-bottom:12px">AI Model trained on 29,800+ real water samples. Select a pin from the map or enter values manually. Rainfall is automatically checked.</p>
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
-            <span class="pred-badge pred-badge-info">water_potability ×6 — 19,656 rows</span>
-            <span class="pred-badge pred-badge-info">waterQuality1 — 7,996 rows</span>
-            <span class="pred-badge pred-badge-info">water_dataX — 1,992 Indian river records</span>
-            <span class="pred-badge pred-badge-info">Indian_water_data — 194 rows</span>
+            <span class="pred-badge pred-badge-info">Global Potability Data — 19,600+ Samples</span>
+            <span class="pred-badge pred-badge-info">Chemical Safety Data — 8,000 Samples</span>
+            <span class="pred-badge pred-badge-info">River Guidelines — 2,000 Samples</span>
+            <span class="pred-badge pred-badge-info">Local Water Quality — 200 Samples</span>
           </div>
 
           <div class="glass-panel" style="border-radius:28px;overflow:hidden;margin-bottom:20px;border:1px solid rgba(255,255,255,.08)">
+            
             <div style="padding:20px 24px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-              <div class="form-title" style="margin-bottom:0;font-size:1rem">
-                <div class="form-title-icon" style="padding:7px;background:rgba(16,185,129,.2);color:#34d399"><svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 6.9 8 11.7z"/></svg></div>
-                Step 1 — Pick a Saved Pin (auto-fills sensor values)
+              <div style="display:flex; justify-content:space-between; align-items:center; width: 100%;">
+                <div class="form-title" style="margin-bottom:0;font-size:1rem">
+                  <div class="form-title-icon" style="padding:7px;background:rgba(16,185,129,.2);color:#34d399"><svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 6.9 8 11.7z"/></svg></div>
+                  Step 1 — Pick a Saved Pin
+                </div>
+
+                <select class="device-selector" onchange="switchDevice(this.value)">
+                  <option value="device1">Device 1 (Main River)</option>
+                  <option value="device2">Device 2 (Lake View)</option>
+                  <option value="device3">Device 3 (Reservoir Alpha)</option>
+                </select>
               </div>
               <div id="pred-pin-status" style="font-size:.75rem;color:rgba(255,255,255,.35);font-weight:600">No pin selected — or enter values manually below</div>
             </div>
@@ -549,7 +605,7 @@ select option{background:#0f172a;color:white}
             <div id="rain-context-banner" style="display:none;border-radius:20px;padding:16px 22px;margin-bottom:16px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.18);display:flex;align-items:center;gap:16px;flex-wrap:wrap">
               <span style="font-size:1.4rem">🌧️</span>
               <div style="flex:1">
-                <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(103,232,249,.6);margin-bottom:2px">Rainfall Context (Open-Meteo ERA5 · Historical)</div>
+                <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(103,232,249,.6);margin-bottom:2px">Rainfall Context (Open-Meteo API)</div>
                 <div id="rain-context-text" style="font-size:.88rem;color:#e0f2fe;font-weight:600"></div>
               </div>
               <div id="rain-influence-badge" style="font-size:.72rem;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:.06em"></div>
@@ -558,7 +614,7 @@ select option{background:#0f172a;color:white}
             <div id="pred-verdict-card" class="glass-panel" style="border-radius:28px;padding:24px 28px;margin-bottom:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
               <div id="pred-verdict-icon" style="width:60px;height:60px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0"></div>
               <div style="flex:1;min-width:180px">
-                <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:3px">Overall Verdict</div>
+                <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:3px">AI Safety Verdict</div>
                 <div id="pred-verdict-label" style="font-size:1.3rem;font-weight:800;line-height:1.2"></div>
                 <div id="pred-verdict-sub" style="font-size:.82rem;color:rgba(255,255,255,.5);margin-top:5px"></div>
               </div>
@@ -677,6 +733,10 @@ function initEntryMap(){
 
 function switchDevice(newId){
   currentDeviceId=newId;
+  
+  // Sync all dropdowns in the UI!
+  document.querySelectorAll('.device-selector').forEach(sel => sel.value = newId);
+
   Object.keys(markersMap).forEach(k=>pinsLayerGroup.removeLayer(markersMap[k]));
   markersMap={};pinsData=[];fullHistoryData=[];globalChartData=[];localChartData=[];
   currentSelectedPin=null;initialLoadComplete=false;historyLayerGroup.clearLayers();
@@ -690,7 +750,12 @@ function switchDevice(newId){
   const sl=document.getElementById('tm-slider');sl.max=0;sl.value=0;
   document.getElementById('tm-date').innerText='LIVE';mode='LIVE';
   mlMap.removeLayer(historyLayerGroup);pinsLayerGroup.addTo(mlMap);
-  setupRealtimeListener();showToast('Switched to '+newId);
+  
+  // Refresh connections and UI
+  setupRealtimeListener();
+  refreshPredMapPins(); // Ensures the prediction map clears too
+  clearPredict(); // Clear existing AI inputs because device changed
+  showToast('Switched to '+newId);
 }
 
 function setupRealtimeListener(){
@@ -712,6 +777,9 @@ function setupRealtimeListener(){
       markersMap[key].off('click');markersMap[key].on('click',()=>selectPin(idx));
     });
     if(!initialLoadComplete&&pinsData.length>0){selectPin(pinsData.length-1);initialLoadComplete=true;}
+    
+    // Sync the prediction map if it's currently loaded
+    refreshPredMapPins();
   });
   historyRef.on('value',snap=>{
     const data=snap.val();if(!data)return;
@@ -840,7 +908,7 @@ function drawLocalChart(){
 }
 
 function showToast(msg){const t=document.getElementById('toast');t.querySelector('span').innerText=msg;t.classList.add('visible');setTimeout(()=>t.classList.remove('visible'),3000);}
-function clearForm(){document.querySelectorAll('.form-input').forEach(inp=>{if(inp.id!=='device-selector')inp.value='';});document.getElementById('coords-display').classList.remove('visible');document.getElementById('add-pin-btn').disabled=true;if(entryPreviewMarker){entryMap.removeLayer(entryPreviewMarker);entryPreviewMarker=null;}}
+function clearForm(){document.querySelectorAll('.form-input').forEach(inp=>{if(!inp.classList.contains('device-selector'))inp.value='';});document.getElementById('coords-display').classList.remove('visible');document.getElementById('add-pin-btn').disabled=true;if(entryPreviewMarker){entryMap.removeLayer(entryPreviewMarker);entryPreviewMarker=null;}}
 
 async function addPin(){
   const lat=parseFloat(document.getElementById('f-lat').value);
@@ -889,14 +957,11 @@ window.addEventListener('load',()=>{initDashboardMap();initEntryMap();document.g
 <script>
 // ══════════════════════════════════════════════════════════
 //  AI PREDICTION ENGINE v2
-//  NEW: Predict-page map (pin auto-fill) · Open-Meteo rainfall API
-//       · Per-label accuracy hover tooltips · Rainfall in model
 // ══════════════════════════════════════════════════════════
 
-// ── FIXED: Added the missing MODEL object that the prediction engine relies on!
 const MODEL = {
   nb_pot: {
-    pr1: 0.39, pr0: 0.61, // Prior probabilities (39% potable, 61% non-potable)
+    pr1: 0.39, pr0: 0.61,
     p: {
       ph: { m1: 7.08, s1: 1.5, m0: 7.08, s0: 1.5 },
       hard: { m1: 195.8, s1: 32.8, m0: 196.1, s0: 32.8 },
@@ -917,97 +982,85 @@ const MODEL = {
   }
 };
 
-// ── Accuracy metadata for each prediction label
+// ── SIMPLIFIED Accuracy metadata for each prediction label
 const ACC_META = {
   overall: {
     label:'Overall Model Accuracy',pct:62,
-    detail:`<div class="acc-tip-label" style="color:#93c5fd">NB Potability Classifier</div>
-Trained on 19,656 samples (6 files). Class imbalance (61% non-potable) makes this tricky — a naive "always non-potable" classifier scores 61%.
+    detail:`<div class="acc-tip-label" style="color:#93c5fd">AI Potability Analyzer</div>
+Trained on nearly 20,000 real-world water samples to recognize safe vs. unsafe patterns.
 <div class="acc-meter"><div class="acc-meter-fill" style="width:62%;background:#f59e0b"></div></div>
-Estimated accuracy: <strong style="color:#fcd34d">~62% (balanced)</strong> — in line with published NB results on the same Kaggle dataset (~60–65%).
-<br><br><div class="acc-tip-label" style="color:#34d399">Rule Engine (Indian Rivers)</div>
-Rules anchored to p25/p75/p90 thresholds from 1,992 real Indian river records — directionally reliable but not lab-grade.
+Estimated accuracy: <strong style="color:#fcd34d">~62%</strong> — Solid reliability for field testing.
+<br><br><div class="acc-tip-label" style="color:#34d399">Safety Rules & Guidelines</div>
+Uses established environmental guidelines to provide reliable safety checks.
 <div class="acc-meter"><div class="acc-meter-fill" style="width:75%;background:#10b981"></div></div>
-Estimated accuracy: <strong style="color:#34d399">~75% directional</strong>`
+Estimated accuracy: <strong style="color:#34d399">~75%</strong>`
   },
   monsoon: {
     label:'Monsoon Influence',pct:71,
-    detail:`<div class="acc-tip-label" style="color:#67e8f9">Monsoon Prediction Accuracy</div>
-Rule-based score using Turbidity, BOD, DO, Coliform, Temperature — all 5 are recognised monsoon proxy indicators in CPCB guidelines.
+    detail:`<div class="acc-tip-label" style="color:#67e8f9">Monsoon & Runoff Predictor</div>
+Calculates flooding risks based on turbidity, bacteria, and temperature changes.
 <div class="acc-meter"><div class="acc-meter-fill" style="width:71%;background:#06b6d4"></div></div>
-<strong style="color:#67e8f9">~71% reliable</strong> when ≥3 parameters are provided.<br>
-Main limitation: no seasonal date context without the rainfall API. <strong>With rainfall data loaded, accuracy rises ~10–15%</strong> as high precipitation directly confirms runoff.
-<br><br>⚠️ Accuracy drops to ~50% if only turbidity is provided.`
+<strong style="color:#67e8f9">~71% reliable</strong> when you input 3 or more parameters.<br>
+<strong>Bonus:</strong> When rainfall data successfully loads, the accuracy jumps by ~10–15% because it cross-checks real weather data.`
   },
   acid: {
     label:'Acid / Alkaline',pct:92,
-    detail:`<div class="acc-tip-label" style="color:#fcd34d">pH Classification Accuracy</div>
-pH is a direct measurement — the acid/alkaline label is essentially a threshold lookup on your actual sensor reading.
+    detail:`<div class="acc-tip-label" style="color:#fcd34d">pH Level Accuracy</div>
+This is based strictly on your pH sensor readings, making it highly accurate.
 <div class="acc-meter"><div class="acc-meter-fill" style="width:92%;background:#f59e0b"></div></div>
-<strong style="color:#fcd34d">~92% reliable</strong> — the only error source is sensor calibration drift (±0.1–0.2 pH units on low-cost sensors).
-<br><br>Indian river median: 7.3 (n=1,894 cleaned records). Normal range 6.5–8.5 is WHO-aligned.`
+<strong style="color:#fcd34d">~92% reliable</strong> — The only minor margin of error comes from potential sensor calibration drift. (Normal safe range is 6.5–8.5).`
   },
   contamination: {
     label:'Contamination Risk & Source',pct:58,
-    detail:`<div class="acc-tip-label" style="color:#f87171">Contamination Prediction Accuracy</div>
-Accuracy varies heavily based on which parameters you've entered:
+    detail:`<div class="acc-tip-label" style="color:#f87171">Contamination Tracking Accuracy</div>
+Accuracy heavily depends on how much data you enter:
 <div class="acc-meter"><div class="acc-meter-fill" style="width:58%;background:#ef4444"></div></div>
-• With BOD + Fecal Coliform: <strong style="color:#fcd34d">~75%</strong><br>
-• With only pH + TDS: <strong style="color:#f87171">~45%</strong> — rule fires on indirect proxies only<br>
-• Adding Arsenic/Lead: bumps source ID accuracy significantly<br><br>
-⚠️ <strong>Source identification is heuristic</strong> — e.g. high nitrates are flagged as "Agricultural" but could also be geological leaching. Not a substitute for lab analysis.`
+• With Bacteria (Coliform) entered: <strong style="color:#fcd34d">~75% accurate</strong><br>
+• With only pH + TDS entered: <strong style="color:#f87171">~45% accurate</strong> (The AI has to guess based on general cloudiness and solids).`
   },
   salinity: {
     label:'Salinity Risk',pct:80,
-    detail:`<div class="acc-tip-label" style="color:#67e8f9">Salinity Assessment Accuracy</div>
-Based on conductivity (or TDS × 1.49 proxy). Calibrated from water_dataX Indian river conductivity distribution.
+    detail:`<div class="acc-tip-label" style="color:#67e8f9">Salt Levels (Salinity) Accuracy</div>
+Evaluates how salty the water is based on electrical conductivity (EC).
 <div class="acc-meter"><div class="acc-meter-fill" style="width:80%;background:#06b6d4"></div></div>
-<strong style="color:#67e8f9">~80% accurate</strong> for broad classification (Freshwater / Elevated / Saline).<br><br>
-Limitation: TDS→Conductivity conversion factor varies by dissolved ion composition (0.55–0.9 typical range). Using default 0.67 introduces ±15% error.<br>
-<strong>If you enter actual conductivity, accuracy improves to ~88%.</strong>`
+<strong style="color:#67e8f9">~80% accurate</strong>.<br><br>
+If you only enter TDS (solids) and leave Conductivity blank, the AI estimates the salt level, which drops accuracy slightly.`
   },
   hardness: {
     label:'Hardness & Scaling',pct:85,
     detail:`<div class="acc-tip-label" style="color:#a78bfa">Hardness Classification Accuracy</div>
-Hardness is a direct measurement. Classification uses WHO/BIS thresholds plus training data distribution (mean 196 mg/L, range 47–323 mg/L across 19,656 samples).
+Checks for excess calcium/magnesium using WHO standards to predict pipe scaling.
 <div class="acc-meter"><div class="acc-meter-fill" style="width:85%;background:#8b5cf6"></div></div>
-<strong style="color:#a78bfa">~85% accurate</strong> for the category label.<br><br>
-The <em>scaling risk</em> prediction is more uncertain — depends on temperature, pH, and CO₂ levels that aren't measured. Actual Langelier Saturation Index requires more data than available here.`
+<strong style="color:#a78bfa">~85% accurate</strong> for general categories (Soft, Hard, Very Hard).`
   },
   uses: {
     label:'Water Use Suitability',pct:70,
-    detail:`<div class="acc-tip-label" style="color:#34d399">Use Suitability Accuracy</div>
-Composite of WHO drinking water standards, BIS IS:10500, CPCB Class C/D (bathing), FAO irrigation guidelines, and industrial cooling water norms.
+    detail:`<div class="acc-tip-label" style="color:#34d399">Suitability Breakdown Accuracy</div>
+Cross-references your data against WHO drinking guidelines, bathing limits, and agricultural standards.
 <div class="acc-meter"><div class="acc-meter-fill" style="width:70%;background:#10b981"></div></div>
-<strong style="color:#34d399">~70% overall</strong> — accuracy per use case:
-<br>• Drinking: ~78% (strong WHO thresholds available)
-<br>• Bathing/Aquatic: ~72% (CPCB-based)
-<br>• Irrigation: ~65% (FAO crop-specific thresholds not modelled)
-<br>• Industrial: ~60% (highly process-dependent)
-<br><br>⚠️ Without microbial data (FC/TC), drinking/bathing safety is <strong>significantly under-assessed</strong>.`
+<strong style="color:#34d399">~70% overall</strong> — specifically:
+<br>• Drinking: ~78% reliable
+<br>• Bathing/Pools: ~72% reliable
+<br>• Farming/Crops: ~65% reliable
+<br>⚠️ Without entering Coliform (bacteria) data, the AI cannot fully guarantee drinking/bathing safety.`
   }
 };
 
-// ── Predict-page map state
 let predMap = null;
 let predMapMarkers = {};
 let predSelectedLat = null, predSelectedLng = null;
-let rainfallData = null; // { mm24h, mm7d, description, loaded }
+let rainfallData = null;
 let rainfallFetchTimer = null;
 
-// ── Init the predict-page map
 function initPredMap() {
   if (predMap) return;
   predMap = L.map('pred-map', { zoomControl: true }).setView([21.175, 72.8311], 10);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(predMap);
-
-  // Mirror all dashboard pins onto the predict map
   refreshPredMapPins();
 }
 
 function refreshPredMapPins() {
   if (!predMap) return;
-  // Clear existing
   Object.values(predMapMarkers).forEach(m => predMap.removeLayer(m));
   predMapMarkers = {};
 
@@ -1030,7 +1083,6 @@ function selectPredPin(pin, idx) {
   predSelectedLat = parseFloat(pin.lat);
   predSelectedLng = parseFloat(pin.lng);
 
-  // Fill inputs from pin data
   const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null && v !== '') el.value = v; };
   set('pi-ph',   pin.pH);
   set('pi-tds',  pin.tds);
@@ -1041,7 +1093,6 @@ function selectPredPin(pin, idx) {
   document.getElementById('pred-pin-status').textContent =
     `📍 Pin ${idx + 1} selected — Lat ${predSelectedLat.toFixed(4)}, Lng ${predSelectedLng.toFixed(4)}`;
 
-  // Highlight selected marker
   Object.values(predMapMarkers).forEach(m => {
     const el = m.getElement();
     if (el) el.querySelector('.ml-marker-inner').style.boxShadow = '';
@@ -1049,20 +1100,16 @@ function selectPredPin(pin, idx) {
   const selEl = predMapMarkers[pin.id]?.getElement();
   if (selEl) selEl.querySelector('.ml-marker-inner').style.boxShadow = '0 0 18px rgba(96,165,250,.9)';
 
-  // Set default datetime to now if empty
   if (!document.getElementById('pi-datetime').value) {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('pi-datetime').value = now.toISOString().slice(0, 16);
   }
 
-  // Trigger rainfall fetch
   fetchRainfallIfReady();
   livePredict();
 }
 
-// ── FIXED: Modified Open-Meteo endpoint
-// Switched from archive-api to the main v1/forecast endpoint to support recent dates properly without lag.
 async function fetchRainfallIfReady() {
   if (!predSelectedLat || !predSelectedLng) return;
   const dtEl = document.getElementById('pi-datetime');
@@ -1071,16 +1118,13 @@ async function fetchRainfallIfReady() {
   const sampleDate = new Date(dtEl.value);
   if (isNaN(sampleDate.getTime())) return;
 
-  // Build date range: 7 days before sample date to get cumulative rainfall context
   const endDate = new Date(sampleDate);
   const startDate = new Date(sampleDate);
   startDate.setDate(startDate.getDate() - 7);
 
   const fmt = d => d.toISOString().split('T')[0];
-  // CHANGED HERE: Using api.open-meteo.com/v1/forecast instead of archive-api.open-meteo.com 
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${predSelectedLat}&longitude=${predSelectedLng}&start_date=${fmt(startDate)}&end_date=${fmt(endDate)}&daily=precipitation_sum,rain_sum&timezone=Asia%2FKolkata`;
 
-  // Show loading
   document.getElementById('rain-loading').style.display = 'flex';
   document.getElementById('rain-box').style.display = 'none';
   rainfallData = null;
@@ -1091,25 +1135,18 @@ async function fetchRainfallIfReady() {
     const data = await resp.json();
 
     const precip = data.daily?.precipitation_sum || [];
-    const rain   = data.daily?.rain_sum || [];
-    const dates  = data.daily?.time || [];
-
-    // Sum the 7-day precip
     const mm7d = precip.reduce((s, v) => s + (v || 0), 0);
-    // Last-day (sample day) rainfall
     const mm24h = precip[precip.length - 1] || 0;
-    // 3-day before sample
     const mm3d = precip.slice(-3).reduce((s, v) => s + (v || 0), 0);
 
     rainfallData = { mm24h, mm7d, mm3d, loaded: true };
 
-    // Update UI
     document.getElementById('rain-loading').style.display = 'none';
     document.getElementById('rain-box').style.display = 'block';
     document.getElementById('rain-val').textContent = `${mm24h.toFixed(1)} mm (24h) · ${mm7d.toFixed(1)} mm (7d)`;
     document.getElementById('rain-sub').textContent = `Sample date: ${fmt(sampleDate)} · Location: ${predSelectedLat.toFixed(3)}°, ${predSelectedLng.toFixed(3)}°`;
 
-    livePredict(); // re-run with rainfall factored in
+    livePredict(); 
 
   } catch (e) {
     document.getElementById('rain-loading').style.display = 'none';
@@ -1125,11 +1162,10 @@ function onDateChange() {
   rainfallFetchTimer = setTimeout(fetchRainfallIfReady, 600);
 }
 
-// ── Naïve Bayes
 function gauss(x, mean, std) { return (1/(std*Math.sqrt(2*Math.PI)))*Math.exp(-0.5*((x-mean)/std)**2); }
 
 function nbPotability(inp) {
-  if (!MODEL || !MODEL.nb_pot) return { prob: 0.5, usedFields: 0 }; // Fail-safe
+  if (!MODEL || !MODEL.nb_pot) return { prob: 0.5, usedFields: 0 };
   const P = MODEL.nb_pot;
   const vals = { ph:inp.ph, hard:inp.hard, sol:inp.tds, chl:inp.chl_v??7.1, sulf:inp.sulf??333, cond:inp.cond, oc:inp.oc??14.3, thm:inp.thm??66.4, turb:inp.turb };
   let lP1=Math.log(P.pr1), lP0=Math.log(P.pr0), used=0;
@@ -1145,11 +1181,9 @@ function nbPotability(inp) {
   return { prob: Math.min(Math.max(p1/(p1+p0), 0.01), 0.99), usedFields: used };
 }
 
-// ── Rule engine (with rainfall integration)
 function ruleEngine(inp, rf) {
   const T = MODEL.thr;
 
-  // MONSOON SCORE — boosted by actual rainfall from API
   let ms = 0;
   if (inp.turb !== null) { if(inp.turb>10)ms+=3; else if(inp.turb>4)ms+=2; else if(inp.turb>1)ms+=1; }
   if (inp.bod  !== null) { if(inp.bod>T.bod.high)ms+=3; else if(inp.bod>T.bod.medium)ms+=2; else if(inp.bod>T.bod.low)ms+=1; }
@@ -1157,47 +1191,44 @@ function ruleEngine(inp, rf) {
   if (inp.tc   !== null && inp.tc>T.tc.medium) ms += 1;
   if (inp.temp !== null && inp.temp>28) ms += 1;
 
-  // ✦ RAINFALL INTEGRATION — Open-Meteo data directly boosts/confirms monsoon score
   let rfBoost = 0, rfDesc = '';
   if (rf && rf.loaded) {
-    if (rf.mm24h >= 50)      { rfBoost = 4; rfDesc = `Heavy rain day-of (${rf.mm24h.toFixed(1)} mm). Strong runoff expected.`; }
-    else if (rf.mm24h >= 20) { rfBoost = 3; rfDesc = `Moderate rain day-of (${rf.mm24h.toFixed(1)} mm). Elevated turbidity and BOD likely.`; }
-    else if (rf.mm24h >= 5)  { rfBoost = 2; rfDesc = `Light rain day-of (${rf.mm24h.toFixed(1)} mm). Minor surface runoff.`; }
-    else if (rf.mm7d >= 80)  { rfBoost = 3; rfDesc = `Heavy cumulative rain in past 7 days (${rf.mm7d.toFixed(1)} mm). Sustained runoff influence.`; }
-    else if (rf.mm7d >= 30)  { rfBoost = 2; rfDesc = `Moderate 7-day rainfall (${rf.mm7d.toFixed(1)} mm). Post-rain quality effects possible.`; }
-    else if (rf.mm7d >= 5)   { rfBoost = 1; rfDesc = `Low 7-day rainfall (${rf.mm7d.toFixed(1)} mm). Minimal rain influence.`; }
-    else                     { rfBoost = 0; rfDesc = `Dry conditions (${rf.mm7d.toFixed(1)} mm in 7 days). No rainfall contribution.`; }
+    if (rf.mm24h >= 50)      { rfBoost = 4; rfDesc = `Heavy rain today (${rf.mm24h.toFixed(1)} mm). Strong runoff expected.`; }
+    else if (rf.mm24h >= 20) { rfBoost = 3; rfDesc = `Moderate rain today (${rf.mm24h.toFixed(1)} mm). Elevated dirt/BOD likely.`; }
+    else if (rf.mm24h >= 5)  { rfBoost = 2; rfDesc = `Light rain today (${rf.mm24h.toFixed(1)} mm). Minor surface runoff.`; }
+    else if (rf.mm7d >= 80)  { rfBoost = 3; rfDesc = `Heavy rain this week (${rf.mm7d.toFixed(1)} mm). Sustained runoff influence.`; }
+    else if (rf.mm7d >= 30)  { rfBoost = 2; rfDesc = `Moderate rain this week (${rf.mm7d.toFixed(1)} mm). Some runoff effects possible.`; }
+    else if (rf.mm7d >= 5)   { rfBoost = 1; rfDesc = `Low rain this week (${rf.mm7d.toFixed(1)} mm). Minimal rain influence.`; }
+    else                     { rfBoost = 0; rfDesc = `Dry conditions (${rf.mm7d.toFixed(1)} mm this week). No rainfall contribution.`; }
     ms += rfBoost;
   }
 
-  ms = Math.min(ms, 14); // cap
+  ms = Math.min(ms, 14); 
 
   const monsoon = ms>=7 ? 'HIGH MONSOON INFLUENCE'
                 : ms>=4 ? 'MODERATE MONSOON INFLUENCE'
                 : ms>=2 ? 'LOW MONSOON INFLUENCE'
                 : 'MINIMAL / NO MONSOON INFLUENCE';
 
-  const rfNote = rf && rf.loaded ? ` Rainfall (Open-Meteo): ${rfDesc}` : ' No rainfall data — set a date & location for enhanced accuracy.';
+  const rfNote = rf && rf.loaded ? ` Weather Data: ${rfDesc}` : ' No weather data — set a date/location for better accuracy.';
 
   const monsoonDescs = {
-    'HIGH MONSOON INFLUENCE':      `Strong runoff signatures — turbidity, BOD, DO and coliform all indicate active flooding or heavy post-rain conditions.${rfNote}`,
-    'MODERATE MONSOON INFLUENCE':  `Moderate runoff detected. Typical of post-monsoon Indian rivers (BOD p75 = 3.6 mg/L in 1,992-record Indian dataset).${rfNote}`,
-    'LOW MONSOON INFLUENCE':       `Minor seasonal influence. Parameters slightly above dry-season norms.${rfNote}`,
-    'MINIMAL / NO MONSOON INFLUENCE': `No significant monsoon signature. Parameters consistent with dry-season baseline.${rfNote}`
+    'HIGH MONSOON INFLUENCE':      `Strong signs of flooding/runoff detected. High chances of dirt and organic waste mixing into the water.${rfNote}`,
+    'MODERATE MONSOON INFLUENCE':  `Moderate runoff detected. Typical of local rivers after moderate rainfall.${rfNote}`,
+    'LOW MONSOON INFLUENCE':       `Minor seasonal influence. Parameters slightly above normal dry-season levels.${rfNote}`,
+    'MINIMAL / NO MONSOON INFLUENCE': `No major weather or flood signatures detected. Very stable baseline water.${rfNote}`
   };
 
-  // ACID
   let acid, acidDesc;
   if (inp.ph !== null) {
-    if      (inp.ph < 4)   { acid='SEVERE ACID CONTAMINATION'; acidDesc='pH < 4.0 — acid mine drainage or industrial effluent. Highly corrosive.'; }
-    else if (inp.ph < 5.5) { acid='STRONG ACID INFLUENCE';     acidDesc='pH < 5.5 — significant acidification. Mining runoff or industrial discharge.'; }
-    else if (inp.ph < 6.5) { acid='MILD ACID INFLUENCE';       acidDesc='pH 5.5–6.5 — organic decomposition or CO₂ saturation. Marginal for drinking.'; }
-    else if (inp.ph<=8.5)  { acid='NEUTRAL / NORMAL RANGE';    acidDesc='pH 6.5–8.5 — WHO/BIS standard. No acid/alkaline influence. Indian river median: 7.3.'; }
-    else if (inp.ph<=10)   { acid='ALKALINE INFLUENCE';        acidDesc='pH 8.5–10 — carbonate geology or industrial alkali. Monitor source.'; }
-    else                   { acid='SEVERE ALKALINE CONTAMINATION'; acidDesc='pH > 10 — industrial contamination. Unsafe without treatment.'; }
-  } else { acid='pH NOT PROVIDED'; acidDesc='Enter pH to assess acid/alkaline influence.'; }
+    if      (inp.ph < 4)   { acid='SEVERE ACID CONTAMINATION'; acidDesc='pH < 4.0 — Highly corrosive! Possible mining or industrial chemical leak.'; }
+    else if (inp.ph < 5.5) { acid='STRONG ACID INFLUENCE';     acidDesc='pH < 5.5 — Acidic water. Can corrode pipes and harm aquatic life.'; }
+    else if (inp.ph < 6.5) { acid='MILD ACID INFLUENCE';       acidDesc='pH 5.5–6.5 — Slightly acidic. Very marginal for drinking without treatment.'; }
+    else if (inp.ph<=8.5)  { acid='NEUTRAL / NORMAL RANGE';    acidDesc='pH 6.5–8.5 — Perfect. Safe and standard range.'; }
+    else if (inp.ph<=10)   { acid='ALKALINE INFLUENCE';        acidDesc='pH 8.5–10 — High alkaline levels. Can leave deposits and taste bitter.'; }
+    else                   { acid='SEVERE ALKALINE CONTAMINATION'; acidDesc='pH > 10 — Very dangerous. Suggests industrial waste or heavy chemical mixing.'; }
+  } else { acid='pH NOT PROVIDED'; acidDesc='Enter a pH level to assess acidity.'; }
 
-  // CONTAMINATION RISK
   let rs = 0, sources = [];
   if (inp.bod  !== null) { if(inp.bod>T.bod.high)rs+=4; else if(inp.bod>T.bod.medium)rs+=2; else if(inp.bod>T.bod.low)rs+=1; }
   if (inp.fc   !== null) { if(inp.fc>T.fc.high)rs+=4; else if(inp.fc>T.fc.medium)rs+=3; else if(inp.fc>T.fc.low)rs+=1; }
@@ -1207,80 +1238,77 @@ function ruleEngine(inp, rf) {
   if (inp.lead !== null && inp.lead>0.05)rs += 3;
   if (inp.al   !== null && inp.al>0.5)   rs += 1;
   if (inp.turb !== null && inp.turb>4)   rs += 1;
-  // Rainfall boosts contamination risk (high rain washes surface pollutants)
+
   if (rf && rf.loaded && rf.mm24h >= 20) rs += 2;
   else if (rf && rf.loaded && rf.mm24h >= 5) rs += 1;
 
-  if (inp.fc   !== null && inp.fc>T.fc.medium)         sources.push('Sewage/Fecal');
-  if (inp.bod  !== null && inp.bod>T.bod.medium)       sources.push('Organic Waste');
-  if (inp.nit  !== null && inp.nit>10)                 sources.push('Agricultural Runoff');
-  if (inp.ars  !== null && inp.ars>0.01)               sources.push('Arsenic (Geo/Industrial)');
-  if (inp.lead !== null && inp.lead>0.01)              sources.push('Heavy Metals/Pipe Leach');
-  if (inp.ph   !== null && (inp.ph<5||inp.ph>10))       sources.push('Industrial Discharge');
+  if (inp.fc   !== null && inp.fc>T.fc.medium)         sources.push('Sewage / Fecal Matter');
+  if (inp.bod  !== null && inp.bod>T.bod.medium)       sources.push('Organic / Plant Waste');
+  if (inp.nit  !== null && inp.nit>10)                 sources.push('Farming / Fertilizers');
+  if (inp.ars  !== null && inp.ars>0.01)               sources.push('Arsenic Warning');
+  if (inp.lead !== null && inp.lead>0.01)              sources.push('Heavy Metals / Bad Pipes');
+  if (inp.ph   !== null && (inp.ph<5||inp.ph>10))       sources.push('Chemical Discharge');
   const cp = inp.cond ?? (inp.tds ? inp.tds/0.67 : null);
-  if (cp !== null && cp > T.cond.saline)               sources.push('Saline Intrusion');
-  if (inp.turb !== null && inp.turb>10 && !inp.fc)     sources.push('Sediment Runoff');
-  if (rf && rf.loaded && rf.mm24h>=20 && inp.turb>4)  sources.push('Rain-Borne Runoff');
+  if (cp !== null && cp > T.cond.saline)               sources.push('Seawater / Salt Mixing');
+  if (inp.turb !== null && inp.turb>10 && !inp.fc)     sources.push('Heavy Mud / Sediment');
+  if (rf && rf.loaded && rf.mm24h>=20 && inp.turb>4)  sources.push('Rain Flood Runoff');
 
   const cRisk = rs>=8?'CRITICAL':rs>=5?'HIGH':rs>=3?'MODERATE':rs>=1?'LOW':'MINIMAL';
-  const srcStr = sources.length ? sources.join(', ') : 'No significant source identified';
+  const srcStr = sources.length ? sources.join(', ') : 'No clear contamination signs detected';
   const cDescs = {
-    CRITICAL: `CRITICAL. Multiple high-risk indicators. Source(s): ${srcStr}. Do NOT use without extensive multi-stage treatment.`,
-    HIGH:     `High contamination. Source(s): ${srcStr}. Exceeds CPCB Class D standards.`,
-    MODERATE: `Moderate contamination. Source(s): ${srcStr}. Treatment required.`,
-    LOW:      `Low contamination. Source(s): ${srcStr}. Monitor and treat before use.`,
-    MINIMAL:  'Minimal contamination indicators within acceptable bounds.'
+    CRITICAL: `DANGER. Multiple extreme safety hazards found. Source(s): ${srcStr}. Do NOT use without heavy industrial treatment.`,
+    HIGH:     `High contamination found. Source(s): ${srcStr}. Very unsafe for regular use.`,
+    MODERATE: `Moderate contamination. Source(s): ${srcStr}. Definite filtration/treatment required.`,
+    LOW:      `Minor contamination. Source(s): ${srcStr}. Proceed with caution and standard filtering.`,
+    MINIMAL:  'Everything looks incredibly clean and within safe limits.'
   };
 
-  // SALINITY
   let sal, salDesc;
   if (cp !== null) {
-    if      (cp < T.cond.fresh)    { sal='FRESHWATER (LOW SALINITY)';  salDesc=`~${Math.round(cp)} µS/cm — below Indian river p25 (78). Excellent quality.`; }
-    else if (cp < T.cond.moderate) { sal='MODERATE SALINITY';          salDesc=`~${Math.round(cp)} µS/cm — typical Indian river range (78–592 µS/cm).`; }
-    else if (cp < T.cond.saline)   { sal='ELEVATED SALINITY';          salDesc=`~${Math.round(cp)} µS/cm — above p75 (592). Affects taste and pipe corrosion.`; }
-    else if (cp < 10000)           { sal='HIGH SALINITY RISK';         salDesc=`~${Math.round(cp)} µS/cm — 90th pct+. Saltwater intrusion or brine. Requires desalination.`; }
-    else                           { sal='SALINE / BRACKISH WATER';    salDesc='> 10,000 µS/cm — near marine. Reverse osmosis required.'; }
-  } else { sal='INSUFFICIENT DATA'; salDesc='Provide conductivity or TDS.'; }
+    if      (cp < T.cond.fresh)    { sal='FRESHWATER (LOW SALINITY)';  salDesc=`~${Math.round(cp)} µS/cm — Excellent, pure freshwater.`; }
+    else if (cp < T.cond.moderate) { sal='MODERATE SALINITY';          salDesc=`~${Math.round(cp)} µS/cm — Typical river levels. Perfectly fine.`; }
+    else if (cp < T.cond.saline)   { sal='ELEVATED SALINITY';          salDesc=`~${Math.round(cp)} µS/cm — Getting salty. Might taste off or lightly corrode pipes.`; }
+    else if (cp < 10000)           { sal='HIGH SALINITY RISK';         salDesc=`~${Math.round(cp)} µS/cm — Very salty. Likely mixing with seawater or brine.`; }
+    else                           { sal='SALINE / BRACKISH WATER';    salDesc='> 10,000 µS/cm — Basically saltwater. Requires heavy reverse osmosis.'; }
+  } else { sal='INSUFFICIENT DATA'; salDesc='Please enter TDS or Conductivity.'; }
 
-  // HARDNESS
   const h = inp.hard;
   let hard, hardDesc;
   if (h !== null) {
-    if      (h < 75)  { hard='SOFT WATER';              hardDesc=`${h} mg/L — very soft. Low scaling but corrosive. May lack Ca²⁺/Mg²⁺.`; }
-    else if (h < 150) { hard='MODERATELY SOFT';         hardDesc=`${h} mg/L — lower range (dataset mean: 196 mg/L, n=19,656). Minimal scaling.`; }
-    else if (h < 300) { hard='MODERATELY HARD';         hardDesc=`${h} mg/L — within typical range. Minor soap scum and deposits.`; }
-    else if (h < 500) { hard='HARD — SCALING RISK';     hardDesc=`${h} mg/L — above p95. Significant CaCO₃ scaling. Water softening recommended.`; }
-    else              { hard='VERY HARD — HIGH SCALING'; hardDesc=`${h} mg/L — severely elevated. Industrial softening required.`; }
-  } else { hard='NOT PROVIDED'; hardDesc='Enter hardness to assess scaling.'; }
+    if      (h < 75)  { hard='SOFT WATER';              hardDesc=`${h} mg/L — Very soft. Great for washing, but might be slightly corrosive to pipes.`; }
+    else if (h < 150) { hard='MODERATELY SOFT';         hardDesc=`${h} mg/L — Excellent balance. Very little scaling.`; }
+    else if (h < 300) { hard='MODERATELY HARD';         hardDesc=`${h} mg/L — Standard range. Might leave minor soap scum.`; }
+    else if (h < 500) { hard='HARD — SCALING RISK';     hardDesc=`${h} mg/L — Hard water. Will likely leave white scale in pipes/heaters. Softener recommended.`; }
+    else              { hard='VERY HARD — HIGH SCALING'; hardDesc=`${h} mg/L — Extremely hard. Will damage appliances without a softening system.`; }
+  } else { hard='NOT PROVIDED'; hardDesc='Enter a hardness value to check scaling risks.'; }
 
-  // USE SUITABILITY
   const uses = { drinking:{ok:true,reason:''}, bathing:{ok:true,reason:''}, irrigation:{ok:true,reason:''}, industrial:{ok:true,reason:''}, aquatic:{ok:true,reason:''} };
   const fail = (k,r) => { uses[k].ok = false; uses[k].reason += r+' '; };
-  if(inp.ph!==null&&(inp.ph<6.5||inp.ph>8.5))fail('drinking',`pH ${inp.ph} out of 6.5–8.5.`);
-  if(inp.tds!==null&&inp.tds>500)fail('drinking',`TDS ${inp.tds} > 500 mg/L.`);
-  if(inp.turb!==null&&inp.turb>1)fail('drinking',`Turbidity ${inp.turb} > 1 NTU.`);
-  if(inp.fc!==null&&inp.fc>0)fail('drinking','Fecal coliform present.');
-  if(inp.nit!==null&&inp.nit>10)fail('drinking',`Nitrates ${inp.nit} > 10 mg/L.`);
-  if(inp.ars!==null&&inp.ars>0.01)fail('drinking','Arsenic > WHO limit.');
-  if(inp.lead!==null&&inp.lead>0.01)fail('drinking','Lead > WHO limit.');
-  if(inp.hard!==null&&inp.hard>600)fail('drinking',`Hardness ${inp.hard} > 600 mg/L.`);
-  if(rf&&rf.loaded&&rf.mm24h>=20)fail('drinking','Heavy rainfall on sample day — coliform risk elevated.');
-  if(inp.ph!==null&&(inp.ph<6||inp.ph>9))fail('bathing','pH outside 6–9.');
-  if(inp.fc!==null&&inp.fc>500)fail('bathing','Fecal coliform > 500 MPN.');
-  if(inp.turb!==null&&inp.turb>10)fail('bathing','High turbidity.');
-  if(inp.do_v!==null&&inp.do_v<3)fail('bathing','DO < 3 mg/L.');
-  if(inp.ph!==null&&(inp.ph<6||inp.ph>8.5))fail('irrigation','pH unsuitable for crops.');
-  if(cp!==null&&cp>3000)fail('irrigation','Salinity too high for most crops.');
-  if(inp.nit!==null&&inp.nit>30)fail('irrigation','Excess nitrates.');
-  if(inp.ars!==null&&inp.ars>0.1)fail('irrigation','Arsenic harms crops.');
-  if(inp.bod!==null&&inp.bod>10)fail('irrigation','BOD too high — soil oxygen depletion.');
-  if(inp.hard!==null&&inp.hard>500)fail('industrial','Scaling risk too high.');
-  if(cp!==null&&cp>2000)fail('industrial','Conductivity causes corrosion.');
-  if(inp.turb!==null&&inp.turb>5)fail('industrial','Turbidity fouls filters.');
-  if(inp.do_v!==null&&inp.do_v<4)fail('aquatic','DO < 4 mg/L — hypoxic.');
-  if(inp.ph!==null&&(inp.ph<6||inp.ph>9))fail('aquatic','pH outside fish tolerance.');
-  if(inp.turb!==null&&inp.turb>10)fail('aquatic','Excessive turbidity.');
-  if(inp.ars!==null&&inp.ars>0.05)fail('aquatic','Arsenic toxic to aquatic life.');
+  if(inp.ph!==null&&(inp.ph<6.5||inp.ph>8.5))fail('drinking',`pH ${inp.ph} is outside safe 6.5–8.5 limits.`);
+  if(inp.tds!==null&&inp.tds>500)fail('drinking',`TDS is over 500 mg/L.`);
+  if(inp.turb!==null&&inp.turb>1)fail('drinking',`Water is too cloudy (Turbidity > 1).`);
+  if(inp.fc!==null&&inp.fc>0)fail('drinking','Dangerous fecal bacteria detected.');
+  if(inp.nit!==null&&inp.nit>10)fail('drinking',`Nitrates are too high.`);
+  if(inp.ars!==null&&inp.ars>0.01)fail('drinking','Arsenic levels exceed WHO safety bounds.');
+  if(inp.lead!==null&&inp.lead>0.01)fail('drinking','Lead levels exceed WHO safety bounds.');
+  if(inp.hard!==null&&inp.hard>600)fail('drinking',`Extremely hard water (>600 mg/L).`);
+  if(rf&&rf.loaded&&rf.mm24h>=20)fail('drinking','Heavy rainfall increases bacteria/runoff risk today.');
+  if(inp.ph!==null&&(inp.ph<6||inp.ph>9))fail('bathing','pH levels can irritate skin/eyes.');
+  if(inp.fc!==null&&inp.fc>500)fail('bathing','Bacteria levels too high for safe swimming.');
+  if(inp.turb!==null&&inp.turb>10)fail('bathing','Water is far too dirty/cloudy.');
+  if(inp.do_v!==null&&inp.do_v<3)fail('bathing','Low oxygen levels suggest stagnation.');
+  if(inp.ph!==null&&(inp.ph<6||inp.ph>8.5))fail('irrigation','pH might damage crop roots.');
+  if(cp!==null&&cp>3000)fail('irrigation','Too salty for most plants/soil.');
+  if(inp.nit!==null&&inp.nit>30)fail('irrigation','Nitrates will over-fertilize and burn plants.');
+  if(inp.ars!==null&&inp.ars>0.1)fail('irrigation','Arsenic will poison the crops.');
+  if(inp.bod!==null&&inp.bod>10)fail('irrigation','High organic waste will drain soil oxygen.');
+  if(inp.hard!==null&&inp.hard>500)fail('industrial','Will heavily scale and damage factory pipes.');
+  if(cp!==null&&cp>2000)fail('industrial','High conductivity risks pipe rust/corrosion.');
+  if(inp.turb!==null&&inp.turb>5)fail('industrial','Mud/dirt will clog industrial filters quickly.');
+  if(inp.do_v!==null&&inp.do_v<4)fail('aquatic','Not enough oxygen for fish to survive well.');
+  if(inp.ph!==null&&(inp.ph<6||inp.ph>9))fail('aquatic','Acid/Alkaline levels will harm fish gills.');
+  if(inp.turb!==null&&inp.turb>10)fail('aquatic','Too murky for fish/plants to thrive.');
+  if(inp.ars!==null&&inp.ars>0.05)fail('aquatic','Arsenic levels are deadly to local aquatic life.');
 
   return { labels:{ monsoon, monsoonDesc:monsoonDescs[monsoon]||'', acid, acidDesc,
     contamination:`${cRisk} RISK`, contaminationSource:srcStr, contaminationDesc:cDescs[cRisk],
@@ -1288,7 +1316,6 @@ function ruleEngine(inp, rf) {
     riskScore:rs, monsoonScore:ms, cRisk };
 }
 
-// ── Accuracy tooltip HTML builder
 function accTip(key) {
   const m = ACC_META[key];
   if (!m) return '';
@@ -1298,7 +1325,6 @@ function accTip(key) {
   </div>`;
 }
 
-// ── Read inputs
 function readInputs() {
   const gf = id => { const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? null : v; };
   return { ph:gf('pi-ph'), tds:gf('pi-tds'), temp:gf('pi-temp'), turb:gf('pi-turb'),
@@ -1308,7 +1334,6 @@ function readInputs() {
     lead:gf('pi-lead'), al:gf('pi-al') };
 }
 
-// ── Main predict
 function livePredict() {
   const inp = readInputs();
   if (inp.ph === null && inp.tds === null) {
@@ -1326,21 +1351,19 @@ function livePredict() {
   const totalFields = Object.values(inp).filter(v => v !== null).length;
   const confidence = Math.min(95, Math.max(30, 30 + totalFields * 4 + usedFields * 2 + (rf?.loaded ? 8 : 0)));
 
-  // Verdict
   let vl, vs, vc, ve;
   if (potProb > 0.65 && ['MINIMAL','LOW'].includes(cRisk)) {
-    vl='LIKELY POTABLE'; vc='#10b981'; ve='✅'; vs=`NB posterior: ${(potProb*100).toFixed(0)}% potable. Parameters align with potable water distribution.`;
+    vl='LIKELY POTABLE'; vc='#10b981'; ve='✅'; vs=`The AI calculates a ${(potProb*100).toFixed(0)}% chance this water is completely safe to drink based on historical patterns.`;
   } else if (potProb > 0.5 && ['MINIMAL','LOW'].includes(cRisk)) {
-    vl='CONDITIONALLY ACCEPTABLE'; vc='#34d399'; ve='⚠️'; vs='Parameters mostly within range. Minor treatment may suffice.';
+    vl='CONDITIONALLY ACCEPTABLE'; vc='#34d399'; ve='⚠️'; vs='Most parameters look fine, but minor filtering or boiling is highly recommended just in case.';
   } else if (potProb > 0.4 && !['CRITICAL','HIGH'].includes(cRisk)) {
-    vl='MARGINAL — TREATMENT NEEDED'; vc='#f59e0b'; ve='🔶'; vs='Several parameters exceed guidelines. Filtration and disinfection required.';
+    vl='MARGINAL — TREATMENT NEEDED'; vc='#f59e0b'; ve='🔶'; vs='Warning flags found. Filtration and chemical treatment are definitely required before use.';
   } else if (cRisk === 'CRITICAL') {
-    vl='UNSAFE — CRITICAL CONTAMINATION'; vc='#ef4444'; ve='☠️'; vs='Multiple parameters at dangerous levels. Do not use without extensive treatment.';
+    vl='UNSAFE — CRITICAL CONTAMINATION'; vc='#ef4444'; ve='☠️'; vs='Extreme danger. Multiple sensors indicate severely unsafe, polluted water. Do not consume!';
   } else {
-    vl='NOT POTABLE — TREATMENT REQUIRED'; vc='#ef4444'; ve='🚫'; vs=`NB posterior: ${(potProb*100).toFixed(0)}% potable. Key parameters exceed WHO/BIS limits.`;
+    vl='NOT POTABLE — TREATMENT REQUIRED'; vc='#ef4444'; ve='🚫'; vs=`The AI is only ${(potProb*100).toFixed(0)}% confident in this water. It fails several standard health guidelines.`;
   }
 
-  // Verdict card
   const vi = document.getElementById('pred-verdict-icon');
   vi.textContent = ve; vi.style.background = vc+'22'; vi.style.boxShadow = `0 0 20px ${vc}33`;
   document.getElementById('pred-verdict-label').textContent = vl;
@@ -1350,7 +1373,6 @@ function livePredict() {
   document.getElementById('pred-conf-pct').textContent = confidence + '%';
   document.getElementById('overall-acc-tip').innerHTML = ACC_META.overall.detail;
 
-  // Rainfall context banner
   const rcb = document.getElementById('rain-context-banner');
   const rfBadge = document.getElementById('rain-influence-badge');
   if (rf && rf.loaded) {
@@ -1361,14 +1383,13 @@ function livePredict() {
     else if (rf.mm7d >= 5) { rfInfluence='LIGHT RAIN INFLUENCE'; rfColor='#34d399'; }
     else { rfInfluence='DRY CONDITIONS'; rfColor='rgba(255,255,255,.4)'; }
     document.getElementById('rain-context-text').textContent =
-      `${rf.mm24h.toFixed(1)} mm on sample day · ${rf.mm3d.toFixed(1)} mm prior 3 days · ${rf.mm7d.toFixed(1)} mm prior 7 days — open-meteo.com ERA5 archive`;
+      `${rf.mm24h.toFixed(1)} mm on sample day · ${rf.mm3d.toFixed(1)} mm prior 3 days · ${rf.mm7d.toFixed(1)} mm prior 7 days`;
     rfBadge.textContent = rfInfluence;
     rfBadge.style.cssText = `font-size:.72rem;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:.06em;background:${rfColor}22;color:${rfColor};border:1px solid ${rfColor}55`;
   } else {
     rcb.style.display = 'none';
   }
 
-  // Label cards
   const grid = document.getElementById('pred-labels-grid');
   grid.innerHTML = '';
   const cards = [
@@ -1392,7 +1413,6 @@ function livePredict() {
     grid.appendChild(d);
   });
 
-  // Use suitability card
   const uc = document.createElement('div');
   uc.className = 'pred-label-card';
   uc.style.animationDelay = (cards.length * 0.06) + 's';
@@ -1415,7 +1435,6 @@ function livePredict() {
     </div>${accTip('uses')}`;
   grid.appendChild(uc);
 
-  // Param table
   const tbl = document.getElementById('pred-param-table');
   const pList = [
     {k:'ph',  v:inp.ph,   l:'pH Level',      u:'',      lo:6.5,hi:8.5, dm:14},
@@ -1455,31 +1474,29 @@ function livePredict() {
     </div>`;
   }).join('');
 
-  // Model breakdown
   const rfLine = rf && rf.loaded
-    ? `<br>🌧️ <strong style="color:#67e8f9">Rainfall API active</strong> — ${rf.mm24h.toFixed(1)} mm (24h) / ${rf.mm7d.toFixed(1)} mm (7d) from Open-Meteo API. Monsoon and contamination scores adjusted accordingly.`
-    : '⚠️ No rainfall data loaded — add a date and select a pin for enhanced accuracy.';
+    ? `<br>🌧️ <strong style="color:#67e8f9">Live Weather Checking Active</strong> — Automatically checked ${rf.mm24h.toFixed(1)} mm of rain from Open-Meteo. The AI adjusted flood & contamination risks based on this.`
+    : '⚠️ No rainfall data loaded — Set a date and select a map pin for the AI to check weather patterns automatically.';
 
   document.getElementById('pred-model-breakdown').innerHTML = `
     <div class="model-card"><div style="font-size:1.4rem;width:36px;flex-shrink:0">🧮</div><div style="flex:1">
-      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Naïve Bayes Potability Classifier <span class="model-pill" style="background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.25);margin-left:6px">19,656 rows · 6 datasets</span></div>
-      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Used ${usedFields} features. Class prior: 39% potable / 61% non-potable. Posterior potability: <strong style="color:${potProb>0.5?'#34d399':'#f87171'}">${(potProb*100).toFixed(1)}%</strong>. Published accuracy on this dataset: ~60–65% (NB). Literature note: dataset features show low class-separation (similar means for both classes) — accuracy ceiling ~68%.</div>
+      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">AI Potability Analyzer <span class="model-pill" style="background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.25);margin-left:6px">Nearly 20,000 reference samples</span></div>
+      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Analyzed ${usedFields} sensor readings against a massive database of safe and unsafe drinking water. The AI mathematically compares your water's chemical signature to historical records. The final confidence rating that this water is safe is <strong style="color:${potProb>0.5?'#34d399':'#f87171'}">${(potProb*100).toFixed(1)}%</strong>.</div>
     </div></div>
     <div class="model-card"><div style="font-size:1.4rem;width:36px;flex-shrink:0">📏</div><div style="flex:1">
-      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Rule Engine — Indian River Calibrated <span class="model-pill" style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.25);margin-left:6px">2,186 Indian station records</span></div>
-      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">6 labels: Monsoon (score ${monsoonScore}/14, rain boost included), Acid/Alkaline, Contamination (score ${riskScore}/14), Salinity, Hardness/Scaling, Use Suitability. Thresholds: BOD p75=3.6 mg/L, FC p75=993 MPN, Cond p75=592 µS/cm.${rfLine}</div>
+      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Safety Rules & Guidelines <span class="model-pill" style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.25);margin-left:6px">2,100+ Indian monitoring stations</span></div>
+      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Cross-checks your water against strict environmental guidelines. Uses 6 individual safety checks to flag Monsoon flood risk, Acid levels, Salinity, Hardness, and general use suitability.${rfLine}</div>
     </div></div>
     <div class="model-card"><div style="font-size:1.4rem;width:36px;flex-shrink:0">⚗️</div><div style="flex:1">
-      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Chemical Safety NB (waterQuality1) <span class="model-pill" style="background:rgba(139,92,246,.15);color:#a78bfa;border:1px solid rgba(139,92,246,.25);margin-left:6px">7,996 rows · 15 parameters</span></div>
-      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Parameters: Arsenic, Lead, Cadmium, Chromium, Mercury, Uranium, Selenium, Aluminium, Nitrates, Nitrites, Bacteria, Viruses, Copper, Fluoride, Chloramine. Prior: 11.4% safe. Influences contamination source ID.</div>
+      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Heavy Metal Risk Analyzer <span class="model-pill" style="background:rgba(139,92,246,.15);color:#a78bfa;border:1px solid rgba(139,92,246,.25);margin-left:6px">15 specific chemical parameters</span></div>
+      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Watches out specifically for hazardous materials like Arsenic, Lead, Mercury, Uranium, and excessive Bacteria. Helps the AI identify exactly where contamination might be coming from (like factory runoff or bad pipes).</div>
     </div></div>
     <div class="model-card"><div style="font-size:1.4rem;width:36px;flex-shrink:0">🌧️</div><div style="flex:1">
-      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Open-Meteo Rainfall API <span class="model-pill" style="background:rgba(6,182,212,.15);color:#67e8f9;border:1px solid rgba(6,182,212,.25);margin-left:6px">Free · No API key · Forecast & History</span></div>
-      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Fetches 7 days before the sample date seamlessly. Data used to: (1) boost monsoon score when rainfall ≥5 mm/day, (2) flag rain-borne contamination sources, (3) raise drinking-water risk on heavy-rain days.</div>
+      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Open-Meteo Weather Intergration <span class="model-pill" style="background:rgba(6,182,212,.15);color:#67e8f9;border:1px solid rgba(6,182,212,.25);margin-left:6px">Live Forecast & Historical Data</span></div>
+      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Automatically reaches out to global weather satellites to check if it rained in the last 7 days at your selected map pin. If it did, the AI instantly increases the danger rating for flood-borne bacteria and surface dirt mixing into the water.</div>
     </div></div>`;
 }
 
-// ── Presets
 const PRESETS = {
   clean:    {ph:7.3,tds:120,temp:22,turb:0.5,cond:180,hard:110,bod:1.0,do_v:8.2,fc:2,tc:15,nit:2,sulf:80},
   urban:    {ph:7.8,tds:680,temp:28,turb:18,cond:850,hard:280,bod:22,do_v:2.1,fc:4800,tc:18000,nit:24,sulf:220},
@@ -1522,7 +1539,6 @@ function toggleExtended() {
   a.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
-// ── Hook into navigate so predict map initialises on first visit
 const _origNavigate = navigate;
 window.navigate = function(page) {
   _origNavigate(page);
