@@ -1,21 +1,20 @@
+require('dotenv').config(); // Loads variables from .env file
 const express = require("express");
 const http = require("http");
 const axios = require("axios");
 
-const FIREBASE_DB =
-  "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
-
+const FIREBASE_DB = "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
 const RESET_PASSWORD = "LDCHEMICAL";
 const PORT = process.env.PORT || 3000;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY; // Pulled securely from .env
 
-// This is your unique channel name for ntfy.
-// You will type this exact name into the ntfy app on your phone.
 const NTFY_TOPIC = "chemeleon_water_alerts"; 
 
 const app = express();
 const server = http.createServer(app);
 
 app.use(express.static("public"));
+app.use(express.json()); // CRITICAL: Allows server to read JSON data from frontend
 
 server.listen(PORT, () => {
   console.log("✅ Server running on port " + PORT);
@@ -47,7 +46,7 @@ async function sendNtfyAlert(entry, deviceId) {
         headers: {
           "Title": "Chemeleon: Contamination Detected!",
           "Tags": "warning,skull,droplet",
-          "Priority": "high" // Makes the phone vibrate/ring loudly
+          "Priority": "high" 
         }
       }
     );
@@ -56,6 +55,41 @@ async function sendNtfyAlert(entry, deviceId) {
     console.error("Failed to send ntfy alert:", error.message);
   }
 }
+
+// ================= AI SUMMARY ROUTE (SECURE) =================
+app.post("/api/ai-summary", async (req, res) => {
+  const { ph, tds, temp, turb } = req.body;
+
+  if (!GEMINI_API_KEY) {
+    return res.status(500).json({ error: "Server missing API Key configuration." });
+  }
+
+  const prompt = `You are a professional environmental scientist. Analyze this water data: 
+  pH: ${ph}, TDS: ${tds} mg/L, Temp: ${temp}°C, Turbidity: ${turb} NTU.
+  Provide a concise 3-sentence summary: 
+  1. Overall health of the water.
+  2. The most concerning parameter (if any).
+  3. A practical recommendation for the user.
+  Use simple, friendly, and highly professional language. Format it nicely.`;
+
+  try {
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{ parts: [{ text: prompt }] }]
+      },
+      {
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+
+    const output = response.data.candidates[0].content.parts[0].text;
+    res.json({ summary: output });
+  } catch (error) {
+    console.error("Gemini API Error:", error.response ? error.response.data : error.message);
+    res.status(500).json({ error: "Failed to generate AI summary." });
+  }
+});
 
 // ================= ADD ROUTE (MANUAL LINK ADD) =================
 app.get("/add", async (req, res) => {
@@ -72,7 +106,6 @@ app.get("/add", async (req, res) => {
     return res.status(400).send("Invalid values");
   }
 
-  // Changed to "WARNING" to map properly to frontend CSS classes
   const status =
     pH < 6.5 || pH > 8.5 || tds > 500 || temp > 35 || turb > 10
       ? "WARNING"
@@ -81,33 +114,16 @@ app.get("/add", async (req, res) => {
   const entry = {
     ts: Date.now(),
     time: new Date().toLocaleString(),
-    pH,
-    tds,
-    temp,
-    turb,
-    status,
-    lat,
-    lng,
+    pH, tds, temp, turb, status, lat, lng,
   };
 
   try {
-    // Save history
-    await axios.post(
-      `${FIREBASE_DB}/devices/${id}/history.json`,
-      entry
-    );
+    await axios.post(`${FIREBASE_DB}/devices/${id}/history.json`, entry);
+    await axios.post(`${FIREBASE_DB}/devices/${id}/pins.json`, entry);
 
-    // Save as new pin
-    await axios.post(
-      `${FIREBASE_DB}/devices/${id}/pins.json`,
-      entry
-    );
-
-    // 🔥 Send notification ONLY if water is bad
     if (status === "WARNING") {
       sendNtfyAlert(entry, id);
     }
-
     res.send("Pin added successfully");
   } catch (err) {
     res.status(500).send("Firebase Error");
@@ -133,7 +149,6 @@ app.get("/update", async (req, res) => {
     return res.status(400).send("Invalid sensor values");
   }
 
-  // Changed to "WARNING" to map properly to frontend CSS classes
   const status =
     pH < 6.5 || pH > 8.5 || tds > 500 || temp > 35 || turb > 10
       ? "WARNING"
@@ -142,31 +157,17 @@ app.get("/update", async (req, res) => {
   const entry = {
     ts: Date.now(),
     time: new Date().toLocaleString(),
-    pH,
-    tds,
-    temp,
-    turb,
-    status,
+    pH, tds, temp, turb, status,
     lat: isNaN(lat) ? null : lat,
     lng: isNaN(lng) ? null : lng,
   };
 
   try {
-    await axios.patch(
-      `${FIREBASE_DB}/devices/${id}/latest.json`,
-      entry
-    );
-
-    await axios.post(
-      `${FIREBASE_DB}/devices/${id}/history.json`,
-      entry
-    );
+    await axios.patch(`${FIREBASE_DB}/devices/${id}/latest.json`, entry);
+    await axios.post(`${FIREBASE_DB}/devices/${id}/history.json`, entry);
 
     if (entry.lat !== null && entry.lng !== null) {
-      const pinsRes = await axios.get(
-        `${FIREBASE_DB}/devices/${id}/pins.json`
-      );
-
+      const pinsRes = await axios.get(`${FIREBASE_DB}/devices/${id}/pins.json`);
       const pins = pinsRes.data || {};
       let nearestPinId = null;
       let nearestDist = Infinity;
@@ -174,9 +175,7 @@ app.get("/update", async (req, res) => {
       for (const pinId in pins) {
         const p = pins[pinId];
         if (!p.lat || !p.lng) continue;
-
         const dist = distanceMeters(entry.lat, entry.lng, p.lat, p.lng);
-
         if (dist < nearestDist) {
           nearestDist = dist;
           nearestPinId = pinId;
@@ -184,23 +183,15 @@ app.get("/update", async (req, res) => {
       }
 
       if (nearestPinId && nearestDist <= 25) {
-        await axios.patch(
-          `${FIREBASE_DB}/devices/${id}/pins/${nearestPinId}.json`,
-          entry
-        );
+        await axios.patch(`${FIREBASE_DB}/devices/${id}/pins/${nearestPinId}.json`, entry);
       } else {
-        await axios.post(
-          `${FIREBASE_DB}/devices/${id}/pins.json`,
-          entry
-        );
+        await axios.post(`${FIREBASE_DB}/devices/${id}/pins.json`, entry);
       }
     }
 
-    // 🔥 Send notification ONLY if water is bad
     if (status === "WARNING") {
       sendNtfyAlert(entry, id);
     }
-
     res.send("Data Stored Successfully");
   } catch (err) {
     res.status(500).send("Firebase Error");
