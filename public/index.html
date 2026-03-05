@@ -12,7 +12,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
 <style>
-/* CSS IS UNTOUCHED EXCEPT FOR BUTTERY SMOOTH ANIMATIONS & RESPONSIVE GRID TWEAK */
+/* CSS IS UNTOUCHED EXCEPT FOR BUTTERY SMOOTH ANIMATIONS & NEW PREDICTION CARDS */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0f172a;--fg:#f8fafc;--safe-top:env(safe-area-inset-top)}
 body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overflow-x:hidden;min-height:100vh}
@@ -140,36 +140,48 @@ input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cur
 .chart-dot{width:12px;height:12px;border-radius:50%;background:#60a5fa; transition: background 0.4s ease;}
 .chart-canvas-wrapper{height:140px;position:relative}
 .svg-chart{width:100%;height:100%;overflow:visible}
-
-/* Chart tooltip */
 .chart-tooltip{position:absolute;background:rgba(15,23,42,.95);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 14px;font-size:.78rem;pointer-events:none;display:none;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:50;transform:translate(-50%,-110%); transition: left 0.1s ease;}
 .chart-tooltip.visible{display:block}
 .ct-time{color:rgba(255,255,255,.5);font-size:.7rem;margin-bottom:4px}
 .ct-val{font-weight:800;font-size:1rem;color:#fff}
 .ct-unit{font-size:.7rem;color:rgba(255,255,255,.4);margin-left:2px}
 
-/* ── MANUAL ENTRY PAGE ── */
+/* ── PREDICTIONS CSS ── */
+.pred-card { border-radius: 24px; padding: 24px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px; transition: transform 0.3s ease; }
+.pred-card:hover { transform: translateY(-3px); }
+.pred-card.high { background: linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.05) 100%); border-color: rgba(239,68,68,0.3); box-shadow: 0 10px 30px rgba(239,68,68,0.1); }
+.pred-card.medium { background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(245,158,11,0.05) 100%); border-color: rgba(245,158,11,0.3); box-shadow: 0 10px 30px rgba(245,158,11,0.1); }
+.pred-card.safe { background: linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.05) 100%); border-color: rgba(16,185,129,0.3); box-shadow: 0 10px 30px rgba(16,185,129,0.1); }
+.pred-title { font-weight: 800; color: #fff; font-size: 1.15rem; letter-spacing: 0.02em; }
+.pred-desc { color: rgba(255,255,255,0.6); font-size: 0.9rem; line-height: 1.5; font-weight: 400; }
+.pred-badge { padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; display: inline-block; align-self: flex-start; }
+.pred-card.high .pred-badge { background: rgba(239,68,68,0.2); color: #fca5a5; }
+.pred-card.medium .pred-badge { background: rgba(245,158,11,0.2); color: #fcd34d; }
+.pred-card.safe .pred-badge { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+.pred-summary { background: rgba(0,0,0,0.2); padding: 16px; border-radius: 16px; display: flex; gap: 16px; margin-bottom: 24px; border: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap; }
+.pred-stat { display: flex; flex-direction: column; }
+.pred-stat-lbl { font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+.pred-stat-val { font-size: 1.2rem; color: #fff; font-weight: 800; }
+
+/* ── PAGES & SHARED UI ── */
 .page-content{padding:24px;overflow-y:auto;flex:1}
 @media(min-width:768px){.page-content{padding:48px}}
 .page-inner{max-width:800px;margin:16px auto 0}
 @media(min-width:768px){.page-inner{margin-top:32px}}
 .page-title{font-size:2rem;font-weight:800;background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.7) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:6px}
 @media(min-width:768px){.page-title{font-size:2.5rem}}
-.page-sub{color:rgba(255,255,255,.5);font-weight:500;margin-bottom:32px}
+.page-sub{color:rgba(255,255,255,.5);font-weight:500;margin-bottom:32px; line-height: 1.6;}
 
-/* Entry map card */
 .entry-map-card{border-radius:28px;overflow:hidden;margin-bottom:28px;position:relative;height:300px;border:1px solid rgba(255,255,255,.08)}
 @media(min-width:768px){.entry-map-card{height:360px}}
 .entry-map-overlay{position:absolute;inset:0;pointer-events:none;z-index:400;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
 .entry-map-hint{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:420;background:rgba(15,23,42,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:30px;padding:8px 18px;font-size:.78rem;font-weight:600;color:rgba(255,255,255,.7);pointer-events:none;white-space:nowrap;display:flex;align-items:center;gap:8px;transition:opacity .4s}
 .entry-map-hint.hidden{opacity:0}
 .entry-map-hint-dot{width:8px;height:8px;border-radius:50%;background:#60a5fa;animation:blink 1.5s infinite}
-
 #entry-map.picking{cursor:crosshair!important}
 .coords-display{display:none;position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:420;background:rgba(15,23,42,.88);backdrop-filter:blur(12px);border:1px solid rgba(16,185,129,.25);border-radius:30px;padding:7px 18px;font-size:.78rem;font-weight:600;color:#34d399;pointer-events:none;white-space:nowrap;gap:8px;align-items:center}
 .coords-display.visible{display:flex}
 
-/* Form panel */
 .form-panel{border-radius:32px;padding:32px;margin-bottom:32px;position:relative;overflow:hidden}
 .form-deco{position:absolute;top:0;right:0;width:256px;height:256px;background:rgba(59,130,246,.1);border-radius:50%;filter:blur(80px);pointer-events:none}
 .form-title{font-size:1.2rem;font-weight:600;color:rgba(255,255,255,.9);display:flex;align-items:center;gap:12px;margin-bottom:24px;position:relative;z-index:1}
@@ -183,20 +195,17 @@ input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cur
 .form-input:focus{border-color:rgba(59,130,246,.5);box-shadow:0 0 0 1px rgba(59,130,246,.5)}
 .form-input:read-only{color:rgba(255,255,255,.4);cursor:default}
 
-/* Action Buttons */
 .form-actions{display:flex;gap:16px;margin-top:32px;position:relative;z-index:1}
 .btn-primary{flex:1;background:linear-gradient(90deg,#2563eb,#3b82f6);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .3s cubic-bezier(0.16, 1, 0.3, 1);box-shadow:0 0 20px rgba(59,130,246,.3);}
 .btn-primary:hover{background:linear-gradient(90deg,#3b82f6,#60a5fa);box-shadow:0 0 30px rgba(59,130,246,.5);transform:scale(1.02)}
 .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
-.btn-secondary{background:rgba(255,255,255,.05);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:all .3s ease;}
+.btn-secondary{background:rgba(255,255,255,.05);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:all .3s ease; display:flex; justify-content:center;}
 .btn-secondary:hover{background:rgba(255,255,255,.1);}
 
-/* Toast Notification */
 .toast{position:fixed;bottom:32px;right:32px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);backdrop-filter:blur(12px);color:#34d399;padding:14px 28px;border-radius:16px;font-weight:600;font-size:0.95rem;transform:translateY(100px);opacity:0;transition:all 0.4s cubic-bezier(0.4, 0, 0.2, 1);z-index:9999;box-shadow:0 10px 40px rgba(0,0,0,.4);display:flex;align-items:center;gap:12px;}
 .toast.visible{transform:translateY(0);opacity:1;}
 .toast-icon{width:20px;height:20px;}
 
-/* Danger zone */
 .danger-panel{border-radius:32px;padding:32px;border:1px solid rgba(239,68,68,.2);background:rgba(127,29,29,.2)!important}
 .danger-inner{display:flex;flex-direction:column;gap:20px}
 @media(min-width:640px){.danger-inner{flex-direction:row;align-items:center;justify-content:space-between}}
@@ -231,11 +240,7 @@ input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cur
 
 svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .text-gradient-blue{background:linear-gradient(90deg,#60a5fa,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent}
-
-/* Entry temporary pin */
 .entry-preview-marker{width:24px;height:24px;border-radius:50%;background:rgba(59,130,246,.5);border:2px solid #60a5fa;box-shadow:0 0 12px rgba(59,130,246,.6)}
-
-/* Device select override */
 select option { background: #0f172a; color: white; }
 </style>
 </head>
@@ -276,6 +281,10 @@ select option { background: #0f172a; color: white; }
       <a class="nav-item" id="nav-options" onclick="navigate('options')">
         <svg class="nav-icon icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M5.34 18.66l-1.41 1.41M20 12h-2M6 12H4M19.07 19.07l-1.41-1.41M5.34 5.34L3.93 3.93M12 20v-2M12 6V4"/></svg>
         Manual Entry
+      </a>
+      <a class="nav-item" id="nav-predictions" onclick="navigate('predictions')">
+        <svg class="nav-icon icon" viewBox="0 0 24 24"><path d="M2 12h4l3-9 5 18 3-9h5"/></svg>
+        Predictions
       </a>
       <a class="nav-item" id="nav-about" onclick="navigate('about')">
         <svg class="nav-icon icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -396,6 +405,55 @@ select option { background: #0f172a; color: white; }
               </div>
             </div>
           </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-predictions">
+      <div class="page-content">
+        <div class="page-inner">
+          <h1 class="page-title">AI Diagnostics & Predictions</h1>
+          <p class="page-sub">Select the environmental context to generate advanced rule-based risk labels for the currently selected map pin.</p>
+          
+          <div class="form-panel glass-panel">
+            <div class="form-deco"></div>
+            <div class="form-title">
+              <div class="form-title-icon">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              Environmental Context
+            </div>
+
+            <div class="pred-summary" id="pred-summary">
+              <span style="color:rgba(255,255,255,0.5); font-size:0.9rem;">Please select a pin on the Dashboard first.</span>
+            </div>
+
+            <div class="form-grid">
+              <div>
+                <label class="form-label">Water Source Type</label>
+                <select id="pred-source" class="form-input" style="cursor:pointer;" onchange="runPredictions()">
+                  <option value="lake">Lake / Open River</option>
+                  <option value="groundwater">Groundwater / Borewell</option>
+                  <option value="tank">Closed Tank / Piped</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Recent Rainfall (mm in 24h)</label>
+                <input type="number" id="pred-rain" class="form-input" placeholder="e.g. 15" value="0" oninput="runPredictions()"/>
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button class="btn-primary" onclick="runPredictions()">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Run AI Diagnostics
+              </button>
+            </div>
+          </div>
+
+          <div id="prediction-results" style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+            </div>
 
         </div>
       </div>
@@ -623,6 +681,10 @@ function switchDevice(newId) {
   
   document.getElementById("area-chart-global").innerHTML = "";
   document.getElementById("area-chart-local").innerHTML = "";
+
+  // Reset Predictions
+  document.getElementById("pred-summary").innerHTML = `<span style="color:rgba(255,255,255,0.5); font-size:0.9rem;">Please select a pin on the Dashboard first.</span>`;
+  document.getElementById("prediction-results").innerHTML = "";
   
   // Reset time slider
   const slider = document.getElementById("tm-slider");
@@ -764,24 +826,18 @@ async function selectPin(index) {
   document.getElementById("val-ec").innerHTML = `${ecCalculated} <span class="metric-unit">µS/cm</span>`;
 
   // Calculate WQI (0-100 Algorithm)
-  let qPH = 100 - (Math.abs(pin.pH - 7) * 20); // Perfect 7 = 100 score
+  let qPH = 100 - (Math.abs(pin.pH - 7) * 20); 
   if (qPH < 0) qPH = 0;
-  
-  let qTDS = 100 - (pin.tds * 0.1); // 0 ppm = 100, 500 ppm = 50 score
+  let qTDS = 100 - (pin.tds * 0.1); 
   if (qTDS < 0) qTDS = 0;
-  
-  let qTurb = 100 - (pin.turb * 10); // 0 NTU = 100, 5 NTU = 50 score
+  let qTurb = 100 - (pin.turb * 10); 
   if (qTurb < 0) qTurb = 0;
 
-  // Weighted average: pH (30%), TDS (40%), Turbidity (30%)
   let wqi = (qPH * 0.3) + (qTDS * 0.4) + (qTurb * 0.3);
   wqi = Math.max(0, Math.min(100, wqi)).toFixed(0);
 
-  // Update WQI UI Elements
   document.getElementById("wqi-score").innerText = `${wqi} / 100`;
   
-  // Calculate dynamic color (Red -> Yellow -> Green) using HSL
-  // 0 wqi = 0 hue (red), 50 wqi = 60 hue (yellow), 100 wqi = 120 hue (green)
   const hue = (wqi / 100) * 120; 
   const color = `hsl(${hue}, 80%, 50%)`;
   
@@ -791,6 +847,9 @@ async function selectPin(index) {
   fillEl.style.boxShadow = `0 0 15px ${color}`;
 
   updateChartForSelectedPin();
+  
+  // Auto-run predictions if they are looking at the predictions page
+  runPredictions();
 }
 
 function updateChartForSelectedPin() {
@@ -828,7 +887,6 @@ function setActiveMetric(metric, color) {
 function buildSmoothPath(points) {
     if (points.length === 0) return "";
     if (points.length === 1) return `M${points[0].x},${points[0].y} L${points[0].x},${points[0].y}`;
-    
     let path = `M${points[0].x},${points[0].y}`;
     for (let i = 0; i < points.length - 1; i++) {
         const p1 = points[i];
@@ -851,7 +909,6 @@ function drawGlobalChart() {
   const W = 800; const H = 150; const xOffset = 40;
   const chartDrawWidth = W - xOffset - 20;
 
-  // Handle EC Calculation specifically for charting
   const values = globalChartData.map(d => {
       if (activeMetric === 'ec') return Number((d.tds / 0.67).toFixed(1));
       return Number(d[activeMetric]);
@@ -923,7 +980,6 @@ function drawLocalChart() {
 
   const W = 800; const H = 150; const xOffset = 40;
   
-  // Handle EC Calculation specifically for charting
   const values = localChartData.map(d => {
       if (activeMetric === 'ec') return Number((d.tds / 0.67).toFixed(1));
       return Number(d[activeMetric]);
@@ -1045,6 +1101,132 @@ function drawLocalChart() {
   svg.onmouseleave = () => tooltip.classList.remove("visible");
 }
 
+
+/* ================== RULE-BASED PREDICTION ENGINE ================== */
+function runPredictions() {
+  const resultsGrid = document.getElementById("prediction-results");
+  const summaryDiv = document.getElementById("pred-summary");
+
+  if (!currentSelectedPin) {
+    summaryDiv.innerHTML = `<span style="color:rgba(255,255,255,0.5); font-size:0.9rem;">Please select a location pin on the Dashboard first to run diagnostics.</span>`;
+    resultsGrid.innerHTML = "";
+    return;
+  }
+
+  // Get Context
+  const sourceType = document.getElementById("pred-source").value;
+  const rainfall = parseFloat(document.getElementById("pred-rain").value) || 0;
+  
+  const { pH, tds, temp, turb } = currentSelectedPin;
+  const ec = (tds / 0.67).toFixed(1);
+
+  // Update Summary UI
+  summaryDiv.innerHTML = `
+    <div class="pred-stat"><span class="pred-stat-lbl">pH Level</span><span class="pred-stat-val">${pH}</span></div>
+    <div class="pred-stat"><span class="pred-stat-lbl">TDS</span><span class="pred-stat-val">${tds} ppm</span></div>
+    <div class="pred-stat"><span class="pred-stat-lbl">Turbidity</span><span class="pred-stat-val">${turb} NTU</span></div>
+    <div class="pred-stat"><span class="pred-stat-lbl">Temp</span><span class="pred-stat-val">${temp} °C</span></div>
+  `;
+
+  let labels = [];
+
+  // 1. Acid Influence
+  if (pH < 6.5) {
+    let risk = pH < 5.5 ? "high" : "medium";
+    labels.push({
+      title: "Acid Influence Detected", risk: risk,
+      desc: `The pH level (${pH}) is acidic. This could indicate industrial discharge or acid rain mixing with the source.`
+    });
+  } else if (pH > 8.5) {
+    labels.push({
+      title: "Alkaline / Basic Risk", risk: "medium",
+      desc: `The pH level (${pH}) is highly alkaline, which can cause scaling in pipes and taste issues.`
+    });
+  }
+
+  // 2. Salinity Risk
+  if (tds > 1000) {
+    labels.push({
+      title: "High Salinity Risk", risk: "high",
+      desc: `TDS is very high (${tds} ppm). The water is highly saline and unfit for consumption and most agricultural uses.`
+    });
+  } else if (tds > 500) {
+    labels.push({
+      title: "Moderate Salinity", risk: "medium",
+      desc: `TDS is elevated. It is generally safe but may affect sensitive crops if used for irrigation.`
+    });
+  }
+
+  // 3. Hardness / Scaling
+  if (tds > 300 && pH >= 7.5 && (sourceType === 'groundwater' || sourceType === 'tank')) {
+    labels.push({
+      title: "Hardness & Scaling Potential", risk: "medium",
+      desc: `The combination of alkaline pH and high TDS in a closed/ground source strongly indicates high calcium/magnesium carbonates.`
+    });
+  }
+
+  // 4. Monsoon / Runoff Influence
+  if (turb > 10 && rainfall > 5 && sourceType === 'lake') {
+    labels.push({
+      title: "Monsoon & Runoff Influence", risk: "medium",
+      desc: `High turbidity (${turb} NTU) paired with recent rainfall (${rainfall}mm) in open water suggests soil and mud runoff.`
+    });
+  }
+
+  // 5. Contamination Risk & Source
+  if (turb > 15 && pH < 7 && sourceType === 'lake') {
+    labels.push({
+      title: "Contamination Source: Organic/Runoff", risk: "high",
+      desc: `High turbidity combined with slight acidity in an open water body often points to decaying organic matter or sewage runoff.`
+    });
+  } else if (turb > 5 && sourceType === 'tank') {
+    labels.push({
+      title: "Contamination Source: Pipe Breach/Sediment", risk: "high",
+      desc: `Visible turbidity (${turb} NTU) in a closed tank/piped system usually indicates a physical breach or severe sediment buildup.`
+    });
+  }
+
+  // 6. Water Use Suitability (WHO & EPA Standards)
+  let safeDrinking = (pH >= 6.5 && pH <= 8.5 && tds <= 500 && turb <= 5);
+  let safeAgri = (pH >= 6.0 && pH <= 8.5 && tds <= 1500);
+
+  if (safeDrinking) {
+    labels.push({
+      title: "Water Use: Safe for Drinking", risk: "safe",
+      desc: "Meets standard WHO physico-chemical guidelines for potable water. (Subject to biological testing)."
+    });
+  } else if (safeAgri) {
+    labels.push({
+      title: "Water Use: Safe for Agriculture", risk: "medium",
+      desc: "Not ideal for direct human consumption, but parameters are acceptable for crop irrigation."
+    });
+  } else {
+    labels.push({
+      title: "Water Use: Unsafe for General Use", risk: "high",
+      desc: "Fails basic potability and irrigation standards. Requires extensive filtration before use."
+    });
+  }
+
+  // Render the cards
+  resultsGrid.innerHTML = "";
+  if (labels.length === 0) {
+    resultsGrid.innerHTML = `<div style="color:white;">No specific risks detected based on current rules.</div>`;
+  } else {
+    labels.forEach(label => {
+      let cssClass = label.risk; 
+      let riskText = label.risk === "high" ? "Critical Risk" : label.risk === "medium" ? "Moderate Risk" : "Optimal / Safe";
+      
+      resultsGrid.innerHTML += `
+        <div class="pred-card ${cssClass}">
+          <span class="pred-badge">${riskText}</span>
+          <div class="pred-title">${label.title}</div>
+          <div class="pred-desc">${label.desc}</div>
+        </div>
+      `;
+    });
+  }
+}
+
 /* ================== MANUAL ENTRY & UTILS ================== */
 function showToast(msg) {
   const toast = document.getElementById("toast");
@@ -1055,7 +1237,9 @@ function showToast(msg) {
 
 function clearForm() {
   document.querySelectorAll(".form-input").forEach(input => {
-    if (input.id !== "device-selector") input.value = "";
+    if (input.id !== "device-selector" && input.id !== "pred-source" && input.id !== "pred-rain") {
+      input.value = "";
+    }
   });
   document.getElementById("coords-display").classList.remove("visible");
   document.getElementById("add-pin-btn").disabled = true;
@@ -1118,7 +1302,6 @@ function exportToCSV() {
     return;
   }
 
-  // Updated headers to include EC
   const headers = ["Timestamp", "Date/Time", "Latitude", "Longitude", "Status", "pH Level", "TDS (ppm)", "EC (µS/cm)", "Temp (°C)", "Turbidity (NTU)"];
   let csvContent = headers.join(",") + "\n";
 
@@ -1165,6 +1348,7 @@ function navigate(page) {
   setTimeout(() => {
     if(page === 'dashboard' && mlMap) mlMap.invalidateSize();
     if(page === 'options' && entryMap) entryMap.invalidateSize();
+    if(page === 'predictions') runPredictions(); // Auto-run if they visit the page
   }, 50);
 }
 
