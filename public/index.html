@@ -3,13 +3,16 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-<title>CHEMELEON — Water Quality Dashboard</title>
+<title>Water Quality Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+
 <style>
+/* ── CSS VARIABLES & BASE ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0f172a;--fg:#f8fafc;--safe-top:env(safe-area-inset-top)}
 body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overflow-x:hidden;min-height:100vh}
@@ -17,53 +20,71 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--fg);overfl
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
 ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.2)}
+
+/* ── GLASSMORPHISM ── */
 .glass-panel{background:rgba(15,23,42,.4);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,.08);border-left:1px solid rgba(255,255,255,.08)}
-.glass-card{background:linear-gradient(135deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.02) 100%);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 32px rgba(0,0,0,.15);transition:all .4s cubic-bezier(0.16,1,0.3,1)}
-.glass-card:hover{background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.04) 100%);border-color:rgba(255,255,255,.15);transform:translateY(-3px)}
+.glass-card{background:linear-gradient(135deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.02) 100%);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 32px rgba(0,0,0,.15);transition:all .4s cubic-bezier(0.16, 1, 0.3, 1)}
+.glass-card:hover{background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.04) 100%);border-color:rgba(255,255,255,.15); transform: translateY(-3px);}
+
+/* ── BACKGROUND BLOBS ── */
 .blob{position:fixed;border-radius:50%;filter:blur(120px);z-index:0;opacity:.3;animation:float 20s infinite ease-in-out alternate;pointer-events:none}
 .blob-1{top:-10%;left:-10%;width:50vw;height:50vh;background:#3b82f6}
 .blob-2{bottom:-10%;right:-10%;width:60vw;height:60vh;background:#8b5cf6;animation-delay:-7s}
 .blob-3{top:40%;left:40%;width:40vw;height:40vh;background:#06b6d4;animation-delay:-14s}
 @keyframes float{0%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-50px) scale(1.1)}66%{transform:translate(-20px,20px) scale(.9)}100%{transform:translate(0,0) scale(1)}}
+
 .app{display:flex;min-height:100vh;position:relative}
-/* SIDEBAR */
-.sidebar{position:fixed;top:0;left:0;height:100vh;width:256px;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.1);z-index:200;transform:translateX(-100%);transition:transform .4s cubic-bezier(0.16,1,0.3,1)}
-.sidebar.open{transform:translateX(0)}
+
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;top:0;left:0;height:100vh;width:256px;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.1);z-index:200;transform:translateX(-100%);transition:transform .4s cubic-bezier(0.16, 1, 0.3, 1);}
+.sidebar.open{transform:translateX(0);}
 .sidebar-logo{height:calc(64px + var(--safe-top));display:flex;align-items:center;justify-content:space-between;padding:var(--safe-top) 24px 0;border-bottom:1px solid rgba(255,255,255,.1)}
 .logo-text{font-weight:800;font-size:1.1rem;letter-spacing:.18em;background:linear-gradient(90deg,#60a5fa,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent}
-.sidebar-nav{flex:1;padding:16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+.sidebar-nav{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px}
 .nav-item{display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:16px;cursor:pointer;transition:all .3s ease;color:rgba(255,255,255,.6);border:1px solid transparent;font-weight:500;letter-spacing:.02em;text-decoration:none;font-size:.95rem}
 .nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
 .nav-item.active{background:linear-gradient(90deg,rgba(59,130,246,.2) 0%,rgba(59,130,246,.05) 100%);color:#93c5fd;border-color:rgba(59,130,246,.2);box-shadow:0 0 15px rgba(59,130,246,.1)}
 .nav-item.active .nav-icon{color:#60a5fa;filter:drop-shadow(0 0 8px rgba(59,130,246,.8))}
 .nav-icon{width:20px;height:20px;flex-shrink:0}
-/* MAIN */
-.main{flex:1;display:flex;flex-direction:column;min-height:100vh;position:relative;z-index:10;transition:filter .4s cubic-bezier(0.16,1,0.3,1);padding-top:calc(64px + var(--safe-top))}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;min-height:100vh;position:relative;z-index:10;transition:filter .4s cubic-bezier(0.16, 1, 0.3, 1); padding-top:calc(64px + var(--safe-top));}
 .mobile-header{display:flex;position:fixed;top:0;left:0;right:0;height:calc(64px + var(--safe-top));z-index:101;border-bottom:1px solid rgba(255,255,255,.1);align-items:center;justify-content:space-between;padding:var(--safe-top) 16px 0}
-.hamburger-btn{background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;padding:8px;display:flex;align-items:center;transition:transform .2s}
-.hamburger-btn:active{transform:scale(0.9)}
-.sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .4s cubic-bezier(0.16,1,0.3,1);z-index:150}
-.sidebar-overlay.visible{opacity:1;pointer-events:auto}
-@keyframes pageFadeIn{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+.hamburger-btn{background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;padding:8px;display:flex;align-items:center; transition: transform 0.2s;}
+.hamburger-btn:active{transform: scale(0.9);}
+.sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .4s cubic-bezier(0.16, 1, 0.3, 1);z-index:150;}
+.sidebar-overlay.visible{opacity:1;pointer-events:auto;}
+
+/* Page animations */
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .page{display:none;flex:1}
-.page.active{display:flex;flex-direction:column;animation:pageFadeIn .5s cubic-bezier(0.16,1,0.3,1) forwards}
-/* MAP */
+.page.active{display:flex;flex-direction:column; animation: pageFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;}
+
+/* ── MAP ── */
 .map-section{height:45vh;min-height:300px;position:relative;border-bottom-left-radius:40px;border-bottom-right-radius:40px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);border-bottom:1px solid rgba(255,255,255,.1)}
-#maplibre-map,#entry-map{width:100%;height:100%;background:transparent}
+#maplibre-map,#entry-map,#pred-map{width:100%;height:100%; background: transparent;}
 .map-fade{position:absolute;inset:0;pointer-events:none;z-index:1000;box-shadow:inset 0 -55px 75px rgba(15,23,42,.95);border-bottom-left-radius:40px;border-bottom-right-radius:40px}
-.leaflet-bar{border:none!important;box-shadow:0 4px 20px rgba(0,0,0,.3)!important;border-radius:12px!important;overflow:hidden;background:rgba(15,23,42,.88)!important;backdrop-filter:blur(8px)!important;margin:16px!important;margin-bottom:90px!important}
-.leaflet-bar a{background:transparent!important;color:white!important;border-bottom:1px solid rgba(255,255,255,.08)!important;width:32px!important;height:32px!important;line-height:32px!important}
-.leaflet-bar a:hover{background:rgba(255,255,255,.1)!important;color:white!important}
-.leaflet-bar a:last-child{border-bottom:none!important}
-.leaflet-control-attribution{background:rgba(9,14,23,.7)!important;color:rgba(255,255,255,.3)!important;font-size:9px!important;backdrop-filter:blur(4px);border-radius:6px!important;font-family:'Outfit',sans-serif!important;padding:2px 6px!important;margin:0 10px 10px 0!important}
-.leaflet-control-attribution a{color:rgba(255,255,255,.4)!important}
-.leaflet-div-icon{background:transparent;border:none}
-input[type=range]{-webkit-appearance:none;background:transparent}
-input[type=range]:focus{outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;height:18px;width:18px;border-radius:50%;background:#60a5fa;cursor:pointer;margin-top:-7px;box-shadow:0 0 12px rgba(96,165,250,0.8);border:2px solid #fff;transition:transform .1s}
-input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
-input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:pointer;background:rgba(255,255,255,0.2);border-radius:4px}
-/* MARKERS */
+
+/* Leaflet UI Overrides */
+.leaflet-bar { border: none !important; box-shadow: 0 4px 20px rgba(0,0,0,.3) !important; border-radius: 12px !important; overflow: hidden; background: rgba(15,23,42,.88) !important; backdrop-filter: blur(8px) !important; border: 1px solid rgba(255,255,255,.1) !important; margin: 16px !important; margin-bottom: 90px !important;} 
+.leaflet-bar a { background: transparent !important; color: white !important; border-bottom: 1px solid rgba(255,255,255,.08) !important; width: 32px !important; height: 32px !important; line-height: 32px !important; }
+.leaflet-bar a:hover { background: rgba(255,255,255,.1) !important; color: white !important; }
+.leaflet-bar a:last-child { border-bottom: none !important; }
+.leaflet-control-attribution { background: rgba(9,14,23,.7) !important; color: rgba(255,255,255,.3) !important; font-size: 9px !important; backdrop-filter: blur(4px); border-radius: 6px !important; font-family: 'Outfit', sans-serif !important; padding: 2px 6px !important; margin: 0 10px 10px 0 !important; }
+.leaflet-control-attribution a { color: rgba(255,255,255,.4) !important; }
+.leaflet-div-icon { background: transparent; border: none; }
+
+/* Custom Slider */
+input[type=range] { -webkit-appearance: none; background: transparent; }
+input[type=range]:focus { outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #60a5fa; cursor: pointer; margin-top: -7px; box-shadow: 0 0 12px rgba(96,165,250,0.8); border: 2px solid #fff; transition: transform 0.1s;}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+/* Marker */
 .ml-marker{width:34px;height:38px;cursor:pointer;position:relative}
 .ml-pulse{position:absolute;width:28px;height:28px;border-radius:50%;top:0;left:3px;animation:pulse-ring 2s ease-out infinite}
 .ml-marker-inner{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);position:absolute;top:0;left:3px;box-shadow:0 4px 15px rgba(0,0,0,.4);transition:all .25s ease}
@@ -72,14 +93,15 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 .ml-marker.warning .ml-pulse{background:rgba(239,68,68,.35)}
 .ml-marker.safe .ml-marker-inner{background:linear-gradient(135deg,#10b981,#059669)}
 .ml-marker.warning .ml-marker-inner{background:linear-gradient(135deg,#ef4444,#dc2626)}
-.ml-marker.selected .ml-marker-inner{box-shadow:0 0 22px rgba(59,130,246,.9);transform:rotate(-45deg) scale(1.15)}
+.ml-marker.selected .ml-marker-inner{box-shadow:0 0 25px rgba(96,165,250,1); border: 2px solid #fff; transform:rotate(-45deg) scale(1.25)} /* Selected Glow */
 @keyframes pulse-ring{0%{transform:scale(1);opacity:.8}100%{transform:scale(2.8);opacity:0}}
-/* INFO PANEL */
-.info-panel-wrapper{flex:1;padding:16px;margin-top:-48px;z-index:20;position:relative;max-height:55vh;display:flex}
-@media(min-width:768px){.info-panel-wrapper{padding:32px;max-height:55vh}}
-.info-panel{border-radius:24px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3);height:100%;width:100%;display:flex;flex-direction:column;overflow-y:auto}
+
+/* ── INFO PANEL ── */
+.info-panel-wrapper{flex:1;padding:16px;margin-top:-48px;z-index:20;position:relative; max-height: 55vh; display:flex;}
+@media(min-width:768px){.info-panel-wrapper{padding:32px; max-height: 55vh;}}
+.info-panel{border-radius:24px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3);height:100%; width: 100%; display:flex;flex-direction:column; overflow-y: auto;}
 @media(min-width:768px){.info-panel{padding:32px}}
-.panel-header{display:flex;flex-direction:column;gap:12px;margin-bottom:24px;flex-shrink:0}
+.panel-header{display:flex;flex-direction:column;gap:12px;margin-bottom:24px; flex-shrink: 0;}
 @media(min-width:640px){.panel-header{flex-direction:row;align-items:center;justify-content:space-between}}
 .panel-title{font-size:1.5rem;font-weight:800;background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.7) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 @media(min-width:768px){.panel-title{font-size:1.875rem}}
@@ -91,46 +113,67 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 .status-dot{width:8px;height:8px;border-radius:50%}
 .status-dot.safe{background:#34d399;animation:blink 1.5s infinite}
 .status-dot.warning{background:#f87171;animation:blink 1.5s infinite}
-/* WQI */
-.wqi-container{margin-bottom:24px;padding:16px 24px;border-radius:20px;background:rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.05);flex-shrink:0}
+
+/* ── WQI BAR ── */
+.wqi-container{margin-bottom:24px;padding:16px 24px;border-radius:20px;background:rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.05); flex-shrink: 0;}
 .wqi-header{display:flex;justify-content:space-between;margin-bottom:12px;align-items:center}
 .wqi-title{font-weight:700;font-size:.75rem;letter-spacing:.1em;color:rgba(255,255,255,.6);text-transform:uppercase}
 .wqi-score{font-weight:800;font-size:1.4rem;color:#fff;line-height:1}
 .wqi-track{width:100%;height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;position:relative}
-.wqi-fill{height:100%;width:0%;background:#ef4444;border-radius:4px;transition:all 1s cubic-bezier(0.16,1,0.3,1);box-shadow:0 0 15px rgba(239,68,68,0.5)}
-/* METRIC CARDS */
-.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;flex-shrink:0}
-@media(min-width:768px){.metrics-grid{grid-template-columns:repeat(3,1fr)}}
+.wqi-fill{height:100%;width:0%;background:#ef4444;border-radius:4px;transition:all 1s cubic-bezier(0.16, 1, 0.3, 1);box-shadow:0 0 15px rgba(239,68,68,0.5)}
+
+/* ── METRIC CARDS ── */
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px; flex-shrink: 0;}
+@media(min-width:768px){.metrics-grid{grid-template-columns:repeat(3,1fr);}}
 @media(min-width:1024px){.metrics-grid{grid-template-columns:repeat(5,1fr);gap:16px}}
-.metric-card{border-radius:24px;padding:20px;cursor:pointer;transition:all .4s cubic-bezier(0.16,1,0.3,1)}
+.metric-card{border-radius:24px;padding:20px;cursor:pointer;transition:all .4s cubic-bezier(0.16, 1, 0.3, 1)}
 .metric-card:hover{transform:translateY(-2px)}
 .metric-card.active{background:rgba(255,255,255,.1)!important;transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,.3);outline:1px solid rgba(255,255,255,.2)}
 .metric-icon{padding:10px;background:rgba(255,255,255,.05);border-radius:12px;display:inline-flex;margin-bottom:16px;color:rgba(255,255,255,.7)}
 .metric-label{color:rgba(255,255,255,.5);font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:4px}
 .metric-value{font-size:1.75rem;font-weight:800;color:#fff;line-height:1}
-@media(min-width:1024px){.metric-value{font-size:2rem}}
+@media(min-width:1024px){.metric-value{font-size:2rem;}}
 .metric-unit{font-size:.875rem;font-weight:500;color:rgba(255,255,255,.4)}
-/* CHARTS */
-.charts-container{display:flex;flex-direction:column;gap:16px;flex-shrink:0;padding-bottom:20px}
-.chart-section{min-height:180px;background:rgba(0,0,0,.1);border-radius:24px;padding:20px;border:1px solid rgba(255,255,255,.05);position:relative;transition:box-shadow .4s ease}
+
+/* ── CHART ── */
+.charts-container { display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; padding-bottom: 20px;}
+.chart-section{min-height:180px;background:rgba(0,0,0,.1);border-radius:24px;padding:20px;border:1px solid rgba(255,255,255,.05);position:relative; transition: box-shadow 0.4s ease;}
 .chart-header{color:rgba(255,255,255,.8);font-weight:500;font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:20px;display:flex;align-items:center;gap:8px}
-.chart-dot{width:12px;height:12px;border-radius:50%;background:#60a5fa;transition:background .4s ease}
+.chart-dot{width:12px;height:12px;border-radius:50%;background:#60a5fa; transition: background 0.4s ease;}
 .chart-canvas-wrapper{height:140px;position:relative}
 .svg-chart{width:100%;height:100%;overflow:visible}
-.chart-tooltip{position:absolute;background:rgba(15,23,42,.95);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 14px;font-size:.78rem;pointer-events:none;display:none;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:50;transform:translate(-50%,-110%);transition:left .1s ease}
+.chart-tooltip{position:absolute;background:rgba(15,23,42,.95);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 14px;font-size:.78rem;pointer-events:none;display:none;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:50;transform:translate(-50%,-110%); transition: left 0.1s ease;}
 .chart-tooltip.visible{display:block}
 .ct-time{color:rgba(255,255,255,.5);font-size:.7rem;margin-bottom:4px}
 .ct-val{font-weight:800;font-size:1rem;color:#fff}
 .ct-unit{font-size:.7rem;color:rgba(255,255,255,.4);margin-left:2px}
-/* PAGE CONTENT */
+
+/* ── PREDICTIONS CSS ── */
+.pred-card { border-radius: 24px; padding: 24px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px; transition: transform 0.3s ease; }
+.pred-card:hover { transform: translateY(-3px); }
+.pred-card.high { background: linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.05) 100%); border-color: rgba(239,68,68,0.3); box-shadow: 0 10px 30px rgba(239,68,68,0.1); }
+.pred-card.medium { background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(245,158,11,0.05) 100%); border-color: rgba(245,158,11,0.3); box-shadow: 0 10px 30px rgba(245,158,11,0.1); }
+.pred-card.safe { background: linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.05) 100%); border-color: rgba(16,185,129,0.3); box-shadow: 0 10px 30px rgba(16,185,129,0.1); }
+.pred-title { font-weight: 800; color: #fff; font-size: 1.15rem; letter-spacing: 0.02em; }
+.pred-desc { color: rgba(255,255,255,0.6); font-size: 0.9rem; line-height: 1.5; font-weight: 400; }
+.pred-badge { padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; display: inline-block; align-self: flex-start; }
+.pred-card.high .pred-badge { background: rgba(239,68,68,0.2); color: #fca5a5; }
+.pred-card.medium .pred-badge { background: rgba(245,158,11,0.2); color: #fcd34d; }
+.pred-card.safe .pred-badge { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+.pred-summary { background: rgba(0,0,0,0.2); padding: 16px; border-radius: 16px; display: flex; gap: 16px; margin-bottom: 24px; border: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap; }
+.pred-stat { display: flex; flex-direction: column; }
+.pred-stat-lbl { font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+.pred-stat-val { font-size: 1.2rem; color: #fff; font-weight: 800; }
+
+/* ── PAGES & SHARED UI ── */
 .page-content{padding:24px;overflow-y:auto;flex:1}
 @media(min-width:768px){.page-content{padding:48px}}
 .page-inner{max-width:800px;margin:16px auto 0}
 @media(min-width:768px){.page-inner{margin-top:32px}}
 .page-title{font-size:2rem;font-weight:800;background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.7) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:6px}
 @media(min-width:768px){.page-title{font-size:2.5rem}}
-.page-sub{color:rgba(255,255,255,.5);font-weight:500;margin-bottom:32px}
-/* ENTRY MAP */
+.page-sub{color:rgba(255,255,255,.5);font-weight:500;margin-bottom:32px; line-height: 1.6;}
+
 .entry-map-card{border-radius:28px;overflow:hidden;margin-bottom:28px;position:relative;height:300px;border:1px solid rgba(255,255,255,.08)}
 @media(min-width:768px){.entry-map-card{height:360px}}
 .entry-map-overlay{position:absolute;inset:0;pointer-events:none;z-index:400;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
@@ -140,30 +183,31 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 #entry-map.picking{cursor:crosshair!important}
 .coords-display{display:none;position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:420;background:rgba(15,23,42,.88);backdrop-filter:blur(12px);border:1px solid rgba(16,185,129,.25);border-radius:30px;padding:7px 18px;font-size:.78rem;font-weight:600;color:#34d399;pointer-events:none;white-space:nowrap;gap:8px;align-items:center}
 .coords-display.visible{display:flex}
-/* FORM */
+
 .form-panel{border-radius:32px;padding:32px;margin-bottom:32px;position:relative;overflow:hidden}
 .form-deco{position:absolute;top:0;right:0;width:256px;height:256px;background:rgba(59,130,246,.1);border-radius:50%;filter:blur(80px);pointer-events:none}
 .form-title{font-size:1.2rem;font-weight:600;color:rgba(255,255,255,.9);display:flex;align-items:center;gap:12px;margin-bottom:24px;position:relative;z-index:1}
 .form-title-icon{padding:8px;background:rgba(59,130,246,.2);border-radius:12px;display:flex;color:#60a5fa}
 .form-grid{display:grid;grid-template-columns:1fr;gap:20px;position:relative;z-index:1}
 @media(min-width:640px){.form-grid{grid-template-columns:1fr 1fr}}
-.form-label{font-size:.75rem;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:8px;padding-left:4px}
+.form-label{font-size:.75rem;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;display:flex; justify-content:space-between; margin-bottom:8px;padding-left:4px}
 .form-input{width:100%;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:16px 20px;color:#fff;font-family:'Outfit',sans-serif;font-size:1rem;outline:none;transition:all .2s ease}
 .form-input::placeholder{color:rgba(255,255,255,.2)}
 .form-input:hover{background:rgba(0,0,0,.3)}
 .form-input:focus{border-color:rgba(59,130,246,.5);box-shadow:0 0 0 1px rgba(59,130,246,.5)}
 .form-input:read-only{color:rgba(255,255,255,.4);cursor:default}
+
 .form-actions{display:flex;gap:16px;margin-top:32px;position:relative;z-index:1}
-.btn-primary{flex:1;background:linear-gradient(90deg,#2563eb,#3b82f6);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .3s cubic-bezier(0.16,1,0.3,1);box-shadow:0 0 20px rgba(59,130,246,.3)}
+.btn-primary{flex:1;background:linear-gradient(90deg,#2563eb,#3b82f6);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .3s cubic-bezier(0.16, 1, 0.3, 1);box-shadow:0 0 20px rgba(59,130,246,.3);}
 .btn-primary:hover{background:linear-gradient(90deg,#3b82f6,#60a5fa);box-shadow:0 0 30px rgba(59,130,246,.5);transform:scale(1.02)}
 .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
-.btn-secondary{background:rgba(255,255,255,.05);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:all .3s ease}
-.btn-secondary:hover{background:rgba(255,255,255,.1)}
-/* TOAST */
-.toast{position:fixed;bottom:32px;right:32px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);backdrop-filter:blur(12px);color:#34d399;padding:14px 28px;border-radius:16px;font-weight:600;font-size:.95rem;transform:translateY(100px);opacity:0;transition:all .4s cubic-bezier(.4,0,.2,1);z-index:9999;box-shadow:0 10px 40px rgba(0,0,0,.4);display:flex;align-items:center;gap:12px}
-.toast.visible{transform:translateY(0);opacity:1}
-.toast-icon{width:20px;height:20px}
-/* DANGER */
+.btn-secondary{background:rgba(255,255,255,.05);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:all .3s ease; display:flex; justify-content:center;}
+.btn-secondary:hover{background:rgba(255,255,255,.1);}
+
+.toast{position:fixed;bottom:32px;right:32px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);backdrop-filter:blur(12px);color:#34d399;padding:14px 28px;border-radius:16px;font-weight:600;font-size:0.95rem;transform:translateY(100px);opacity:0;transition:all 0.4s cubic-bezier(0.4, 0, 0.2, 1);z-index:9999;box-shadow:0 10px 40px rgba(0,0,0,.4);display:flex;align-items:center;gap:12px;}
+.toast.visible{transform:translateY(0);opacity:1;}
+.toast-icon{width:20px;height:20px;}
+
 .danger-panel{border-radius:32px;padding:32px;border:1px solid rgba(239,68,68,.2);background:rgba(127,29,29,.2)!important}
 .danger-inner{display:flex;flex-direction:column;gap:20px}
 @media(min-width:640px){.danger-inner{flex-direction:row;align-items:center;justify-content:space-between}}
@@ -171,7 +215,8 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 .danger-sub{color:rgba(248,113,113,.6);font-size:.875rem;font-weight:500}
 .btn-danger{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.3);font-family:'Outfit',sans-serif;font-weight:700;font-size:.95rem;padding:14px 28px;border-radius:16px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .3s ease;white-space:nowrap}
 .btn-danger:hover{background:rgba(239,68,68,.2);box-shadow:0 0 20px rgba(239,68,68,.2)}
-/* ABOUT */
+
+/* ── ABOUT ── */
 .about-page{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;min-height:100vh;overflow-y:auto}
 .about-inner{max-width:768px;width:100%;text-align:center;position:relative;z-index:10}
 .about-logo-wrap{width:80px;height:80px;background:linear-gradient(135deg,#3b82f6,#06b6d4);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 32px;box-shadow:0 0 40px rgba(59,130,246,.4);transform:rotate(3deg)}
@@ -194,62 +239,15 @@ input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;cursor:po
 .team-name{font-weight:700;font-size:1rem;color:rgba(255,255,255,.9);letter-spacing:.04em}
 .team-role{font-size:.875rem;color:rgba(147,197,253,.8);font-weight:500}
 .about-footer{margin-top:64px;color:rgba(255,255,255,.3);font-size:.875rem;font-weight:500;letter-spacing:.08em}
+
 svg.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .text-gradient-blue{background:linear-gradient(90deg,#60a5fa,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent}
 .entry-preview-marker{width:24px;height:24px;border-radius:50%;background:rgba(59,130,246,.5);border:2px solid #60a5fa;box-shadow:0 0 12px rgba(59,130,246,.6)}
-select option{background:#0f172a;color:white}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+select option { background: #0f172a; color: white; }
 
-/* ═══════════════════════════════════════
-   AI PREDICT PAGE — specific styles
-   ═══════════════════════════════════════ */
-.pred-hint{font-weight:400;color:rgba(255,255,255,.3);text-transform:none;letter-spacing:0}
-.pred-badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;font-size:.7rem;font-weight:700;letter-spacing:.06em}
-.pred-badge-info{background:rgba(59,130,246,.12);color:#93c5fd;border:1px solid rgba(59,130,246,.2)}
-.pred-badge-safe{background:rgba(16,185,129,.12);color:#34d399;border:1px solid rgba(16,185,129,.25)}
-.pred-badge-warn{background:rgba(245,158,11,.12);color:#fcd34d;border:1px solid rgba(245,158,11,.25)}
-.pred-badge-danger{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.3)}
-.pred-label-card{border-radius:24px;padding:24px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);transition:all .3s ease;animation:cardIn .5s cubic-bezier(.16,1,.3,1) both}
-.pred-label-card:hover{background:rgba(255,255,255,.07);transform:translateY(-2px)}
-@keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.pred-label-card-title{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px}
-.pred-label-card-value{font-size:1rem;font-weight:800;color:#fff;margin-bottom:8px}
-.pred-label-card-desc{font-size:.78rem;color:rgba(255,255,255,.5);line-height:1.5}
-.param-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
-.param-row:last-child{border-bottom:none}
-.param-name{font-size:.8rem;font-weight:600;color:rgba(255,255,255,.7);width:140px;flex-shrink:0}
-.param-val{font-size:.8rem;font-weight:800;color:#fff;width:80px;flex-shrink:0}
-.param-bar-wrap{flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
-.param-bar-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.16,1,.3,1)}
-.param-status{font-size:.7rem;font-weight:700;padding:2px 10px;border-radius:12px;flex-shrink:0;letter-spacing:.04em}
-.model-card{background:rgba(0,0,0,.15);border-radius:16px;padding:16px 20px;display:flex;align-items:flex-start;gap:16px}
-.model-pill{font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.06em;flex-shrink:0}
-
-/* ── Accuracy tooltip ── */
-.acc-tip-wrap{position:relative;display:inline-flex;align-items:center;cursor:pointer}
-.acc-tip-trigger{font-size:.7rem;color:rgba(255,255,255,.35);display:flex;align-items:center;gap:4px;user-select:none;padding:3px 0}
-.acc-tip-trigger:hover{color:rgba(255,255,255,.65)}
-.acc-tip-box{
-  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
-  background:rgba(10,18,35,.97);border:1px solid rgba(255,255,255,.12);
-  border-radius:14px;padding:12px 16px;min-width:260px;max-width:320px;
-  font-size:.75rem;line-height:1.55;color:rgba(255,255,255,.75);
-  box-shadow:0 12px 40px rgba(0,0,0,.6);z-index:9000;pointer-events:none;
-  opacity:0;transition:opacity .2s;white-space:normal;
-}
-.acc-tip-wrap:hover .acc-tip-box{opacity:1}
-.acc-tip-box::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
-  border:6px solid transparent;border-top-color:rgba(255,255,255,.12)}
-.acc-tip-label{font-weight:800;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
-.acc-meter{width:100%;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin:4px 0 8px}
-.acc-meter-fill{height:100%;border-radius:3px}
-
-/* ── Rain spinner ── */
-@keyframes spin{to{transform:rotate(360deg)}}
-.rain-spin{width:14px;height:14px;border:2px solid rgba(103,232,249,.2);border-top-color:#67e8f9;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-
-/* ── Predict map leaflet overrides ── */
-#pred-map .leaflet-bar{margin:8px!important;margin-bottom:8px!important}
+/* Small inline spinner for weather fetch */
+.spin-anim { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -257,28 +255,30 @@ select option{background:#0f172a;color:white}
 <div class="blob blob-2"></div>
 <div class="blob blob-3"></div>
 <div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
 <div id="toast" class="toast">
   <svg class="toast-icon icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
   <span id="toast-msg">Pin saved successfully!</span>
 </div>
 
 <div class="app">
-  <!-- ══ SIDEBAR ══ -->
   <aside class="sidebar glass-panel" id="sidebar">
     <div class="sidebar-logo">
       <button class="hamburger-btn" onclick="toggleSidebar()">
         <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <span class="logo-text">WATER QUALITY</span>
+      <span class="logo-text">WATER QUALITY TEST</span>
     </div>
-    <div style="padding:16px 16px 0">
-      <label style="font-size:.75rem;color:rgba(255,255,255,.6);text-transform:uppercase;font-weight:700;margin-bottom:8px;display:block;letter-spacing:.05em">Select Device</label>
-      <select id="device-selector" onchange="switchDevice(this.value)" class="form-input" style="padding:12px;cursor:pointer">
+    
+    <div style="padding: 24px 16px 0;">
+      <label style="font-size:.75rem;color:rgba(255,255,255,.6);text-transform:uppercase;font-weight:700;margin-bottom:8px;display:block;letter-spacing:0.05em">Select Device</label>
+      <select id="device-selector" onchange="switchDevice(this.value)" class="form-input" style="padding: 12px; cursor: pointer;">
         <option value="device1">Device 1 (Main River)</option>
         <option value="device2">Device 2 (Lake View)</option>
         <option value="device3">Device 3 (Reservoir Alpha)</option>
       </select>
     </div>
+
     <nav class="sidebar-nav">
       <a class="nav-item active" id="nav-dashboard" onclick="navigate('dashboard')">
         <svg class="nav-icon icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
@@ -288,9 +288,9 @@ select option{background:#0f172a;color:white}
         <svg class="nav-icon icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M5.34 18.66l-1.41 1.41M20 12h-2M6 12H4M19.07 19.07l-1.41-1.41M5.34 5.34L3.93 3.93M12 20v-2M12 6V4"/></svg>
         Manual Entry
       </a>
-      <a class="nav-item" id="nav-predict" onclick="navigate('predict')">
-        <svg class="nav-icon icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-        AI Predict
+      <a class="nav-item" id="nav-predictions" onclick="navigate('predictions')">
+        <svg class="nav-icon icon" viewBox="0 0 24 24"><path d="M2 12h4l3-9 5 18 3-9h5"/></svg>
+        Predictions
       </a>
       <a class="nav-item" id="nav-about" onclick="navigate('about')">
         <svg class="nav-icon icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -299,40 +299,42 @@ select option{background:#0f172a;color:white}
     </nav>
   </aside>
 
-  <main class="main" id="main-content">
+  <main class="main">
     <header class="mobile-header glass-panel">
       <button class="hamburger-btn" onclick="toggleSidebar()">
         <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <span class="text-gradient-blue" style="font-weight:800;letter-spacing:.15em">CHEMELEON</span>
-      <div style="width:36px"></div>
+      <div style="width: 36px"></div> 
     </header>
 
-    <!-- ══ DASHBOARD ══ -->
     <div class="page active" id="page-dashboard" style="flex-direction:column;min-height:100vh">
       <div class="map-section">
         <div id="maplibre-map"></div>
         <div class="map-fade"></div>
-        <div style="position:absolute;inset:0;pointer-events:none;z-index:400;display:flex;flex-direction:column;justify-content:flex-end;padding:16px">
-          <div class="glass-panel" style="pointer-events:auto;padding:14px 24px;border-radius:20px;display:flex;align-items:center;gap:16px;width:100%;max-width:500px;margin:0 auto 10px auto;background:rgba(15,23,42,0.85);border:1px solid rgba(255,255,255,0.15)">
-            <div style="display:flex;flex-direction:column;min-width:110px">
-              <span style="font-size:.65rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;font-weight:700">Time Bar</span>
-              <span id="tm-date" style="font-size:.85rem;color:#93c5fd;font-weight:700">LIVE</span>
+
+        <div class="map-controls-container" style="position:absolute; inset:0; pointer-events:none; z-index:400; display:flex; flex-direction:column; justify-content:flex-end; padding:16px;">
+            <div class="glass-panel" style="pointer-events:auto; padding:14px 24px; border-radius:20px; display:flex; align-items:center; gap:16px; width:100%; max-width:500px; margin:0 auto 10px auto; background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.15);">
+                <div style="display:flex; flex-direction:column; min-width:110px;">
+                    <span style="font-size:0.65rem; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.1em; font-weight:700;">Time Bar</span>
+                    <span id="tm-date" style="font-size:0.85rem; color:#93c5fd; font-weight:700;">LIVE</span>
+                </div>
+                <input type="range" id="tm-slider" min="0" max="0" value="0" style="flex:1;" oninput="handleTimeSlider(this.value)">
             </div>
-            <input type="range" id="tm-slider" min="0" max="0" value="0" style="flex:1" oninput="handleTimeSlider(this.value)">
-          </div>
         </div>
+
       </div>
       <div class="info-panel-wrapper">
         <div class="info-panel glass-panel">
+          
           <div class="panel-header">
             <div>
               <h1 class="panel-title" id="panel-title">Select a Location</h1>
               <p class="panel-sub" id="panel-sub">Click on a map marker to view detailed metrics</p>
             </div>
-            <div style="display:flex;align-items:center;gap:16px">
-              <button class="btn-secondary" onclick="exportToCSV()" style="padding:10px 16px;font-size:.85rem;border-radius:12px;display:flex;align-items:center;gap:8px">
-                <svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <div style="display:flex; align-items:center; gap:16px;">
+              <button class="btn-secondary" onclick="exportToCSV()" style="padding:10px 16px; font-size:0.85rem; border-radius:12px; display:flex; align-items:center; gap:8px;">
+                <svg class="icon" style="width:16px; height:16px;" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Export CSV
               </button>
               <div class="status-badge" id="status-badge">
@@ -341,13 +343,17 @@ select option{background:#0f172a;color:white}
               </div>
             </div>
           </div>
+
           <div class="wqi-container">
             <div class="wqi-header">
               <span class="wqi-title">Water Quality Index (WQI)</span>
               <span class="wqi-score" id="wqi-score">-- / 100</span>
             </div>
-            <div class="wqi-track"><div class="wqi-fill" id="wqi-fill"></div></div>
+            <div class="wqi-track">
+              <div class="wqi-fill" id="wqi-fill"></div>
+            </div>
           </div>
+
           <div class="metrics-grid">
             <div class="metric-card glass-card active" id="metric-pH" onclick="setActiveMetric('pH','#3b82f6')">
               <div class="metric-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></div>
@@ -375,6 +381,7 @@ select option{background:#0f172a;color:white}
               <div class="metric-value" id="val-ec">-- <span class="metric-unit">µS/cm</span></div>
             </div>
           </div>
+          
           <div class="charts-container">
             <div class="chart-section glass-card" id="chart-section-bg-global">
               <div class="chart-header">
@@ -389,6 +396,7 @@ select option{background:#0f172a;color:white}
                 </div>
               </div>
             </div>
+
             <div class="chart-section glass-card" id="chart-section-bg-local">
               <div class="chart-header">
                 <div class="chart-dot" id="chart-dot-local"></div>
@@ -403,16 +411,81 @@ select option{background:#0f172a;color:white}
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
 
-    <!-- ══ MANUAL ENTRY ══ -->
+    <div class="page" id="page-predictions">
+      <div class="page-content">
+        <div class="page-inner">
+          <h1 class="page-title">AI Diagnostics & Predictions</h1>
+          <p class="page-sub">Select a location on the map below, set the water source, and auto-fetch historical weather to generate advanced risk labels.</p>
+          
+          <div class="entry-map-card glass-panel" style="height: 250px; margin-bottom: 24px;">
+            <div id="pred-map"></div>
+            <div class="entry-map-overlay"></div>
+            <div class="entry-map-hint" id="pred-map-hint">
+              <div class="entry-map-hint-dot"></div>
+              Click a pin to analyze
+            </div>
+          </div>
+
+          <div class="form-panel glass-panel">
+            <div class="form-deco"></div>
+            <div class="form-title">
+              <div class="form-title-icon">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              Environmental Context
+            </div>
+
+            <div class="pred-summary" id="pred-summary">
+              <span style="color:rgba(255,255,255,0.5); font-size:0.9rem;">Please select a location pin from the map above.</span>
+            </div>
+
+            <div class="form-grid">
+              <div>
+                <label class="form-label">Water Source Type</label>
+                <select id="pred-source" class="form-input" style="cursor:pointer;" onchange="runPredictions()">
+                  <option value="lake">Lake / Open River</option>
+                  <option value="groundwater">Groundwater / Borewell</option>
+                  <option value="tank">Closed Tank / Piped</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">
+                  <span>Recent Rainfall (mm in 24h)</span>
+                  <a href="#" onclick="autoFetchWeather(event)" style="color:#60a5fa; text-decoration:none; font-size:0.7rem; display:flex; align-items:center; gap:4px;" id="fetch-weather-btn">
+                    <svg class="icon" style="width:12px;height:12px;" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                    Auto-Fetch ☁️
+                  </a>
+                </label>
+                <input type="number" id="pred-rain" class="form-input" placeholder="e.g. 15" value="0" oninput="runPredictions()"/>
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button class="btn-primary" onclick="runPredictions()">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Run AI Diagnostics
+              </button>
+            </div>
+          </div>
+
+          <div id="prediction-results" style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+            </div>
+
+        </div>
+      </div>
+    </div>
+
     <div class="page" id="page-options">
       <div class="page-content">
         <div class="page-inner">
           <h1 class="page-title">Device Configuration</h1>
           <p class="page-sub">Click anywhere on the map to drop a pin, fill in the sensor values, then save.</p>
+
           <div class="entry-map-card glass-panel">
             <div id="entry-map"></div>
             <div class="entry-map-overlay"></div>
@@ -425,6 +498,7 @@ select option{background:#0f172a;color:white}
               <span id="coords-text">—</span>
             </div>
           </div>
+
           <div class="form-panel glass-panel">
             <div class="form-deco"></div>
             <div class="form-title">
@@ -432,25 +506,50 @@ select option{background:#0f172a;color:white}
               Sensor Data Entry
             </div>
             <div class="form-grid">
-              <div><label class="form-label">Latitude</label><input type="text" class="form-input" id="f-lat" placeholder="Click map to set…" readonly/></div>
-              <div><label class="form-label">Longitude</label><input type="text" class="form-input" id="f-lng" placeholder="Click map to set…" readonly/></div>
-              <div><label class="form-label">pH Level</label><input type="number" class="form-input" id="f-pH" placeholder="0–14" step="0.1"/></div>
-              <div><label class="form-label">TDS (ppm)</label><input type="number" class="form-input" id="f-tds" placeholder="e.g. 150"/></div>
-              <div><label class="form-label">Temperature (°C)</label><input type="number" class="form-input" id="f-temp" placeholder="e.g. 24" step="0.1"/></div>
-              <div><label class="form-label">Turbidity (NTU)</label><input type="number" class="form-input" id="f-turb" placeholder="e.g. 5" step="0.1"/></div>
+              <div>
+                <label class="form-label">Latitude</label>
+                <input type="text" class="form-input" id="f-lat" placeholder="Click map to set…" readonly/>
+              </div>
+              <div>
+                <label class="form-label">Longitude</label>
+                <input type="text" class="form-input" id="f-lng" placeholder="Click map to set…" readonly/>
+              </div>
+              <div>
+                <label class="form-label">pH Level</label>
+                <input type="number" class="form-input" id="f-pH" placeholder="0–14" step="0.1"/>
+              </div>
+              <div>
+                <label class="form-label">TDS (ppm)</label>
+                <input type="number" class="form-input" id="f-tds" placeholder="e.g. 150"/>
+              </div>
+              <div>
+                <label class="form-label">Temperature (°C)</label>
+                <input type="number" class="form-input" id="f-temp" placeholder="e.g. 24" step="0.1"/>
+              </div>
+              <div>
+                <label class="form-label">Turbidity (NTU)</label>
+                <input type="number" class="form-input" id="f-turb" placeholder="e.g. 5" step="0.1"/>
+              </div>
             </div>
+            
             <div class="form-actions">
               <button class="btn-primary" id="add-pin-btn" onclick="addPin()" disabled>
                 <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 6.9 8 11.7z"/></svg>
                 Save Pin
               </button>
-              <button class="btn-secondary" onclick="clearForm()">Clear Form</button>
+              <button class="btn-secondary" onclick="clearForm()">
+                Clear Form
+              </button>
             </div>
           </div>
+
           <div class="form-panel danger-panel glass-panel">
             <div class="danger-inner">
               <div>
-                <div class="danger-title"><svg class="icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Danger Zone</div>
+                <div class="danger-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Danger Zone
+                </div>
                 <p class="danger-sub">Resetting data will permanently purge all pins and history for the currently selected device.</p>
               </div>
               <button class="btn-danger" onclick="confirmReset()">
@@ -463,177 +562,22 @@ select option{background:#0f172a;color:white}
       </div>
     </div>
 
-    <!-- ══ AI PREDICT PAGE ══ -->
-    <div class="page" id="page-predict">
-      <div class="page-content" style="overflow-y:auto;flex:1;padding:24px">
-        <div style="max-width:960px;margin:0 auto;padding-top:8px">
-
-          <h1 class="page-title">AI Water Quality Predictor</h1>
-          <p class="page-sub" style="margin-bottom:12px">Naïve Bayes + Rule-Based model trained on 29,848 real water samples. Select a pin from the map or enter values manually. Rainfall is fetched automatically from Open-Meteo.</p>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
-            <span class="pred-badge pred-badge-info">water_potability ×6 — 19,656 rows</span>
-            <span class="pred-badge pred-badge-info">waterQuality1 — 7,996 rows</span>
-            <span class="pred-badge pred-badge-info">water_dataX — 1,992 Indian river records</span>
-            <span class="pred-badge pred-badge-info">Indian_water_data — 194 rows</span>
-          </div>
-
-          <!-- ── STEP 1: MAP PIN SELECTOR ── -->
-          <div class="glass-panel" style="border-radius:28px;overflow:hidden;margin-bottom:20px;border:1px solid rgba(255,255,255,.08)">
-            <div style="padding:20px 24px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-              <div class="form-title" style="margin-bottom:0;font-size:1rem">
-                <div class="form-title-icon" style="padding:7px;background:rgba(16,185,129,.2);color:#34d399"><svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 6.9 8 11.7z"/></svg></div>
-                Step 1 — Pick a Saved Pin (auto-fills sensor values)
-              </div>
-              <div id="pred-pin-status" style="font-size:.75rem;color:rgba(255,255,255,.35);font-weight:600">No pin selected — or enter values manually below</div>
-            </div>
-            <div id="pred-map" style="height:260px;width:100%"></div>
-          </div>
-
-          <!-- ── STEP 2: SAMPLE DATE ── -->
-          <div class="glass-panel" style="border-radius:24px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-            <div class="form-title" style="margin-bottom:0;font-size:.95rem;flex-shrink:0">
-              <div class="form-title-icon" style="padding:7px;background:rgba(6,182,212,.2);color:#67e8f9"><svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-              Step 2 — Sample Date &amp; Time
-            </div>
-            <div style="flex:1;min-width:220px">
-              <input type="datetime-local" id="pi-datetime" class="form-input" style="padding:12px 16px;font-size:.9rem" onchange="onDateChange()"/>
-            </div>
-            <!-- Rainfall display -->
-            <div id="rain-box" style="display:none;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.2);border-radius:16px;padding:12px 18px;min-width:180px">
-              <div style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(103,232,249,.6);margin-bottom:4px">🌧 Rainfall (Open-Meteo)</div>
-              <div id="rain-val" style="font-size:1.1rem;font-weight:800;color:#67e8f9">—</div>
-              <div id="rain-sub" style="font-size:.7rem;color:rgba(255,255,255,.35);margin-top:2px"></div>
-            </div>
-            <div id="rain-loading" style="display:none;font-size:.8rem;color:rgba(255,255,255,.3);display:flex;align-items:center;gap:8px">
-              <div class="rain-spin"></div> Fetching rainfall…
-            </div>
-          </div>
-
-          <!-- ── STEP 3: SENSOR PARAMS ── -->
-          <div class="glass-panel" style="border-radius:32px;padding:28px 32px;margin-bottom:24px;position:relative;overflow:hidden">
-            <div style="position:absolute;top:-80px;right:-80px;width:220px;height:220px;background:rgba(59,130,246,.12);border-radius:50%;filter:blur(60px);pointer-events:none"></div>
-            <div class="form-title" style="margin-bottom:20px;font-size:1rem">
-              <div class="form-title-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
-              Step 3 — Sensor Parameters
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;margin-bottom:16px">
-              <div><label class="form-label">pH <span class="pred-hint">(0–14)</span></label><input type="number" class="form-input" id="pi-ph" placeholder="e.g. 7.2" step="0.1" min="0" max="14" oninput="livePredict()"/></div>
-              <div><label class="form-label">TDS <span class="pred-hint">(mg/L)</span></label><input type="number" class="form-input" id="pi-tds" placeholder="e.g. 350" oninput="livePredict()"/></div>
-              <div><label class="form-label">Temperature <span class="pred-hint">(°C)</span></label><input type="number" class="form-input" id="pi-temp" placeholder="e.g. 26" step="0.1" oninput="livePredict()"/></div>
-              <div><label class="form-label">Turbidity <span class="pred-hint">(NTU)</span></label><input type="number" class="form-input" id="pi-turb" placeholder="e.g. 4" step="0.1" oninput="livePredict()"/></div>
-              <div><label class="form-label">Conductivity <span class="pred-hint">(µS/cm)</span></label><input type="number" class="form-input" id="pi-cond" placeholder="e.g. 420" oninput="livePredict()"/></div>
-              <div><label class="form-label">Hardness <span class="pred-hint">(mg/L CaCO₃)</span></label><input type="number" class="form-input" id="pi-hard" placeholder="e.g. 200" oninput="livePredict()"/></div>
-            </div>
-            <div id="ext-params-toggle" onclick="toggleExtended()" style="cursor:pointer;display:flex;align-items:center;gap:8px;color:rgba(96,165,250,.8);font-size:.82rem;font-weight:600;user-select:none;margin-bottom:0">
-              <svg id="ext-arrow" class="icon" style="width:15px;height:15px;transition:transform .3s" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-              Advanced Parameters (BOD, D.O., Coliform, Heavy Metals…)
-            </div>
-            <div id="ext-params" style="display:none;margin-top:16px;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px">
-              <div><label class="form-label">BOD <span class="pred-hint">(mg/L)</span></label><input type="number" class="form-input" id="pi-bod" placeholder="e.g. 2.5" step="0.1" oninput="livePredict()"/></div>
-              <div><label class="form-label">Dissolved O₂ <span class="pred-hint">(mg/L)</span></label><input type="number" class="form-input" id="pi-do" placeholder="e.g. 6.5" step="0.1" oninput="livePredict()"/></div>
-              <div><label class="form-label">Fecal Coliform <span class="pred-hint">(MPN)</span></label><input type="number" class="form-input" id="pi-fc" placeholder="e.g. 250" oninput="livePredict()"/></div>
-              <div><label class="form-label">Total Coliform <span class="pred-hint">(MPN)</span></label><input type="number" class="form-input" id="pi-tc" placeholder="e.g. 500" oninput="livePredict()"/></div>
-              <div><label class="form-label">Nitrates <span class="pred-hint">(mg/L)</span></label><input type="number" class="form-input" id="pi-nit" placeholder="e.g. 5" step="0.1" oninput="livePredict()"/></div>
-              <div><label class="form-label">Sulfate <span class="pred-hint">(mg/L)</span></label><input type="number" class="form-input" id="pi-sulf" placeholder="e.g. 250" oninput="livePredict()"/></div>
-              <div><label class="form-label">Chloramines <span class="pred-hint">(mg/L)</span></label><input type="number" class="form-input" id="pi-chl" placeholder="e.g. 7" step="0.1" oninput="livePredict()"/></div>
-              <div><label class="form-label">Organic Carbon <span class="pred-hint">(mg/L)</span></label><input type="number" class="form-input" id="pi-oc" placeholder="e.g. 14" step="0.1" oninput="livePredict()"/></div>
-              <div><label class="form-label">Trihalomethanes <span class="pred-hint">(µg/L)</span></label><input type="number" class="form-input" id="pi-thm" placeholder="e.g. 66" step="0.1" oninput="livePredict()"/></div>
-              <div><label class="form-label">Arsenic <span class="pred-hint">(mg/L)</span></label><input type="number" class="form-input" id="pi-ars" placeholder="e.g. 0.01" step="0.001" oninput="livePredict()"/></div>
-              <div><label class="form-label">Lead <span class="pred-hint">(mg/L)</span></label><input type="number" class="form-input" id="pi-lead" placeholder="e.g. 0.005" step="0.001" oninput="livePredict()"/></div>
-              <div><label class="form-label">Aluminium <span class="pred-hint">(mg/L)</span></label><input type="number" class="form-input" id="pi-al" placeholder="e.g. 0.5" step="0.01" oninput="livePredict()"/></div>
-            </div>
-            <div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:8px">
-              <button class="btn-secondary" onclick="loadPreset('clean')"      style="font-size:.78rem;padding:9px 14px;border-radius:12px">🏔️ Clean River</button>
-              <button class="btn-secondary" onclick="loadPreset('urban')"      style="font-size:.78rem;padding:9px 14px;border-radius:12px">🏙️ Urban Drain</button>
-              <button class="btn-secondary" onclick="loadPreset('monsoon')"    style="font-size:.78rem;padding:9px 14px;border-radius:12px">🌧️ Monsoon</button>
-              <button class="btn-secondary" onclick="loadPreset('acid')"       style="font-size:.78rem;padding:9px 14px;border-radius:12px">⚗️ Acid Mine</button>
-              <button class="btn-secondary" onclick="loadPreset('coastal')"    style="font-size:.78rem;padding:9px 14px;border-radius:12px">🌊 Coastal</button>
-              <button class="btn-secondary" onclick="loadPreset('industrial')" style="font-size:.78rem;padding:9px 14px;border-radius:12px">🏭 Industrial</button>
-              <button class="btn-secondary" onclick="clearPredict()"           style="font-size:.78rem;padding:9px 14px;border-radius:12px;color:rgba(255,255,255,.35)">✕ Clear</button>
-            </div>
-          </div>
-
-          <!-- RESULTS -->
-          <div id="pred-results" style="display:none">
-            <!-- Rainfall context banner (shown when rainfall loaded) -->
-            <div id="rain-context-banner" style="display:none;border-radius:20px;padding:16px 22px;margin-bottom:16px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.18);display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-              <span style="font-size:1.4rem">🌧️</span>
-              <div style="flex:1">
-                <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(103,232,249,.6);margin-bottom:2px">Rainfall Context (Open-Meteo ERA5 · Historical)</div>
-                <div id="rain-context-text" style="font-size:.88rem;color:#e0f2fe;font-weight:600"></div>
-              </div>
-              <div id="rain-influence-badge" style="font-size:.72rem;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:.06em"></div>
-            </div>
-
-            <!-- Verdict banner -->
-            <div id="pred-verdict-card" class="glass-panel" style="border-radius:28px;padding:24px 28px;margin-bottom:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-              <div id="pred-verdict-icon" style="width:60px;height:60px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0"></div>
-              <div style="flex:1;min-width:180px">
-                <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:3px">Overall Verdict</div>
-                <div id="pred-verdict-label" style="font-size:1.3rem;font-weight:800;line-height:1.2"></div>
-                <div id="pred-verdict-sub" style="font-size:.82rem;color:rgba(255,255,255,.5);margin-top:5px"></div>
-              </div>
-              <div style="min-width:155px">
-                <div style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:6px">Model Confidence</div>
-                <div style="display:flex;align-items:center;gap:10px">
-                  <div style="flex:1;height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden"><div id="pred-conf-bar" style="height:100%;border-radius:4px;transition:width 1s cubic-bezier(.16,1,.3,1)"></div></div>
-                  <span id="pred-conf-pct" style="font-size:.9rem;font-weight:800;min-width:38px;text-align:right"></span>
-                </div>
-                <!-- overall accuracy tip -->
-                <div class="acc-tip-wrap" style="margin-top:8px">
-                  <div class="acc-tip-trigger">ⓘ <span style="font-size:.65rem;color:rgba(255,255,255,.35)">Accuracy info</span></div>
-                  <div class="acc-tip-box" id="overall-acc-tip"></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Label cards grid -->
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:14px;margin-bottom:16px" id="pred-labels-grid"></div>
-
-            <!-- Param table -->
-            <div class="glass-panel" style="border-radius:26px;padding:24px 28px;margin-bottom:16px">
-              <div class="form-title" style="margin-bottom:16px;font-size:.95rem">
-                <div class="form-title-icon" style="padding:6px"><svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
-                Parameter Analysis vs WHO / BIS Standards
-              </div>
-              <div id="pred-param-table" style="display:flex;flex-direction:column;gap:5px"></div>
-            </div>
-
-            <!-- Model breakdown -->
-            <div class="glass-panel" style="border-radius:26px;padding:24px 28px;margin-bottom:32px">
-              <div class="form-title" style="margin-bottom:16px;font-size:.95rem">
-                <div class="form-title-icon" style="padding:6px;background:rgba(139,92,246,.2);color:#a78bfa"><svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
-                Model & Training Data Breakdown
-              </div>
-              <div id="pred-model-breakdown" style="display:flex;flex-direction:column;gap:10px"></div>
-            </div>
-          </div>
-
-          <!-- Placeholder -->
-          <div id="pred-placeholder" style="text-align:center;padding:40px 24px;color:rgba(255,255,255,.25)">
-            <svg style="width:52px;height:52px;margin:0 auto 14px;display:block;opacity:.3;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <p style="font-size:.9rem;font-weight:600;letter-spacing:.04em">Select a pin from the map above, or enter pH + TDS manually</p>
-            <p style="font-size:.78rem;margin-top:6px;opacity:.7">Rainfall data will be fetched automatically once a location &amp; date are set</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ ABOUT ══ -->
     <div class="page" id="page-about">
       <div class="about-page">
         <div class="about-inner">
           <div style="margin-bottom:64px;display:flex;flex-direction:column;align-items:center">
-            <div class="about-logo-wrap"><svg style="width:40px;height:40px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></div>
+            <div class="about-logo-wrap">
+              <svg style="width:40px;height:40px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+            </div>
             <h1 class="about-heading">CHEMELEON</h1>
-            <p class="about-desc">Advanced water quality monitoring dashboard with real-time sensor integration, geospatial visualization, and AI-powered quality prediction.</p>
+            <p class="about-desc">Advanced water quality monitoring dashboard with real-time sensor integration and geospatial visualization.</p>
           </div>
           <div class="team-panel glass-panel">
             <div class="team-deco-1"></div><div class="team-deco-2"></div>
             <div class="team-label">The Team Behind the Project</div>
             <div class="team-grid">
               <div class="team-card glass-card"><div class="team-avatar"><span class="team-avatar-letter">V</span></div><div><div class="team-name">VATSAL PATEL</div><div class="team-role">NICE GUY</div></div></div>
-              <div class="team-card glass-card"><div class="team-avatar"><span class="team-avatar-letter">T</span></div><div><div class="team-name">TIWARI DARSH</div><div class="team-role">VINOD KA LONDA</div></div></div>
+              <div class="team-card glass-card"><div class="team-avatar"><span class="team-avatar-letter">T</span></div><div><div class="team-name">TIWARI DARSH</div><div class="team-role"> VINOD KA LONDA</div></div></div>
               <div class="team-card glass-card"><div class="team-avatar"><span class="team-avatar-letter">R</span></div><div><div class="team-name">RONAK MAHATO</div><div class="team-role">BIHARI</div></div></div>
               <div class="team-card glass-card"><div class="team-avatar"><span class="team-avatar-letter">R</span></div><div><div class="team-name">RAHUL DORA</div><div class="team-role">UDAIPUR KA SAPNA</div></div></div>
             </div>
@@ -642,891 +586,923 @@ select option{background:#0f172a;color:white}
         </div>
       </div>
     </div>
-
   </main>
 </div>
+
 <script>
-// ══════════════════════════════════════════════════════════
-//  FIREBASE
-// ══════════════════════════════════════════════════════════
-firebase.initializeApp({ databaseURL:"https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app" });
+// 1. INITIALIZE FIREBASE SDK
+firebase.initializeApp({
+  databaseURL: "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app"
+});
 const database = firebase.database();
 
+// CURRENT DEVICE TRACKING
 let currentDeviceId = "device1";
-let pinsRef = null, historyRef = null;
-let pinsData = [], markersMap = {}, mlMap, entryMap, entryPreviewMarker = null;
-let pinsLayerGroup, historyLayerGroup;
-let mode = 'LIVE', fullHistoryData = [];
-let activeMetric = "pH", globalChartData = [], localChartData = [];
-let initialLoadComplete = false, currentSelectedPin = null;
+let pinsRef = null;
+let historyRef = null;
 
-function getDistance(lat1,lon1,lat2,lon2){
-  const R=6371000,toRad=x=>x*Math.PI/180,dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1);
-  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+// Map State Tracking
+let pinsData = [];
+let markersMap = {}; 
+let predMarkersMap = {}; 
+let mlMap, entryMap, predMap;
+let entryPreviewMarker = null;
+
+// Feature Overlays
+let pinsLayerGroup;
+let historyLayerGroup;
+let predPinsLayerGroup;
+let mode = 'LIVE'; 
+let fullHistoryData = [];
+
+// Chart Data tracking
+let activeMetric = "pH";
+let globalChartData = [];
+let localChartData = [];
+let initialLoadComplete = false;
+let currentSelectedPin = null;
+
+/* ================== DISTANCE FILTER ================== */
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = (x) => (x * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function initDashboardMap(){
-  mlMap=L.map('maplibre-map',{zoomControl:false}).setView([21.175,72.8311],11);
-  L.control.zoom({position:'bottomright'}).addTo(mlMap);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(mlMap);
-  pinsLayerGroup=L.layerGroup().addTo(mlMap);
-  historyLayerGroup=L.layerGroup();
+/* ================== LEAFLET INIT ================== */
+function initDashboardMap() {
+  mlMap = L.map('maplibre-map', { zoomControl: false }).setView([21.175, 72.8311], 11);
+  L.control.zoom({ position: 'bottomright' }).addTo(mlMap);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(mlMap);
+  
+  pinsLayerGroup = L.layerGroup().addTo(mlMap);
+  historyLayerGroup = L.layerGroup();
+}
+
+function initEntryMap() {
+  entryMap = L.map('entry-map', { zoomControl: false }).setView([21.175, 72.8311], 11);
+  L.control.zoom({ position: 'bottomright' }).addTo(entryMap);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(entryMap);
+
+  entryMap.on("click", (e) => {
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+    if (entryPreviewMarker) entryMap.removeLayer(entryPreviewMarker);
+
+    const icon = L.divIcon({
+      className: '',
+      html: '<div class="entry-preview-marker"></div>',
+      iconSize: [24, 24], iconAnchor: [12, 12]
+    });
+
+    entryPreviewMarker = L.marker([lat, lng], { icon: icon }).addTo(entryMap);
+    document.getElementById("f-lat").value = lat.toFixed(6);
+    document.getElementById("f-lng").value = lng.toFixed(6);
+    document.getElementById("coords-text").innerText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    document.getElementById("coords-display").classList.add("visible");
+    document.getElementById("add-pin-btn").disabled = false;
+  });
+}
+
+function initPredMap() {
+  predMap = L.map('pred-map', { zoomControl: false }).setView([21.175, 72.8311], 11);
+  L.control.zoom({ position: 'bottomright' }).addTo(predMap);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(predMap);
+  
+  predPinsLayerGroup = L.layerGroup().addTo(predMap);
+  
+  // Now start listening to Firebase after all 3 maps exist
   setupRealtimeListener();
 }
 
-function initEntryMap(){
-  entryMap=L.map('entry-map',{zoomControl:false}).setView([21.175,72.8311],11);
-  L.control.zoom({position:'bottomright'}).addTo(entryMap);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(entryMap);
-  entryMap.on('click',e=>{
-    const lat=e.latlng.lat,lng=e.latlng.lng;
-    if(entryPreviewMarker)entryMap.removeLayer(entryPreviewMarker);
-    const icon=L.divIcon({className:'',html:'<div class="entry-preview-marker"></div>',iconSize:[24,24],iconAnchor:[12,12]});
-    entryPreviewMarker=L.marker([lat,lng],{icon}).addTo(entryMap);
-    document.getElementById('f-lat').value=lat.toFixed(6);
-    document.getElementById('f-lng').value=lng.toFixed(6);
-    document.getElementById('coords-text').innerText=`${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    document.getElementById('coords-display').classList.add('visible');
-    document.getElementById('add-pin-btn').disabled=false;
+
+/* ================== DEVICE SWITCHING ================== */
+function switchDevice(newId) {
+  currentDeviceId = newId;
+  
+  // Cleanup map layers & variables
+  Object.keys(markersMap).forEach(key => {
+    pinsLayerGroup.removeLayer(markersMap[key]);
+    predPinsLayerGroup.removeLayer(predMarkersMap[key]);
   });
+  markersMap = {};
+  predMarkersMap = {};
+  pinsData = [];
+  fullHistoryData = [];
+  globalChartData = [];
+  localChartData = [];
+  currentSelectedPin = null;
+  initialLoadComplete = false;
+  
+  historyLayerGroup.clearLayers();
+  
+  // Reset UI elements
+  document.getElementById("panel-title").innerText = "Select a Location";
+  document.getElementById("panel-sub").innerText = "Click on a map marker to view detailed metrics";
+  document.getElementById("status-badge").classList.remove("visible");
+  
+  document.getElementById("val-pH").innerText = "--";
+  document.getElementById("val-tds").innerHTML = '-- <span class="metric-unit">ppm</span>';
+  document.getElementById("val-temp").innerHTML = '-- <span class="metric-unit">°C</span>';
+  document.getElementById("val-turb").innerHTML = '-- <span class="metric-unit">NTU</span>';
+  document.getElementById("val-ec").innerHTML = '-- <span class="metric-unit">µS/cm</span>';
+
+  // Reset WQI Bar
+  document.getElementById("wqi-score").innerText = "-- / 100";
+  document.getElementById("wqi-fill").style.width = "0%";
+  
+  document.getElementById("area-chart-global").innerHTML = "";
+  document.getElementById("area-chart-local").innerHTML = "";
+
+  // Reset Predictions
+  document.getElementById("pred-summary").innerHTML = `<span style="color:rgba(255,255,255,0.5); font-size:0.9rem;">Please select a location pin from the map above.</span>`;
+  document.getElementById("prediction-results").innerHTML = "";
+  window.weatherFetchedForPin = null; 
+  
+  // Reset time slider
+  const slider = document.getElementById("tm-slider");
+  slider.max = 0;
+  slider.value = 0;
+  document.getElementById("tm-date").innerText = "LIVE";
+  mode = 'LIVE';
+  mlMap.removeLayer(historyLayerGroup);
+  pinsLayerGroup.addTo(mlMap);
+
+  // Restart data listeners
+  setupRealtimeListener();
+  showToast("Switched to " + newId);
 }
 
-function switchDevice(newId){
-  currentDeviceId=newId;
-  Object.keys(markersMap).forEach(k=>pinsLayerGroup.removeLayer(markersMap[k]));
-  markersMap={};pinsData=[];fullHistoryData=[];globalChartData=[];localChartData=[];
-  currentSelectedPin=null;initialLoadComplete=false;historyLayerGroup.clearLayers();
-  ['panel-title','panel-sub'].forEach(id=>document.getElementById(id).innerText=id==='panel-title'?'Select a Location':'Click on a map marker to view detailed metrics');
-  document.getElementById('status-badge').classList.remove('visible');
-  ['pH','tds','temp','turb','ec'].forEach(m=>{const el=document.getElementById('val-'+m);if(el)el.innerHTML='--'+(m!=='pH'?` <span class="metric-unit">${m==='tds'?'ppm':m==='temp'?'°C':m==='turb'?'NTU':'µS/cm'}</span>`:'')});
-  document.getElementById('wqi-score').innerText='-- / 100';
-  document.getElementById('wqi-fill').style.width='0%';
-  document.getElementById('area-chart-global').innerHTML='';
-  document.getElementById('area-chart-local').innerHTML='';
-  const sl=document.getElementById('tm-slider');sl.max=0;sl.value=0;
-  document.getElementById('tm-date').innerText='LIVE';mode='LIVE';
-  mlMap.removeLayer(historyLayerGroup);pinsLayerGroup.addTo(mlMap);
-  setupRealtimeListener();showToast('Switched to '+newId);
-}
+/* ================== FIREBASE REALTIME WEBSOCKET ================== */
+function setupRealtimeListener() {
+  if (pinsRef) pinsRef.off();
+  if (historyRef) historyRef.off();
 
-function setupRealtimeListener(){
-  if(pinsRef)pinsRef.off();if(historyRef)historyRef.off();
-  pinsRef=database.ref(`devices/${currentDeviceId}/pins`);
-  historyRef=database.ref(`devices/${currentDeviceId}/history`);
-  pinsRef.on('value',snap=>{
-    const data=snap.val()||{};const currentKeys=Object.keys(data);
-    Object.keys(markersMap).forEach(k=>{if(!currentKeys.includes(k)){pinsLayerGroup.removeLayer(markersMap[k]);delete markersMap[k];}});
-    pinsData=[];
-    currentKeys.forEach(key=>{
-      const pin={id:key,...data[key]};pinsData.push(pin);const idx=pinsData.length-1;
-      if(!markersMap[key]){
-        const sc=pin.status==='SAFE'?'safe':'warning';
-        const icon=L.divIcon({className:'',html:`<div class="ml-marker ${sc}"><div class="ml-pulse"></div><div class="ml-marker-inner"></div></div>`,iconSize:[34,38],iconAnchor:[17,38]});
-        const marker=L.marker([parseFloat(pin.lat),parseFloat(pin.lng)],{icon}).addTo(pinsLayerGroup);
-        markersMap[key]=marker;
+  pinsRef = database.ref(`devices/${currentDeviceId}/pins`);
+  historyRef = database.ref(`devices/${currentDeviceId}/history`);
+
+  pinsRef.on('value', (snapshot) => {
+    const data = snapshot.val() || {};
+    const currentKeys = Object.keys(data);
+
+    // Remove deleted pins from BOTH maps
+    Object.keys(markersMap).forEach(key => {
+      if (!currentKeys.includes(key)) {
+        pinsLayerGroup.removeLayer(markersMap[key]);
+        predPinsLayerGroup.removeLayer(predMarkersMap[key]);
+        delete markersMap[key];
+        delete predMarkersMap[key];
       }
-      markersMap[key].off('click');markersMap[key].on('click',()=>selectPin(idx));
     });
-    if(!initialLoadComplete&&pinsData.length>0){selectPin(pinsData.length-1);initialLoadComplete=true;}
+
+    pinsData = [];
+    currentKeys.forEach((key) => {
+      const pin = { id: key, ...data[key] };
+      pinsData.push(pin);
+      const currentIndex = pinsData.length - 1;
+      const statusClass = pin.status === "SAFE" ? "safe" : "warning";
+
+      // DASHBOARD MARKER
+      if (!markersMap[key]) {
+        const customIcon = L.divIcon({
+          className: '',
+          html: `<div class="ml-marker ${statusClass}" id="dash-marker-${key}"><div class="ml-pulse"></div><div class="ml-marker-inner"></div></div>`,
+          iconSize: [34, 38], iconAnchor: [17, 38] 
+        });
+        const marker = L.marker([parseFloat(pin.lat), parseFloat(pin.lng)], { icon: customIcon }).addTo(pinsLayerGroup);
+        markersMap[key] = marker;
+      }
+      markersMap[key].off('click').on('click', () => selectPin(currentIndex));
+
+      // PREDICTIONS MARKER
+      if (!predMarkersMap[key]) {
+        const customIcon2 = L.divIcon({
+          className: '',
+          html: `<div class="ml-marker ${statusClass}" id="pred-marker-${key}"><div class="ml-pulse"></div><div class="ml-marker-inner"></div></div>`,
+          iconSize: [34, 38], iconAnchor: [17, 38] 
+        });
+        const marker2 = L.marker([parseFloat(pin.lat), parseFloat(pin.lng)], { icon: customIcon2 }).addTo(predPinsLayerGroup);
+        predMarkersMap[key] = marker2;
+      }
+      predMarkersMap[key].off('click').on('click', () => selectPin(currentIndex));
+    });
+
+    if (!initialLoadComplete && pinsData.length > 0) {
+      selectPin(pinsData.length - 1);
+      initialLoadComplete = true;
+    }
   });
-  historyRef.on('value',snap=>{
-    const data=snap.val();if(!data)return;
-    fullHistoryData=Object.values(data).sort((a,b)=>a.ts-b.ts);
-    const sl=document.getElementById('tm-slider');sl.max=fullHistoryData.length-1;
-    if(mode==='LIVE')sl.value=fullHistoryData.length-1;
-    globalChartData=fullHistoryData.slice(-20);drawGlobalChart();
-    if(currentSelectedPin)updateChartForSelectedPin();
+
+  historyRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+    fullHistoryData = Object.values(data).sort((a, b) => a.ts - b.ts);
+    
+    const slider = document.getElementById('tm-slider');
+    slider.max = fullHistoryData.length - 1;
+    if(mode === 'LIVE') slider.value = fullHistoryData.length - 1;
+
+    globalChartData = fullHistoryData.slice(-20);
+    drawGlobalChart();
+
+    if (currentSelectedPin) updateChartForSelectedPin();
   });
 }
 
-function handleTimeSlider(index){
-  index=parseInt(index);
-  if(index>=fullHistoryData.length-1){mode='LIVE';document.getElementById('tm-date').innerText='LIVE';mlMap.removeLayer(historyLayerGroup);pinsLayerGroup.addTo(mlMap);return;}
-  mode='HISTORY';mlMap.removeLayer(pinsLayerGroup);historyLayerGroup.clearLayers();historyLayerGroup.addTo(mlMap);
-  const pastData=fullHistoryData.slice(0,index+1);
-  const d=new Date(fullHistoryData[index].ts);
-  document.getElementById('tm-date').innerText=d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  let pastState={};
-  pastData.forEach(p=>{if(p.lat&&p.lng){const k=p.lat.toFixed(4)+'_'+p.lng.toFixed(4);pastState[k]=p;}});
-  Object.values(pastState).forEach(pin=>{
-    const sc=pin.status==='SAFE'?'safe':'warning';
-    const icon=L.divIcon({className:'',html:`<div class="ml-marker ${sc}" style="opacity:.6;filter:grayscale(30%)"><div class="ml-pulse" style="animation:none;opacity:.2"></div><div class="ml-marker-inner"></div></div>`,iconSize:[34,38],iconAnchor:[17,38]});
-    L.marker([parseFloat(pin.lat),parseFloat(pin.lng)],{icon}).addTo(historyLayerGroup);
+/* ================== TIME MACHINE ================== */
+function handleTimeSlider(index) {
+  index = parseInt(index);
+  if (index >= fullHistoryData.length - 1) {
+      mode = 'LIVE';
+      document.getElementById('tm-date').innerText = 'LIVE';
+      mlMap.removeLayer(historyLayerGroup);
+      pinsLayerGroup.addTo(mlMap);
+      return;
+  }
+
+  mode = 'HISTORY';
+  mlMap.removeLayer(pinsLayerGroup);
+  historyLayerGroup.clearLayers();
+  historyLayerGroup.addTo(mlMap);
+
+  const pastData = fullHistoryData.slice(0, index + 1);
+  const dateObj = new Date(fullHistoryData[index].ts);
+  const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  document.getElementById('tm-date').innerText = dateStr;
+
+  let pastState = {};
+  pastData.forEach(p => {
+      if(p.lat && p.lng) {
+          const k = p.lat.toFixed(4) + "_" + p.lng.toFixed(4);
+          pastState[k] = p;
+      }
+  });
+
+  Object.values(pastState).forEach((pin) => {
+      const statusClass = pin.status === "SAFE" ? "safe" : "warning";
+      const customIcon = L.divIcon({
+        className: '',
+        html: `<div class="ml-marker ${statusClass}" style="opacity:0.6; filter: grayscale(30%);"><div class="ml-pulse" style="animation:none; opacity:0.2;"></div><div class="ml-marker-inner"></div></div>`,
+        iconSize: [34, 38], iconAnchor: [17, 38]
+      });
+      L.marker([parseFloat(pin.lat), parseFloat(pin.lng)], { icon: customIcon }).addTo(historyLayerGroup);
   });
 }
 
-function selectPin(index){
-  const pin=pinsData[index];currentSelectedPin=pin;
-  document.getElementById('panel-title').innerText='Location '+(index+1);
-  document.getElementById('panel-sub').innerText=`${parseFloat(pin.lat).toFixed(4)}, ${parseFloat(pin.lng).toFixed(4)}`;
-  const badge=document.getElementById('status-badge');
-  badge.className='status-badge visible '+(pin.status==='SAFE'?'safe':'warning');
-  document.getElementById('status-dot').className='status-dot '+(pin.status==='SAFE'?'safe':'warning');
-  document.getElementById('status-text').innerText=pin.status;
-  document.getElementById('val-pH').innerText=pin.pH;
-  document.getElementById('val-tds').innerHTML=`${pin.tds} <span class="metric-unit">ppm</span>`;
-  document.getElementById('val-temp').innerHTML=`${pin.temp} <span class="metric-unit">°C</span>`;
-  document.getElementById('val-turb').innerHTML=`${pin.turb} <span class="metric-unit">NTU</span>`;
-  const ec=(pin.tds/0.67).toFixed(0);
-  document.getElementById('val-ec').innerHTML=`${ec} <span class="metric-unit">µS/cm</span>`;
-  let qPH=Math.max(0,100-(Math.abs(pin.pH-7)*20));
-  let qTDS=Math.max(0,100-(pin.tds*0.1));
-  let qTurb=Math.max(0,100-(pin.turb*10));
-  let wqi=Math.min(100,Math.max(0,(qPH*0.3+qTDS*0.4+qTurb*0.3))).toFixed(0);
-  document.getElementById('wqi-score').innerText=`${wqi} / 100`;
-  const hue=(wqi/100)*120;const color=`hsl(${hue},80%,50%)`;
-  const fill=document.getElementById('wqi-fill');
-  fill.style.width=`${wqi}%`;fill.style.backgroundColor=color;fill.style.boxShadow=`0 0 15px ${color}`;
+/* ================== SELECT PIN & CALCULATE WQI ================== */
+async function selectPin(index) {
+  const pin = pinsData[index];
+  currentSelectedPin = pin; 
+
+  // HIGHLIGHT SELECTED MARKER VISUALLY ON BOTH MAPS
+  document.querySelectorAll('.ml-marker').forEach(el => el.classList.remove('selected'));
+  const dMarker = document.getElementById(`dash-marker-${pin.id}`);
+  const pMarker = document.getElementById(`pred-marker-${pin.id}`);
+  if(dMarker) dMarker.classList.add('selected');
+  if(pMarker) pMarker.classList.add('selected');
+
+  // PAN BOTH MAPS TO THE NEW LOCATION SMOOTHLY
+  mlMap.setView([pin.lat, pin.lng], mlMap.getZoom(), {animate: true});
+  if(predMap) predMap.setView([pin.lat, pin.lng], predMap.getZoom(), {animate: true});
+
+  // UI UPDATES
+  document.getElementById("panel-title").innerText = "Location " + (index + 1);
+  document.getElementById("panel-sub").innerText = `${pin.lat.toFixed(4)}, ${pin.lng.toFixed(4)}`;
+  
+  const badge = document.getElementById("status-badge");
+  badge.className = "status-badge visible " + (pin.status === "SAFE" ? "safe" : "warning");
+  document.getElementById("status-dot").className = "status-dot " + (pin.status === "SAFE" ? "safe" : "warning");
+  document.getElementById("status-text").innerText = pin.status;
+
+  document.getElementById("val-pH").innerText = pin.pH;
+  document.getElementById("val-tds").innerHTML = `${pin.tds} <span class="metric-unit">ppm</span>`;
+  document.getElementById("val-temp").innerHTML = `${pin.temp} <span class="metric-unit">°C</span>`;
+  document.getElementById("val-turb").innerHTML = `${pin.turb} <span class="metric-unit">NTU</span>`;
+
+  const ecCalculated = (pin.tds / 0.67).toFixed(0);
+  document.getElementById("val-ec").innerHTML = `${ecCalculated} <span class="metric-unit">µS/cm</span>`;
+
+  // WQI Calculation
+  let qPH = 100 - (Math.abs(pin.pH - 7) * 20); 
+  if (qPH < 0) qPH = 0;
+  let qTDS = 100 - (pin.tds * 0.1); 
+  if (qTDS < 0) qTDS = 0;
+  let qTurb = 100 - (pin.turb * 10); 
+  if (qTurb < 0) qTurb = 0;
+
+  let wqi = (qPH * 0.3) + (qTDS * 0.4) + (qTurb * 0.3);
+  wqi = Math.max(0, Math.min(100, wqi)).toFixed(0);
+
+  document.getElementById("wqi-score").innerText = `${wqi} / 100`;
+  
+  const hue = (wqi / 100) * 120; 
+  const color = `hsl(${hue}, 80%, 50%)`;
+  const fillEl = document.getElementById("wqi-fill");
+  fillEl.style.width = `${wqi}%`;
+  fillEl.style.backgroundColor = color;
+  fillEl.style.boxShadow = `0 0 15px ${color}`;
+
   updateChartForSelectedPin();
-}
-
-function updateChartForSelectedPin(){
-  if(!currentSelectedPin)return;
-  const loc=fullHistoryData.filter(e=>{if(!e.lat||!e.lng)return false;return getDistance(currentSelectedPin.lat,currentSelectedPin.lng,e.lat,e.lng)<=25;});
-  localChartData=loc.slice(-20);drawLocalChart();
-}
-
-function setActiveMetric(metric,color){
-  activeMetric=metric;
-  document.querySelectorAll('.metric-card').forEach(c=>c.classList.remove('active'));
-  document.getElementById('metric-'+metric).classList.add('active');
-  ['global','local'].forEach(t=>{
-    document.getElementById('chart-dot-'+t).style.background=color;
-    document.getElementById('chart-metric-label-'+t).innerText=metric==='ec'?'Conductivity':metric;
-    document.getElementById('chart-section-bg-'+t).style.background=`radial-gradient(circle at top right,${color}22 0%,rgba(0,0,0,.1) 70%)`;
-  });
-  drawGlobalChart();drawLocalChart();
-}
-
-function buildSmoothPath(pts){
-  if(!pts.length)return'';if(pts.length===1)return`M${pts[0].x},${pts[0].y}`;
-  let p=`M${pts[0].x},${pts[0].y}`;
-  for(let i=0;i<pts.length-1;i++){const p1=pts[i],p2=pts[i+1],cx1=p1.x+(p2.x-p1.x)/2,cy1=p1.y,cx2=p2.x-(p2.x-p1.x)/2,cy2=p2.y;p+=` C ${cx1},${cy1} ${cx2},${cy2} ${p2.x},${p2.y}`;}
-  return p;
-}
-
-function drawGlobalChart(){
-  const svg=document.getElementById('area-chart-global');svg.innerHTML='';
-  if(!globalChartData||!globalChartData.length)return;
-  const W=800,H=150,xO=40,cW=W-xO-20;
-  const vals=globalChartData.map(d=>activeMetric==='ec'?Number((d.tds/0.67).toFixed(1)):Number(d[activeMetric]));
-  const times=globalChartData.map(d=>d.time?d.time:new Date(d.ts).toLocaleTimeString());
-  let max=Math.max(...vals),min=Math.min(...vals);if(max===min){max+=1;min-=1;}
-  const mid=(max+min)/2,range=max-min;
-  const grid=`<line x1="${xO}" y1="15" x2="${W}" y2="15" stroke="rgba(255,255,255,.1)" stroke-width="1" stroke-dasharray="4,4"/>
-    <text x="0" y="20" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${max.toFixed(1)}</text>
-    <line x1="${xO}" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="rgba(255,255,255,.05)" stroke-width="1" stroke-dasharray="4,4"/>
-    <text x="0" y="${H/2+4}" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${mid.toFixed(1)}</text>
-    <line x1="${xO}" y1="${H-15}" x2="${W}" y2="${H-15}" stroke="rgba(255,255,255,.1)" stroke-width="1" stroke-dasharray="4,4"/>
-    <text x="0" y="${H-10}" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${min.toFixed(1)}</text>`;
-  const pts=vals.map((v,i)=>({x:xO+(i/Math.max(1,vals.length-1))*cW,y:H-15-((v-min)/range)*(H-30)}));
-  const ac=document.getElementById('chart-dot-global').style.background||'#3b82f6';
-  svg.innerHTML=grid+`<path d="${buildSmoothPath(pts)}" fill="none" stroke="${ac}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
-  const tt=document.getElementById('chart-tooltip-global');
-  svg.onmousemove=e=>{const rect=svg.getBoundingClientRect(),sX=W/rect.width,svgX=(e.clientX-rect.left)*sX;if(svgX<xO){tt.classList.remove('visible');return;}let ci=0,md=Infinity;pts.forEach((p,i)=>{const d=Math.abs(svgX-p.x);if(d<md){md=d;ci=i;}});tt.classList.add('visible');tt.style.left=(pts[ci].x/sX)+'px';tt.style.top='20px';document.getElementById('ct-time-global').innerText=times[ci];document.getElementById('ct-val-global').innerText=vals[ci];document.getElementById('ct-unit-global').innerText=activeMetric==='tds'?' ppm':activeMetric==='temp'?' °C':activeMetric==='turb'?' NTU':activeMetric==='ec'?' µS/cm':'';};
-  svg.onmouseleave=()=>tt.classList.remove('visible');
-}
-
-function drawLocalChart(){
-  const svg=document.getElementById('area-chart-local');svg.innerHTML='';
-  if(!localChartData||!localChartData.length){svg.innerHTML=`<text x="400" y="80" fill="rgba(255,255,255,.3)" font-size="12" font-weight="600" font-family="Outfit" text-anchor="middle" letter-spacing="0.1em">SELECT A PIN TO VIEW LOCAL HISTORY</text>`;return;}
-  const W=800,H=150,xO=40;
-  const vals=localChartData.map(d=>activeMetric==='ec'?Number((d.tds/0.67).toFixed(1)):Number(d[activeMetric]));
-  const times=localChartData.map(d=>d.time?d.time:new Date(d.ts).toLocaleTimeString());
-  let allV=[...vals],predY=null,hasPred=vals.length>=4;
-  if(hasPred){let n=vals.length,sx=0,sy=0,sxy=0,sxx=0;for(let i=0;i<n;i++){sx+=i;sy+=vals[i];sxy+=i*vals[i];sxx+=i*i;}let m=(n*sxy-sx*sy)/(n*sxx-sx*sx)||0,b=(sy-m*sx)/n;predY=Math.max(0,m*(n+2)+b);allV.push(predY);}
-  let max=Math.max(...allV),min=Math.min(...allV);if(max===min){max+=1;min-=1;}
-  const mid=(max+min)/2,range=max-min;
-  const grid=`<line x1="${xO}" y1="15" x2="${W}" y2="15" stroke="rgba(255,255,255,.1)" stroke-width="1" stroke-dasharray="4,4"/>
-    <text x="0" y="20" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${max.toFixed(1)}</text>
-    <line x1="${xO}" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="rgba(255,255,255,.05)" stroke-width="1" stroke-dasharray="4,4"/>
-    <text x="0" y="${H/2+4}" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${mid.toFixed(1)}</text>
-    <line x1="${xO}" y1="${H-15}" x2="${W}" y2="${H-15}" stroke="rgba(255,255,255,.1)" stroke-width="1" stroke-dasharray="4,4"/>
-    <text x="0" y="${H-10}" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${min.toFixed(1)}</text>`;
-  const cW=hasPred?(W-xO)*0.70:W-xO-20;
-  const pts=vals.map((v,i)=>({x:xO+(i/Math.max(1,vals.length-1))*cW,y:H-15-((v-min)/range)*(H-30)}));
-  const ac=document.getElementById('chart-dot-local').style.background||'#3b82f6';
-  let fHtml='',futX=0,futY=0;
-  if(hasPred){futX=xO+cW+(W-xO)*0.2;futY=H-15-((predY-min)/range)*(H-30);const lp=pts[pts.length-1];let danger=false;if(activeMetric==='pH'&&(predY<6.5||predY>8.5))danger=true;if(activeMetric==='tds'&&predY>500)danger=true;if(activeMetric==='temp'&&predY>35)danger=true;if(activeMetric==='turb'&&predY>10)danger=true;if(activeMetric==='ec'&&predY>800)danger=true;const bc=danger?'#ef4444':'#10b981';fHtml=`<path d="M${lp.x},${lp.y} L${futX},${futY}" fill="none" stroke="${bc}" stroke-width="3" stroke-linecap="round" stroke-dasharray="8,8" opacity=".8"/><circle cx="${futX}" cy="${futY}" r="4" fill="${bc}"/><rect x="${futX-70}" y="${futY-30}" width="140" height="20" rx="6" fill="rgba(15,23,42,.9)" stroke="${bc}" stroke-width="1"/><text x="${futX}" y="${futY-16}" fill="${bc}" font-size="10" font-weight="700" font-family="Outfit" text-anchor="middle" letter-spacing=".05em">${danger?'FORECAST: WARNING':'FORECAST: SAFE'}</text>`;}
-  else{fHtml=`<text x="${W/2+60}" y="${H/2}" fill="rgba(255,255,255,.2)" font-size="12" font-weight="600" font-family="Outfit" text-anchor="middle" letter-spacing=".1em">&lt; 4 VALUES. NO PREDICTION YET.</text>`;}
-  svg.innerHTML=grid+`<path d="${buildSmoothPath(pts)}" fill="none" stroke="${ac}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`+fHtml;
-  const tt=document.getElementById('chart-tooltip-local');const unit=activeMetric==='tds'?' ppm':activeMetric==='temp'?' °C':activeMetric==='turb'?' NTU':activeMetric==='ec'?' µS/cm':'';
-  svg.onmousemove=e=>{const rect=svg.getBoundingClientRect(),sX=W/rect.width,svgX=(e.clientX-rect.left)*sX;if(svgX<xO){tt.classList.remove('visible');return;}let ci=0,md=Infinity;pts.forEach((p,i)=>{const d=Math.abs(svgX-p.x);if(d<md){md=d;ci=i;}});if(hasPred&&Math.abs(svgX-futX)<md){tt.classList.add('visible');tt.style.left=(futX/sX)+'px';tt.style.top='20px';document.getElementById('ct-time-local').innerText='Predicted Future Value';document.getElementById('ct-val-local').innerText=predY.toFixed(1);document.getElementById('ct-unit-local').innerText=unit;return;}tt.classList.add('visible');tt.style.left=(pts[ci].x/sX)+'px';tt.style.top='20px';document.getElementById('ct-time-local').innerText=times[ci];document.getElementById('ct-val-local').innerText=vals[ci];document.getElementById('ct-unit-local').innerText=unit;};
-  svg.onmouseleave=()=>tt.classList.remove('visible');
-}
-
-function showToast(msg){const t=document.getElementById('toast');t.querySelector('span').innerText=msg;t.classList.add('visible');setTimeout(()=>t.classList.remove('visible'),3000);}
-function clearForm(){document.querySelectorAll('.form-input').forEach(inp=>{if(inp.id!=='device-selector')inp.value='';});document.getElementById('coords-display').classList.remove('visible');document.getElementById('add-pin-btn').disabled=true;if(entryPreviewMarker){entryMap.removeLayer(entryPreviewMarker);entryPreviewMarker=null;}}
-
-async function addPin(){
-  const lat=parseFloat(document.getElementById('f-lat').value);
-  const lng=parseFloat(document.getElementById('f-lng').value);
-  const pH=parseFloat(document.getElementById('f-pH').value);
-  const tds=parseFloat(document.getElementById('f-tds').value);
-  const temp=parseFloat(document.getElementById('f-temp').value);
-  const turb=parseFloat(document.getElementById('f-turb').value);
-  if([lat,lng,pH,tds,temp,turb].some(isNaN)){alert('Fill all fields');return;}
-  document.getElementById('add-pin-btn').disabled=true;
-  try{const r=await fetch(`/update?id=${currentDeviceId}&lat=${lat}&lng=${lng}&pH=${pH}&tds=${tds}&temp=${temp}&turb=${turb}`);if(r.ok){showToast('Pin saved!');clearForm();}else throw new Error();}
-  catch{alert('Error saving pin.');document.getElementById('add-pin-btn').disabled=false;}
-}
-
-async function confirmReset(){
-  const p=prompt('Enter LDCHEMICAL');if(!p)return;
-  try{const r=await fetch(`/reset?password=${p}&id=${currentDeviceId}`);if(r.ok)alert(`Data cleared for ${currentDeviceId}.`);else alert('Wrong password.');}
-  catch{alert('Network error.');}
-}
-
-function exportToCSV(){
-  if(!fullHistoryData||!fullHistoryData.length){showToast('No data!');return;}
-  const headers=['Timestamp','Date/Time','Latitude','Longitude','Status','pH','TDS (ppm)','EC (µS/cm)','Temp (°C)','Turbidity (NTU)'];
-  let csv=headers.join(',')+'\n';
-  fullHistoryData.forEach(r=>{const ec=r.tds?(r.tds/0.67).toFixed(1):'';csv+=[r.ts||'',`"${r.time||''}"`,r.lat||'',r.lng||'',r.status||'',r.pH||'',r.tds||'',ec,r.temp||'',r.turb||''].join(',')+'\n';});
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=`${currentDeviceId}_${new Date().toISOString().split('T')[0]}.csv`;document.body.appendChild(a);a.click();document.body.removeChild(a);
-  showToast('CSV Exported!');
-}
-
-function navigate(page){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.getElementById('page-'+page).classList.add('active');
-  document.getElementById('nav-'+page).classList.add('active');
-  closeSidebar();
-  setTimeout(()=>{if(page==='dashboard'&&mlMap)mlMap.invalidateSize();if(page==='options'&&entryMap)entryMap.invalidateSize();},50);
-}
-
-function toggleSidebar(){document.getElementById('sidebar').classList.contains('open')?closeSidebar():openSidebar();}
-function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('overlay').classList.add('visible');document.getElementById('main-content').style.filter='blur(8px)';}
-function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('visible');document.getElementById('main-content').style.filter='';}
-
-window.addEventListener('load',()=>{initDashboardMap();initEntryMap();document.getElementById('year').textContent=new Date().getFullYear();});
-</script>
-<script>
-// ══════════════════════════════════════════════════════════
-//  AI PREDICTION ENGINE v2
-//  NEW: Predict-page map (pin auto-fill) · Open-Meteo rainfall API
-//       · Per-label accuracy hover tooltips · Rainfall in model
-// ══════════════════════════════════════════════════════════
-
-// ── Accuracy metadata for each prediction label
-// Based on: literature benchmarks, dataset characteristics, feature availability
-const ACC_META = {
-  overall: {
-    label:'Overall Model Accuracy',pct:62,
-    detail:`<div class="acc-tip-label" style="color:#93c5fd">NB Potability Classifier</div>
-Trained on 19,656 samples (6 files). Class imbalance (61% non-potable) makes this tricky — a naive "always non-potable" classifier scores 61%.
-<div class="acc-meter"><div class="acc-meter-fill" style="width:62%;background:#f59e0b"></div></div>
-Estimated accuracy: <strong style="color:#fcd34d">~62% (balanced)</strong> — in line with published NB results on the same Kaggle dataset (~60–65%).
-<br><br><div class="acc-tip-label" style="color:#34d399">Rule Engine (Indian Rivers)</div>
-Rules anchored to p25/p75/p90 thresholds from 1,992 real Indian river records — directionally reliable but not lab-grade.
-<div class="acc-meter"><div class="acc-meter-fill" style="width:75%;background:#10b981"></div></div>
-Estimated accuracy: <strong style="color:#34d399">~75% directional</strong>`
-  },
-  monsoon: {
-    label:'Monsoon Influence',pct:71,
-    detail:`<div class="acc-tip-label" style="color:#67e8f9">Monsoon Prediction Accuracy</div>
-Rule-based score using Turbidity, BOD, DO, Coliform, Temperature — all 5 are recognised monsoon proxy indicators in CPCB guidelines.
-<div class="acc-meter"><div class="acc-meter-fill" style="width:71%;background:#06b6d4"></div></div>
-<strong style="color:#67e8f9">~71% reliable</strong> when ≥3 parameters are provided.<br>
-Main limitation: no seasonal date context without the rainfall API. <strong>With rainfall data loaded, accuracy rises ~10–15%</strong> as high precipitation directly confirms runoff.
-<br><br>⚠️ Accuracy drops to ~50% if only turbidity is provided.`
-  },
-  acid: {
-    label:'Acid / Alkaline',pct:92,
-    detail:`<div class="acc-tip-label" style="color:#fcd34d">pH Classification Accuracy</div>
-pH is a direct measurement — the acid/alkaline label is essentially a threshold lookup on your actual sensor reading.
-<div class="acc-meter"><div class="acc-meter-fill" style="width:92%;background:#f59e0b"></div></div>
-<strong style="color:#fcd34d">~92% reliable</strong> — the only error source is sensor calibration drift (±0.1–0.2 pH units on low-cost sensors).
-<br><br>Indian river median: 7.3 (n=1,894 cleaned records). Normal range 6.5–8.5 is WHO-aligned.`
-  },
-  contamination: {
-    label:'Contamination Risk & Source',pct:58,
-    detail:`<div class="acc-tip-label" style="color:#f87171">Contamination Prediction Accuracy</div>
-Accuracy varies heavily based on which parameters you've entered:
-<div class="acc-meter"><div class="acc-meter-fill" style="width:58%;background:#ef4444"></div></div>
-• With BOD + Fecal Coliform: <strong style="color:#fcd34d">~75%</strong><br>
-• With only pH + TDS: <strong style="color:#f87171">~45%</strong> — rule fires on indirect proxies only<br>
-• Adding Arsenic/Lead: bumps source ID accuracy significantly<br><br>
-⚠️ <strong>Source identification is heuristic</strong> — e.g. high nitrates are flagged as "Agricultural" but could also be geological leaching. Not a substitute for lab analysis.`
-  },
-  salinity: {
-    label:'Salinity Risk',pct:80,
-    detail:`<div class="acc-tip-label" style="color:#67e8f9">Salinity Assessment Accuracy</div>
-Based on conductivity (or TDS × 1.49 proxy). Calibrated from water_dataX Indian river conductivity distribution.
-<div class="acc-meter"><div class="acc-meter-fill" style="width:80%;background:#06b6d4"></div></div>
-<strong style="color:#67e8f9">~80% accurate</strong> for broad classification (Freshwater / Elevated / Saline).<br><br>
-Limitation: TDS→Conductivity conversion factor varies by dissolved ion composition (0.55–0.9 typical range). Using default 0.67 introduces ±15% error.<br>
-<strong>If you enter actual conductivity, accuracy improves to ~88%.</strong>`
-  },
-  hardness: {
-    label:'Hardness & Scaling',pct:85,
-    detail:`<div class="acc-tip-label" style="color:#a78bfa">Hardness Classification Accuracy</div>
-Hardness is a direct measurement. Classification uses WHO/BIS thresholds plus training data distribution (mean 196 mg/L, range 47–323 mg/L across 19,656 samples).
-<div class="acc-meter"><div class="acc-meter-fill" style="width:85%;background:#8b5cf6"></div></div>
-<strong style="color:#a78bfa">~85% accurate</strong> for the category label.<br><br>
-The <em>scaling risk</em> prediction is more uncertain — depends on temperature, pH, and CO₂ levels that aren't measured. Actual Langelier Saturation Index requires more data than available here.`
-  },
-  uses: {
-    label:'Water Use Suitability',pct:70,
-    detail:`<div class="acc-tip-label" style="color:#34d399">Use Suitability Accuracy</div>
-Composite of WHO drinking water standards, BIS IS:10500, CPCB Class C/D (bathing), FAO irrigation guidelines, and industrial cooling water norms.
-<div class="acc-meter"><div class="acc-meter-fill" style="width:70%;background:#10b981"></div></div>
-<strong style="color:#34d399">~70% overall</strong> — accuracy per use case:
-<br>• Drinking: ~78% (strong WHO thresholds available)
-<br>• Bathing/Aquatic: ~72% (CPCB-based)
-<br>• Irrigation: ~65% (FAO crop-specific thresholds not modelled)
-<br>• Industrial: ~60% (highly process-dependent)
-<br><br>⚠️ Without microbial data (FC/TC), drinking/bathing safety is <strong>significantly under-assessed</strong>.`
+  
+  // Auto-run predictions if they are looking at the predictions page
+  if (document.getElementById("page-predictions").classList.contains("active")) {
+      runPredictions();
   }
-};
-
-// ── Predict-page map state
-let predMap = null;
-let predMapMarkers = {};
-let predSelectedLat = null, predSelectedLng = null;
-let rainfallData = null; // { mm24h, mm7d, description, loaded }
-let rainfallFetchTimer = null;
-
-// ── Init the predict-page map
-function initPredMap() {
-  if (predMap) return;
-  predMap = L.map('pred-map', { zoomControl: true }).setView([21.175, 72.8311], 10);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(predMap);
-
-  // Mirror all dashboard pins onto the predict map
-  refreshPredMapPins();
 }
 
-function refreshPredMapPins() {
-  if (!predMap) return;
-  // Clear existing
-  Object.values(predMapMarkers).forEach(m => predMap.removeLayer(m));
-  predMapMarkers = {};
+function updateChartForSelectedPin() {
+  if (!currentSelectedPin) return;
 
-  if (!pinsData || !pinsData.length) return;
+  const locationHistory = fullHistoryData.filter(entry => {
+    if (!entry.lat || !entry.lng) return false;
+    const distance = getDistance(currentSelectedPin.lat, currentSelectedPin.lng, entry.lat, entry.lng);
+    return distance <= 25; 
+  });
 
-  pinsData.forEach((pin, idx) => {
-    const sc = pin.status === 'SAFE' ? 'safe' : 'warning';
-    const icon = L.divIcon({
-      className: '',
-      html: `<div class="ml-marker ${sc}" style="filter:brightness(1.1)"><div class="ml-pulse"></div><div class="ml-marker-inner"></div></div>`,
-      iconSize: [34, 38], iconAnchor: [17, 38]
+  localChartData = locationHistory.slice(-20);
+  drawLocalChart();
+}
+
+function setActiveMetric(metric, color) {
+  activeMetric = metric;
+
+  document.querySelectorAll(".metric-card").forEach(c => c.classList.remove("active"));
+  document.getElementById("metric-" + metric).classList.add("active");
+
+  document.getElementById("chart-dot-global").style.background = color;
+  document.getElementById("chart-metric-label-global").innerText = metric === "ec" ? "Conductivity" : metric;
+  document.getElementById("chart-section-bg-global").style.background = `radial-gradient(circle at top right, ${color}22 0%, rgba(0,0,0,0.1) 70%)`;
+
+  document.getElementById("chart-dot-local").style.background = color;
+  document.getElementById("chart-metric-label-local").innerText = metric === "ec" ? "Conductivity" : metric;
+  document.getElementById("chart-section-bg-local").style.background = `radial-gradient(circle at top right, ${color}22 0%, rgba(0,0,0,0.1) 70%)`;
+
+  drawGlobalChart();
+  drawLocalChart();
+}
+
+function buildSmoothPath(points) {
+    if (points.length === 0) return "";
+    if (points.length === 1) return `M${points[0].x},${points[0].y} L${points[0].x},${points[0].y}`;
+    let path = `M${points[0].x},${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const cx1 = p1.x + (p2.x - p1.x) / 2;
+        const cy1 = p1.y;
+        const cx2 = p2.x - (p2.x - p1.x) / 2;
+        const cy2 = p2.y;
+        path += ` C ${cx1},${cy1} ${cx2},${cy2} ${p2.x},${p2.y}`;
+    }
+    return path;
+}
+
+function drawGlobalChart() {
+  const svg = document.getElementById("area-chart-global");
+  svg.innerHTML = "";
+  if (!globalChartData || !globalChartData.length) return;
+
+  const W = 800; const H = 150; const xOffset = 40;
+  const chartDrawWidth = W - xOffset - 20;
+
+  const values = globalChartData.map(d => {
+      if (activeMetric === 'ec') return Number((d.tds / 0.67).toFixed(1));
+      return Number(d[activeMetric]);
+  });
+  const times = globalChartData.map(d => d.time ? d.time : new Date(d.ts).toLocaleTimeString());
+
+  let max = Math.max(...values); let min = Math.min(...values);
+  if (max === min) { max += 1; min -= 1; }
+  const range = max - min; const mid = (max + min) / 2;
+
+  let gridHtml = `
+    <line x1="${xOffset}" y1="15" x2="${W}" y2="15" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="0" y="20" fill="rgba(255,255,255,0.4)" font-size="12" font-weight="600" font-family="Outfit">${max.toFixed(1)}</text>
+    <line x1="${xOffset}" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="0" y="${H/2 + 4}" fill="rgba(255,255,255,0.4)" font-size="12" font-weight="600" font-family="Outfit">${mid.toFixed(1)}</text>
+    <line x1="${xOffset}" y1="${H - 15}" x2="${W}" y2="${H - 15}" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="0" y="${H - 10}" fill="rgba(255,255,255,0.4)" font-size="12" font-weight="600" font-family="Outfit">${min.toFixed(1)}</text>
+  `;
+
+  let points = values.map((val, i) => {
+      return {
+          x: xOffset + (i / Math.max(1, values.length - 1)) * chartDrawWidth,
+          y: H - 15 - ((val - min) / range) * (H - 30)
+      };
+  });
+
+  const activeColor = document.getElementById("chart-dot-global").style.background || "#3b82f6";
+  const pathData = buildSmoothPath(points);
+
+  svg.innerHTML = gridHtml + `<path d="${pathData}" fill="none" stroke="${activeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+  const tooltip = document.getElementById("chart-tooltip-global");
+  
+  svg.onmousemove = function(e) {
+    const rect = svg.getBoundingClientRect(); 
+    const scaleX = W / rect.width;
+    const svgX = (e.clientX - rect.left) * scaleX;
+    
+    if(svgX < xOffset) { tooltip.classList.remove("visible"); return; }
+
+    let closestIndex = 0;
+    let minDiff = Infinity;
+    points.forEach((p, i) => {
+        const diff = Math.abs(svgX - p.x);
+        if(diff < minDiff) { minDiff = diff; closestIndex = i; }
     });
-    const m = L.marker([parseFloat(pin.lat), parseFloat(pin.lng)], { icon }).addTo(predMap);
-    m.on('click', () => selectPredPin(pin, idx));
-    predMapMarkers[pin.id] = m;
-  });
-}
 
-function selectPredPin(pin, idx) {
-  predSelectedLat = parseFloat(pin.lat);
-  predSelectedLng = parseFloat(pin.lng);
-
-  // Fill inputs from pin data
-  const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null && v !== '') el.value = v; };
-  set('pi-ph',   pin.pH);
-  set('pi-tds',  pin.tds);
-  set('pi-temp', pin.temp);
-  set('pi-turb', pin.turb);
-  if (pin.tds) set('pi-cond', (pin.tds / 0.67).toFixed(0));
-
-  document.getElementById('pred-pin-status').textContent =
-    `📍 Pin ${idx + 1} selected — Lat ${predSelectedLat.toFixed(4)}, Lng ${predSelectedLng.toFixed(4)}`;
-
-  // Highlight selected marker
-  Object.values(predMapMarkers).forEach(m => {
-    const el = m.getElement();
-    if (el) el.querySelector('.ml-marker-inner').style.boxShadow = '';
-  });
-  const selEl = predMapMarkers[pin.id]?.getElement();
-  if (selEl) selEl.querySelector('.ml-marker-inner').style.boxShadow = '0 0 18px rgba(96,165,250,.9)';
-
-  // Set default datetime to now if empty
-  if (!document.getElementById('pi-datetime').value) {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById('pi-datetime').value = now.toISOString().slice(0, 16);
-  }
-
-  // Trigger rainfall fetch
-  fetchRainfallIfReady();
-  livePredict();
-}
-
-// ── Open-Meteo Historical Rainfall API
-// Endpoint: https://archive-api.open-meteo.com/v1/archive
-// Variables: precipitation_sum (daily), rain_sum
-async function fetchRainfallIfReady() {
-  if (!predSelectedLat || !predSelectedLng) return;
-  const dtEl = document.getElementById('pi-datetime');
-  if (!dtEl.value) return;
-
-  const sampleDate = new Date(dtEl.value);
-  if (isNaN(sampleDate.getTime())) return;
-
-  // Build date range: 7 days before sample date to get cumulative rainfall context
-  const endDate = new Date(sampleDate);
-  const startDate = new Date(sampleDate);
-  startDate.setDate(startDate.getDate() - 7);
-
-  const fmt = d => d.toISOString().split('T')[0];
-  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${predSelectedLat}&longitude=${predSelectedLng}&start_date=${fmt(startDate)}&end_date=${fmt(endDate)}&daily=precipitation_sum,rain_sum&timezone=Asia%2FKolkata`;
-
-  // Show loading
-  document.getElementById('rain-loading').style.display = 'flex';
-  document.getElementById('rain-box').style.display = 'none';
-  rainfallData = null;
-
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error('API error');
-    const data = await resp.json();
-
-    const precip = data.daily?.precipitation_sum || [];
-    const rain   = data.daily?.rain_sum || [];
-    const dates  = data.daily?.time || [];
-
-    // Sum the 7-day precip
-    const mm7d = precip.reduce((s, v) => s + (v || 0), 0);
-    // Last-day (sample day) rainfall
-    const mm24h = precip[precip.length - 1] || 0;
-    // 3-day before sample
-    const mm3d = precip.slice(-3).reduce((s, v) => s + (v || 0), 0);
-
-    rainfallData = { mm24h, mm7d, mm3d, loaded: true };
-
-    // Update UI
-    document.getElementById('rain-loading').style.display = 'none';
-    document.getElementById('rain-box').style.display = 'block';
-    document.getElementById('rain-val').textContent = `${mm24h.toFixed(1)} mm (24h) · ${mm7d.toFixed(1)} mm (7d)`;
-    document.getElementById('rain-sub').textContent = `Sample date: ${fmt(sampleDate)} · Location: ${predSelectedLat.toFixed(3)}°, ${predSelectedLng.toFixed(3)}°`;
-
-    livePredict(); // re-run with rainfall factored in
-
-  } catch (e) {
-    document.getElementById('rain-loading').style.display = 'none';
-    rainfallData = { mm24h: 0, mm7d: 0, mm3d: 0, loaded: false, error: true };
-    document.getElementById('rain-box').style.display = 'block';
-    document.getElementById('rain-val').textContent = 'Unavailable';
-    document.getElementById('rain-sub').textContent = 'Could not fetch Open-Meteo data for this date/location';
-  }
-}
-
-function onDateChange() {
-  if (rainfallFetchTimer) clearTimeout(rainfallFetchTimer);
-  rainfallFetchTimer = setTimeout(fetchRainfallIfReady, 600);
-}
-
-// ── Naïve Bayes
-function gauss(x, mean, std) { return (1/(std*Math.sqrt(2*Math.PI)))*Math.exp(-0.5*((x-mean)/std)**2); }
-
-function nbPotability(inp) {
-  const P = MODEL.nb_pot;
-  const vals = { ph:inp.ph, hard:inp.hard, sol:inp.tds, chl:inp.chl_v??7.1, sulf:inp.sulf??333, cond:inp.cond, oc:inp.oc??14.3, thm:inp.thm??66.4, turb:inp.turb };
-  let lP1=Math.log(P.pr1), lP0=Math.log(P.pr0), used=0;
-  for (const f of Object.keys(P.p)) {
-    const v = vals[f];
-    if (v === null || v === undefined) continue;
-    const l1 = gauss(v, P.p[f].m1, P.p[f].s1), l0 = gauss(v, P.p[f].m0, P.p[f].s0);
-    if (l1>0) lP1 += Math.log(l1);
-    if (l0>0) lP0 += Math.log(l0);
-    used++;
-  }
-  const mx = Math.max(lP1, lP0), p1 = Math.exp(lP1-mx), p0 = Math.exp(lP0-mx);
-  return { prob: Math.min(Math.max(p1/(p1+p0), 0.01), 0.99), usedFields: used };
-}
-
-// ── Rule engine (with rainfall integration)
-function ruleEngine(inp, rf) {
-  const T = MODEL.thr;
-
-  // MONSOON SCORE — boosted by actual rainfall from API
-  let ms = 0;
-  if (inp.turb !== null) { if(inp.turb>10)ms+=3; else if(inp.turb>4)ms+=2; else if(inp.turb>1)ms+=1; }
-  if (inp.bod  !== null) { if(inp.bod>T.bod.high)ms+=3; else if(inp.bod>T.bod.medium)ms+=2; else if(inp.bod>T.bod.low)ms+=1; }
-  if (inp.do_v !== null && inp.do_v<5) ms += 2;
-  if (inp.tc   !== null && inp.tc>T.tc.medium) ms += 1;
-  if (inp.temp !== null && inp.temp>28) ms += 1;
-
-  // ✦ RAINFALL INTEGRATION — Open-Meteo data directly boosts/confirms monsoon score
-  let rfBoost = 0, rfDesc = '';
-  if (rf && rf.loaded) {
-    if (rf.mm24h >= 50)      { rfBoost = 4; rfDesc = `Heavy rain day-of (${rf.mm24h.toFixed(1)} mm). Strong runoff expected.`; }
-    else if (rf.mm24h >= 20) { rfBoost = 3; rfDesc = `Moderate rain day-of (${rf.mm24h.toFixed(1)} mm). Elevated turbidity and BOD likely.`; }
-    else if (rf.mm24h >= 5)  { rfBoost = 2; rfDesc = `Light rain day-of (${rf.mm24h.toFixed(1)} mm). Minor surface runoff.`; }
-    else if (rf.mm7d >= 80)  { rfBoost = 3; rfDesc = `Heavy cumulative rain in past 7 days (${rf.mm7d.toFixed(1)} mm). Sustained runoff influence.`; }
-    else if (rf.mm7d >= 30)  { rfBoost = 2; rfDesc = `Moderate 7-day rainfall (${rf.mm7d.toFixed(1)} mm). Post-rain quality effects possible.`; }
-    else if (rf.mm7d >= 5)   { rfBoost = 1; rfDesc = `Low 7-day rainfall (${rf.mm7d.toFixed(1)} mm). Minimal rain influence.`; }
-    else                      { rfBoost = 0; rfDesc = `Dry conditions (${rf.mm7d.toFixed(1)} mm in 7 days). No rainfall contribution.`; }
-    ms += rfBoost;
-  }
-
-  ms = Math.min(ms, 14); // cap
-
-  const monsoon = ms>=7 ? 'HIGH MONSOON INFLUENCE'
-                : ms>=4 ? 'MODERATE MONSOON INFLUENCE'
-                : ms>=2 ? 'LOW MONSOON INFLUENCE'
-                : 'MINIMAL / NO MONSOON INFLUENCE';
-
-  const rfNote = rf && rf.loaded ? ` Rainfall (Open-Meteo): ${rfDesc}` : ' No rainfall data — set a date & location for enhanced accuracy.';
-
-  const monsoonDescs = {
-    'HIGH MONSOON INFLUENCE':      `Strong runoff signatures — turbidity, BOD, DO and coliform all indicate active flooding or heavy post-rain conditions.${rfNote}`,
-    'MODERATE MONSOON INFLUENCE':  `Moderate runoff detected. Typical of post-monsoon Indian rivers (BOD p75 = 3.6 mg/L in 1,992-record Indian dataset).${rfNote}`,
-    'LOW MONSOON INFLUENCE':       `Minor seasonal influence. Parameters slightly above dry-season norms.${rfNote}`,
-    'MINIMAL / NO MONSOON INFLUENCE': `No significant monsoon signature. Parameters consistent with dry-season baseline.${rfNote}`
+    tooltip.classList.add("visible");
+    tooltip.style.left = (points[closestIndex].x / scaleX) + "px"; 
+    tooltip.style.top = "20px";
+    document.getElementById("ct-time-global").innerText = times[closestIndex];
+    document.getElementById("ct-val-global").innerText = values[closestIndex];
+    
+    const unit = activeMetric === "tds" ? " ppm" : activeMetric === "temp" ? " °C" : activeMetric === "turb" ? " NTU" : activeMetric === "ec" ? " µS/cm" : "";
+    document.getElementById("ct-unit-global").innerText = unit;
   };
+  svg.onmouseleave = () => tooltip.classList.remove("visible");
+}
 
-  // ACID
-  let acid, acidDesc;
-  if (inp.ph !== null) {
-    if      (inp.ph < 4)   { acid='SEVERE ACID CONTAMINATION'; acidDesc='pH < 4.0 — acid mine drainage or industrial effluent. Highly corrosive.'; }
-    else if (inp.ph < 5.5) { acid='STRONG ACID INFLUENCE';     acidDesc='pH < 5.5 — significant acidification. Mining runoff or industrial discharge.'; }
-    else if (inp.ph < 6.5) { acid='MILD ACID INFLUENCE';       acidDesc='pH 5.5–6.5 — organic decomposition or CO₂ saturation. Marginal for drinking.'; }
-    else if (inp.ph<=8.5)  { acid='NEUTRAL / NORMAL RANGE';    acidDesc='pH 6.5–8.5 — WHO/BIS standard. No acid/alkaline influence. Indian river median: 7.3.'; }
-    else if (inp.ph<=10)   { acid='ALKALINE INFLUENCE';        acidDesc='pH 8.5–10 — carbonate geology or industrial alkali. Monitor source.'; }
-    else                   { acid='SEVERE ALKALINE CONTAMINATION'; acidDesc='pH > 10 — industrial contamination. Unsafe without treatment.'; }
-  } else { acid='pH NOT PROVIDED'; acidDesc='Enter pH to assess acid/alkaline influence.'; }
+function drawLocalChart() {
+  const svg = document.getElementById("area-chart-local");
+  svg.innerHTML = "";
+  
+  if (!localChartData || localChartData.length === 0) {
+      svg.innerHTML = `<text x="400" y="80" fill="rgba(255,255,255,0.3)" font-size="12" font-weight="600" font-family="Outfit" text-anchor="middle" letter-spacing="0.1em">SELECT A PIN TO VIEW LOCAL HISTORY</text>`;
+      return;
+  }
 
-  // CONTAMINATION RISK
-  let rs = 0, sources = [];
-  if (inp.bod  !== null) { if(inp.bod>T.bod.high)rs+=4; else if(inp.bod>T.bod.medium)rs+=2; else if(inp.bod>T.bod.low)rs+=1; }
-  if (inp.fc   !== null) { if(inp.fc>T.fc.high)rs+=4; else if(inp.fc>T.fc.medium)rs+=3; else if(inp.fc>T.fc.low)rs+=1; }
-  if (inp.tc   !== null) { if(inp.tc>T.tc.high)rs+=3; else if(inp.tc>T.tc.medium)rs+=2; else if(inp.tc>T.tc.low)rs+=1; }
-  if (inp.nit  !== null && inp.nit>10)   rs += 2;
-  if (inp.ars  !== null && inp.ars>0.05) rs += 3;
-  if (inp.lead !== null && inp.lead>0.05)rs += 3;
-  if (inp.al   !== null && inp.al>0.5)   rs += 1;
-  if (inp.turb !== null && inp.turb>4)   rs += 1;
-  // Rainfall boosts contamination risk (high rain washes surface pollutants)
-  if (rf && rf.loaded && rf.mm24h >= 20) rs += 2;
-  else if (rf && rf.loaded && rf.mm24h >= 5) rs += 1;
+  const W = 800; const H = 150; const xOffset = 40;
+  
+  const values = localChartData.map(d => {
+      if (activeMetric === 'ec') return Number((d.tds / 0.67).toFixed(1));
+      return Number(d[activeMetric]);
+  });
+  const times = localChartData.map(d => d.time ? d.time : new Date(d.ts).toLocaleTimeString());
 
-  if (inp.fc   !== null && inp.fc>T.fc.medium)        sources.push('Sewage/Fecal');
-  if (inp.bod  !== null && inp.bod>T.bod.medium)       sources.push('Organic Waste');
-  if (inp.nit  !== null && inp.nit>10)                 sources.push('Agricultural Runoff');
-  if (inp.ars  !== null && inp.ars>0.01)               sources.push('Arsenic (Geo/Industrial)');
-  if (inp.lead !== null && inp.lead>0.01)              sources.push('Heavy Metals/Pipe Leach');
-  if (inp.ph   !== null && (inp.ph<5||inp.ph>10))      sources.push('Industrial Discharge');
-  const cp = inp.cond ?? (inp.tds ? inp.tds/0.67 : null);
-  if (cp !== null && cp > T.cond.saline)               sources.push('Saline Intrusion');
-  if (inp.turb !== null && inp.turb>10 && !inp.fc)     sources.push('Sediment Runoff');
-  if (rf && rf.loaded && rf.mm24h>=20 && inp.turb>4)  sources.push('Rain-Borne Runoff');
+  let allValues = [...values];
+  let predictedY = null;
+  let hasPrediction = values.length >= 4;
 
-  const cRisk = rs>=8?'CRITICAL':rs>=5?'HIGH':rs>=3?'MODERATE':rs>=1?'LOW':'MINIMAL';
-  const srcStr = sources.length ? sources.join(', ') : 'No significant source identified';
-  const cDescs = {
-    CRITICAL: `CRITICAL. Multiple high-risk indicators. Source(s): ${srcStr}. Do NOT use without extensive multi-stage treatment.`,
-    HIGH:     `High contamination. Source(s): ${srcStr}. Exceeds CPCB Class D standards.`,
-    MODERATE: `Moderate contamination. Source(s): ${srcStr}. Treatment required.`,
-    LOW:      `Low contamination. Source(s): ${srcStr}. Monitor and treat before use.`,
-    MINIMAL:  'Minimal contamination indicators within acceptable bounds.'
+  if (hasPrediction) {
+      let n = values.length;
+      let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+      for (let i = 0; i < n; i++) {
+        let x = i; let y = values[i];
+        sumX += x; sumY += y; sumXY += (x * y); sumXX += (x * x);
+      }
+      let m = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+      let b = (sumY - m * sumX) / n;
+      predictedY = m * (n - 1 + 3) + b; 
+      if (predictedY < 0) predictedY = 0;
+      allValues.push(predictedY);
+  }
+
+  let max = Math.max(...allValues); let min = Math.min(...allValues);
+  if (max === min) { max += 1; min -= 1; }
+  const range = max - min; const mid = (max + min) / 2;
+
+  let gridHtml = `
+    <line x1="${xOffset}" y1="15" x2="${W}" y2="15" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="0" y="20" fill="rgba(255,255,255,0.4)" font-size="12" font-weight="600" font-family="Outfit">${max.toFixed(1)}</text>
+    <line x1="${xOffset}" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="0" y="${H/2 + 4}" fill="rgba(255,255,255,0.4)" font-size="12" font-weight="600" font-family="Outfit">${mid.toFixed(1)}</text>
+    <line x1="${xOffset}" y1="${H - 15}" x2="${W}" y2="${H - 15}" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="0" y="${H - 10}" fill="rgba(255,255,255,0.4)" font-size="12" font-weight="600" font-family="Outfit">${min.toFixed(1)}</text>
+  `;
+
+  const chartDrawWidth = hasPrediction ? (W - xOffset) * 0.70 : W - xOffset - 20; 
+  let points = values.map((val, i) => {
+      return {
+          x: xOffset + (i / Math.max(1, values.length - 1)) * chartDrawWidth,
+          y: H - 15 - ((val - min) / range) * (H - 30)
+      };
+  });
+
+  const activeColor = document.getElementById("chart-dot-local").style.background || "#3b82f6";
+  const pathData = buildSmoothPath(points);
+  
+  let forecastHtml = "";
+  let futureX = 0;
+  let futureY = 0;
+
+  if (hasPrediction) {
+      futureX = xOffset + chartDrawWidth + ((W - xOffset) * 0.2); 
+      futureY = H - 15 - ((predictedY - min) / range) * (H - 30);
+      const lastPoint = points[points.length - 1];
+      const predictionPath = `M${lastPoint.x},${lastPoint.y} L${futureX},${futureY}`;
+
+      let isDanger = false;
+      if (activeMetric === 'pH' && (predictedY < 6.5 || predictedY > 8.5)) isDanger = true;
+      if (activeMetric === 'tds' && predictedY > 500) isDanger = true;
+      if (activeMetric === 'temp' && predictedY > 35) isDanger = true;
+      if (activeMetric === 'turb' && predictedY > 10) isDanger = true;
+      if (activeMetric === 'ec' && predictedY > 800) isDanger = true;
+
+      const badgeColor = isDanger ? "#ef4444" : "#10b981";
+      const badgeText = isDanger ? "FORECAST: WARNING" : "FORECAST: SAFE";
+
+      forecastHtml = `
+        <path d="${predictionPath}" fill="none" stroke="${badgeColor}" stroke-width="3" stroke-linecap="round" stroke-dasharray="8,8" opacity="0.8"/>
+        <circle cx="${futureX}" cy="${futureY}" r="4" fill="${badgeColor}" />
+        <rect x="${futureX - 70}" y="${futureY - 30}" width="140" height="20" rx="6" fill="rgba(15,23,42,0.9)" stroke="${badgeColor}" stroke-width="1"/>
+        <text x="${futureX}" y="${futureY - 16}" fill="${badgeColor}" font-size="10" font-weight="700" font-family="Outfit" text-anchor="middle" letter-spacing="0.05em">${badgeText}</text>
+      `;
+  } else {
+      forecastHtml = `<text x="${W/2 + 60}" y="${H/2}" fill="rgba(255,255,255,0.2)" font-size="12" font-weight="600" font-family="Outfit" text-anchor="middle" letter-spacing="0.1em">&lt; 4 VALUES. NO PREDICTION YET.</text>`;
+  }
+
+  svg.innerHTML = gridHtml + `<path d="${pathData}" fill="none" stroke="${activeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>` + forecastHtml;
+
+  const tooltip = document.getElementById("chart-tooltip-local");
+  
+  svg.onmousemove = function(e) {
+    const rect = svg.getBoundingClientRect(); 
+    const scaleX = W / rect.width;
+    const svgX = (e.clientX - rect.left) * scaleX;
+    
+    if(svgX < xOffset) { tooltip.classList.remove("visible"); return; }
+    
+    let closestIndex = 0;
+    let minDiff = Infinity;
+    points.forEach((p, i) => {
+        const diff = Math.abs(svgX - p.x);
+        if(diff < minDiff) { minDiff = diff; closestIndex = i; }
+    });
+
+    const unit = activeMetric === "tds" ? " ppm" : activeMetric === "temp" ? " °C" : activeMetric === "turb" ? " NTU" : activeMetric === "ec" ? " µS/cm" : "";
+
+    if (hasPrediction) {
+        const predDiff = Math.abs(svgX - futureX);
+        if (predDiff < minDiff) {
+            tooltip.classList.add("visible");
+            tooltip.style.left = (futureX / scaleX) + "px"; 
+            tooltip.style.top = "20px";
+            document.getElementById("ct-time-local").innerText = "Predicted Future Value";
+            document.getElementById("ct-val-local").innerText = predictedY.toFixed(1);
+            document.getElementById("ct-unit-local").innerText = unit;
+            return;
+        }
+    }
+    
+    tooltip.classList.add("visible");
+    tooltip.style.left = (points[closestIndex].x / scaleX) + "px"; 
+    tooltip.style.top = "20px";
+    document.getElementById("ct-time-local").innerText = times[closestIndex];
+    document.getElementById("ct-val-local").innerText = values[closestIndex];
+    document.getElementById("ct-unit-local").innerText = unit;
   };
-
-  // SALINITY
-  let sal, salDesc;
-  if (cp !== null) {
-    if      (cp < T.cond.fresh)    { sal='FRESHWATER (LOW SALINITY)';  salDesc=`~${Math.round(cp)} µS/cm — below Indian river p25 (78). Excellent quality.`; }
-    else if (cp < T.cond.moderate) { sal='MODERATE SALINITY';          salDesc=`~${Math.round(cp)} µS/cm — typical Indian river range (78–592 µS/cm).`; }
-    else if (cp < T.cond.saline)   { sal='ELEVATED SALINITY';          salDesc=`~${Math.round(cp)} µS/cm — above p75 (592). Affects taste and pipe corrosion.`; }
-    else if (cp < 10000)           { sal='HIGH SALINITY RISK';         salDesc=`~${Math.round(cp)} µS/cm — 90th pct+. Saltwater intrusion or brine. Requires desalination.`; }
-    else                           { sal='SALINE / BRACKISH WATER';    salDesc='> 10,000 µS/cm — near marine. Reverse osmosis required.'; }
-  } else { sal='INSUFFICIENT DATA'; salDesc='Provide conductivity or TDS.'; }
-
-  // HARDNESS
-  const h = inp.hard;
-  let hard, hardDesc;
-  if (h !== null) {
-    if      (h < 75)  { hard='SOFT WATER';              hardDesc=`${h} mg/L — very soft. Low scaling but corrosive. May lack Ca²⁺/Mg²⁺.`; }
-    else if (h < 150) { hard='MODERATELY SOFT';         hardDesc=`${h} mg/L — lower range (dataset mean: 196 mg/L, n=19,656). Minimal scaling.`; }
-    else if (h < 300) { hard='MODERATELY HARD';         hardDesc=`${h} mg/L — within typical range. Minor soap scum and deposits.`; }
-    else if (h < 500) { hard='HARD — SCALING RISK';     hardDesc=`${h} mg/L — above p95. Significant CaCO₃ scaling. Water softening recommended.`; }
-    else              { hard='VERY HARD — HIGH SCALING'; hardDesc=`${h} mg/L — severely elevated. Industrial softening required.`; }
-  } else { hard='NOT PROVIDED'; hardDesc='Enter hardness to assess scaling.'; }
-
-  // USE SUITABILITY
-  const uses = { drinking:{ok:true,reason:''}, bathing:{ok:true,reason:''}, irrigation:{ok:true,reason:''}, industrial:{ok:true,reason:''}, aquatic:{ok:true,reason:''} };
-  const fail = (k,r) => { uses[k].ok = false; uses[k].reason += r+' '; };
-  if(inp.ph!==null&&(inp.ph<6.5||inp.ph>8.5))fail('drinking',`pH ${inp.ph} out of 6.5–8.5.`);
-  if(inp.tds!==null&&inp.tds>500)fail('drinking',`TDS ${inp.tds} > 500 mg/L.`);
-  if(inp.turb!==null&&inp.turb>1)fail('drinking',`Turbidity ${inp.turb} > 1 NTU.`);
-  if(inp.fc!==null&&inp.fc>0)fail('drinking','Fecal coliform present.');
-  if(inp.nit!==null&&inp.nit>10)fail('drinking',`Nitrates ${inp.nit} > 10 mg/L.`);
-  if(inp.ars!==null&&inp.ars>0.01)fail('drinking','Arsenic > WHO limit.');
-  if(inp.lead!==null&&inp.lead>0.01)fail('drinking','Lead > WHO limit.');
-  if(inp.hard!==null&&inp.hard>600)fail('drinking',`Hardness ${inp.hard} > 600 mg/L.`);
-  if(rf&&rf.loaded&&rf.mm24h>=20)fail('drinking','Heavy rainfall on sample day — coliform risk elevated.');
-  if(inp.ph!==null&&(inp.ph<6||inp.ph>9))fail('bathing','pH outside 6–9.');
-  if(inp.fc!==null&&inp.fc>500)fail('bathing','Fecal coliform > 500 MPN.');
-  if(inp.turb!==null&&inp.turb>10)fail('bathing','High turbidity.');
-  if(inp.do_v!==null&&inp.do_v<3)fail('bathing','DO < 3 mg/L.');
-  if(inp.ph!==null&&(inp.ph<6||inp.ph>8.5))fail('irrigation','pH unsuitable for crops.');
-  if(cp!==null&&cp>3000)fail('irrigation','Salinity too high for most crops.');
-  if(inp.nit!==null&&inp.nit>30)fail('irrigation','Excess nitrates.');
-  if(inp.ars!==null&&inp.ars>0.1)fail('irrigation','Arsenic harms crops.');
-  if(inp.bod!==null&&inp.bod>10)fail('irrigation','BOD too high — soil oxygen depletion.');
-  if(inp.hard!==null&&inp.hard>500)fail('industrial','Scaling risk too high.');
-  if(cp!==null&&cp>2000)fail('industrial','Conductivity causes corrosion.');
-  if(inp.turb!==null&&inp.turb>5)fail('industrial','Turbidity fouls filters.');
-  if(inp.do_v!==null&&inp.do_v<4)fail('aquatic','DO < 4 mg/L — hypoxic.');
-  if(inp.ph!==null&&(inp.ph<6||inp.ph>9))fail('aquatic','pH outside fish tolerance.');
-  if(inp.turb!==null&&inp.turb>10)fail('aquatic','Excessive turbidity.');
-  if(inp.ars!==null&&inp.ars>0.05)fail('aquatic','Arsenic toxic to aquatic life.');
-
-  return { labels:{ monsoon, monsoonDesc:monsoonDescs[monsoon]||'', acid, acidDesc,
-    contamination:`${cRisk} RISK`, contaminationSource:srcStr, contaminationDesc:cDescs[cRisk],
-    salinity:sal, salinityDesc:salDesc, hardness:hard, hardnessDesc:hardDesc, uses },
-    riskScore:rs, monsoonScore:ms, cRisk };
+  svg.onmouseleave = () => tooltip.classList.remove("visible");
 }
 
-// ── Accuracy tooltip HTML builder
-function accTip(key) {
-  const m = ACC_META[key];
-  if (!m) return '';
-  return `<div class="acc-tip-wrap" style="margin-top:8px">
-    <div class="acc-tip-trigger">ⓘ <span>${m.label} — ~${m.pct}% reliable</span></div>
-    <div class="acc-tip-box">${m.detail}</div>
-  </div>`;
-}
 
-// ── Read inputs
-function readInputs() {
-  const gf = id => { const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? null : v; };
-  return { ph:gf('pi-ph'), tds:gf('pi-tds'), temp:gf('pi-temp'), turb:gf('pi-turb'),
-    cond:gf('pi-cond'), hard:gf('pi-hard'), bod:gf('pi-bod'), do_v:gf('pi-do'),
-    fc:gf('pi-fc'), tc:gf('pi-tc'), nit:gf('pi-nit'), sulf:gf('pi-sulf'),
-    chl_v:gf('pi-chl'), oc:gf('pi-oc'), thm:gf('pi-thm'), ars:gf('pi-ars'),
-    lead:gf('pi-lead'), al:gf('pi-al') };
-}
+/* ================== AI DIAGNOSTICS & WEATHER API ================== */
+window.weatherFetchedForPin = null; 
 
-// ── Main predict
-function livePredict() {
-  const inp = readInputs();
-  if (inp.ph === null && inp.tds === null) {
-    document.getElementById('pred-results').style.display = 'none';
-    document.getElementById('pred-placeholder').style.display = 'block';
+async function autoFetchWeather(e) {
+  if (e) e.preventDefault(); 
+  
+  if (!currentSelectedPin) {
+    showToast("Select a pin on the map first!");
     return;
   }
-  document.getElementById('pred-placeholder').style.display = 'none';
-  document.getElementById('pred-results').style.display = 'block';
 
-  const rf = rainfallData;
-  const { prob: potProb, usedFields } = nbPotability(inp);
-  const { labels, riskScore, monsoonScore, cRisk } = ruleEngine(inp, rf);
+  const rainInput = document.getElementById("pred-rain");
+  const btnIcon = document.getElementById("fetch-weather-btn").querySelector("svg");
+  
+  btnIcon.classList.add("spin-anim");
+  rainInput.placeholder = "Fetching historical weather...";
+  
+  try {
+    const lat = currentSelectedPin.lat;
+    const lng = currentSelectedPin.lng;
+    
+    // Convert pin timestamp to YYYY-MM-DD
+    const pinDate = new Date(currentSelectedPin.ts);
+    const year = pinDate.getFullYear();
+    const month = String(pinDate.getMonth() + 1).padStart(2, '0');
+    const day = String(pinDate.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
 
-  const totalFields = Object.values(inp).filter(v => v !== null).length;
-  const confidence = Math.min(95, Math.max(30, 30 + totalFields * 4 + usedFields * 2 + (rf?.loaded ? 8 : 0)));
+    // Get the previous day for the past 24h window
+    const yesterday = new Date(pinDate);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yYear = yesterday.getFullYear();
+    const yMonth = String(yesterday.getMonth() + 1).padStart(2, '0');
+    const yDay = String(yesterday.getDate()).padStart(2, '0');
+    const formattedYesterday = `${yYear}-${yMonth}-${yDay}`;
+    
+    // Call the Open-Meteo HISTORICAL API
+    const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${formattedYesterday}&end_date=${formattedDate}&daily=precipitation_sum&timezone=auto`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    let totalRain = 0;
+    if (data.daily && data.daily.precipitation_sum) {
+        totalRain = (data.daily.precipitation_sum[0] || 0) + (data.daily.precipitation_sum[1] || 0);
+    }
+    
+    rainInput.value = totalRain.toFixed(1);
+    window.weatherFetchedForPin = currentSelectedPin.id; 
+    
+    showToast(`Weather loaded for ${formattedDate}!`);
+    runPredictions(); 
 
-  // Verdict
-  let vl, vs, vc, ve;
-  if (potProb > 0.65 && ['MINIMAL','LOW'].includes(cRisk)) {
-    vl='LIKELY POTABLE'; vc='#10b981'; ve='✅'; vs=`NB posterior: ${(potProb*100).toFixed(0)}% potable. Parameters align with potable water distribution.`;
-  } else if (potProb > 0.5 && ['MINIMAL','LOW'].includes(cRisk)) {
-    vl='CONDITIONALLY ACCEPTABLE'; vc='#34d399'; ve='⚠️'; vs='Parameters mostly within range. Minor treatment may suffice.';
-  } else if (potProb > 0.4 && !['CRITICAL','HIGH'].includes(cRisk)) {
-    vl='MARGINAL — TREATMENT NEEDED'; vc='#f59e0b'; ve='🔶'; vs='Several parameters exceed guidelines. Filtration and disinfection required.';
-  } else if (cRisk === 'CRITICAL') {
-    vl='UNSAFE — CRITICAL CONTAMINATION'; vc='#ef4444'; ve='☠️'; vs='Multiple parameters at dangerous levels. Do not use without extensive treatment.';
-  } else {
-    vl='NOT POTABLE — TREATMENT REQUIRED'; vc='#ef4444'; ve='🚫'; vs=`NB posterior: ${(potProb*100).toFixed(0)}% potable. Key parameters exceed WHO/BIS limits.`;
+  } catch (error) {
+    console.error("Weather API error:", error);
+    rainInput.placeholder = "Failed to fetch API.";
+    showToast("Failed to fetch historical weather.");
+  } finally {
+    btnIcon.classList.remove("spin-anim");
+  }
+}
+
+function runPredictions() {
+  const resultsGrid = document.getElementById("prediction-results");
+  const summaryDiv = document.getElementById("pred-summary");
+
+  if (!currentSelectedPin) {
+    summaryDiv.innerHTML = `<span style="color:rgba(255,255,255,0.5); font-size:0.9rem;">Please select a location pin from the map above to run diagnostics.</span>`;
+    resultsGrid.innerHTML = "";
+    return;
   }
 
-  // Verdict card
-  const vi = document.getElementById('pred-verdict-icon');
-  vi.textContent = ve; vi.style.background = vc+'22'; vi.style.boxShadow = `0 0 20px ${vc}33`;
-  document.getElementById('pred-verdict-label').textContent = vl;
-  document.getElementById('pred-verdict-label').style.color = vc;
-  document.getElementById('pred-verdict-sub').textContent = vs;
-  document.getElementById('pred-conf-bar').style.cssText = `height:100%;border-radius:4px;width:${confidence}%;background:${vc};transition:width 1s cubic-bezier(.16,1,.3,1)`;
-  document.getElementById('pred-conf-pct').textContent = confidence + '%';
-  document.getElementById('overall-acc-tip').innerHTML = ACC_META.overall.detail;
+  // Get Context
+  const sourceType = document.getElementById("pred-source").value;
+  const rainfall = parseFloat(document.getElementById("pred-rain").value) || 0;
+  
+  const { pH, tds, temp, turb } = currentSelectedPin;
+  const ec = (tds / 0.67).toFixed(1);
 
-  // Rainfall context banner
-  const rcb = document.getElementById('rain-context-banner');
-  const rfBadge = document.getElementById('rain-influence-badge');
-  if (rf && rf.loaded) {
-    rcb.style.display = 'flex';
-    let rfInfluence, rfColor;
-    if (rf.mm24h >= 50 || rf.mm7d >= 80) { rfInfluence='HEAVY RAIN INFLUENCE'; rfColor='#ef4444'; }
-    else if (rf.mm24h >= 20 || rf.mm7d >= 30) { rfInfluence='MODERATE RAIN INFLUENCE'; rfColor='#f59e0b'; }
-    else if (rf.mm7d >= 5) { rfInfluence='LIGHT RAIN INFLUENCE'; rfColor='#34d399'; }
-    else { rfInfluence='DRY CONDITIONS'; rfColor='rgba(255,255,255,.4)'; }
-    document.getElementById('rain-context-text').textContent =
-      `${rf.mm24h.toFixed(1)} mm on sample day · ${rf.mm3d.toFixed(1)} mm prior 3 days · ${rf.mm7d.toFixed(1)} mm prior 7 days — open-meteo.com ERA5 archive`;
-    rfBadge.textContent = rfInfluence;
-    rfBadge.style.cssText = `font-size:.72rem;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:.06em;background:${rfColor}22;color:${rfColor};border:1px solid ${rfColor}55`;
-  } else {
-    rcb.style.display = 'none';
+  // Update Summary UI
+  summaryDiv.innerHTML = `
+    <div class="pred-stat"><span class="pred-stat-lbl">pH Level</span><span class="pred-stat-val">${pH}</span></div>
+    <div class="pred-stat"><span class="pred-stat-lbl">TDS</span><span class="pred-stat-val">${tds} ppm</span></div>
+    <div class="pred-stat"><span class="pred-stat-lbl">Turbidity</span><span class="pred-stat-val">${turb} NTU</span></div>
+    <div class="pred-stat"><span class="pred-stat-lbl">Temp</span><span class="pred-stat-val">${temp} °C</span></div>
+  `;
+
+  let labels = [];
+
+  // 1. Acid Influence
+  if (pH < 6.5) {
+    let risk = pH < 5.5 ? "high" : "medium";
+    labels.push({
+      title: "Acid Influence Detected", risk: risk,
+      desc: `The pH level (${pH}) is acidic. This could indicate industrial discharge or acid rain mixing with the source.`
+    });
+  } else if (pH > 8.5) {
+    labels.push({
+      title: "Alkaline / Basic Risk", risk: "medium",
+      desc: `The pH level (${pH}) is highly alkaline, which can cause scaling in pipes and taste issues.`
+    });
   }
 
-  // Label cards
-  const grid = document.getElementById('pred-labels-grid');
-  grid.innerHTML = '';
-  const cards = [
-    { title:'🌧️ Monsoon Influence', val:labels.monsoon, desc:labels.monsoonDesc, col:monsoonScore>=7?'#ef4444':monsoonScore>=4?'#f59e0b':'#34d399', accKey:'monsoon' },
-    { title:'⚗️ Acid / Alkaline', val:labels.acid, desc:labels.acidDesc, col:(labels.acid.includes('SEVERE')||labels.acid.includes('STRONG'))?'#ef4444':labels.acid.includes('MILD')||labels.acid.includes('ALKALINE INF')?'#f59e0b':'#34d399', accKey:'acid' },
-    { title:'☣️ Contamination Risk', val:labels.contamination, sub:'Source: '+labels.contaminationSource, desc:labels.contaminationDesc, col:{CRITICAL:'#ef4444',HIGH:'#f87171',MODERATE:'#f59e0b',LOW:'#fcd34d',MINIMAL:'#34d399'}[cRisk]||'#fff', accKey:'contamination' },
-    { title:'🌊 Salinity Risk', val:labels.salinity, desc:labels.salinityDesc, col:labels.salinity.includes('HIGH')||labels.salinity.includes('SALINE')?'#f59e0b':labels.salinity.includes('ELEVATED')?'#fcd34d':'#34d399', accKey:'salinity' },
-    { title:'🪨 Hardness & Scaling', val:labels.hardness, desc:labels.hardnessDesc, col:labels.hardness.includes('VERY')?'#ef4444':labels.hardness.includes('HARD —')?'#f59e0b':labels.hardness==='NOT PROVIDED'?'rgba(255,255,255,.3)':'#34d399', accKey:'hardness' },
-  ];
+  // 2. Salinity Risk
+  if (tds > 1000) {
+    labels.push({
+      title: "High Salinity Risk", risk: "high",
+      desc: `TDS is very high (${tds} ppm). The water is highly saline and unfit for consumption and most agricultural uses.`
+    });
+  } else if (tds > 500) {
+    labels.push({
+      title: "Moderate Salinity", risk: "medium",
+      desc: `TDS is elevated. It is generally safe but may affect sensitive crops if used for irrigation.`
+    });
+  }
 
-  cards.forEach((c, i) => {
-    const d = document.createElement('div');
-    d.className = 'pred-label-card';
-    d.style.cssText = `animation-delay:${i*0.06}s;border-left:3px solid ${c.col}`;
-    d.innerHTML = `
-      <div class="pred-label-card-title">${c.title}</div>
-      <div class="pred-label-card-value" style="color:${c.col}">${c.val}</div>
-      ${c.sub ? `<div style="font-size:.72rem;color:rgba(255,255,255,.38);margin-bottom:5px;font-weight:600">${c.sub}</div>` : ''}
-      <div class="pred-label-card-desc">${c.desc}</div>
-      ${accTip(c.accKey)}`;
-    grid.appendChild(d);
+  // 3. Hardness / Scaling
+  if (tds > 300 && pH >= 7.5 && (sourceType === 'groundwater' || sourceType === 'tank')) {
+    labels.push({
+      title: "Hardness & Scaling Potential", risk: "medium",
+      desc: `The combination of alkaline pH and high TDS in a closed/ground source strongly indicates high calcium/magnesium carbonates.`
+    });
+  }
+
+  // 4. Monsoon / Runoff Influence
+  if (turb > 10 && rainfall > 5 && sourceType === 'lake') {
+    labels.push({
+      title: "Monsoon & Runoff Influence", risk: "medium",
+      desc: `High turbidity (${turb} NTU) paired with recent rainfall (${rainfall}mm) in open water suggests soil and mud runoff.`
+    });
+  }
+
+  // 5. Contamination Risk & Source
+  if (turb > 15 && pH < 7 && sourceType === 'lake') {
+    labels.push({
+      title: "Contamination Source: Organic/Runoff", risk: "high",
+      desc: `High turbidity combined with slight acidity in an open water body often points to decaying organic matter or sewage runoff.`
+    });
+  } else if (turb > 5 && sourceType === 'tank') {
+    labels.push({
+      title: "Contamination Source: Pipe Breach/Sediment", risk: "high",
+      desc: `Visible turbidity (${turb} NTU) in a closed tank/piped system usually indicates a physical breach or severe sediment buildup.`
+    });
+  }
+
+  // 6. Water Use Suitability (WHO & EPA Standards)
+  let safeDrinking = (pH >= 6.5 && pH <= 8.5 && tds <= 500 && turb <= 5);
+  let safeAgri = (pH >= 6.0 && pH <= 8.5 && tds <= 1500);
+
+  if (safeDrinking) {
+    labels.push({
+      title: "Water Use: Safe for Drinking", risk: "safe",
+      desc: "Meets standard WHO physico-chemical guidelines for potable water. (Subject to biological testing)."
+    });
+  } else if (safeAgri) {
+    labels.push({
+      title: "Water Use: Safe for Agriculture", risk: "medium",
+      desc: "Not ideal for direct human consumption, but parameters are acceptable for crop irrigation."
+    });
+  } else {
+    labels.push({
+      title: "Water Use: Unsafe for General Use", risk: "high",
+      desc: "Fails basic potability and irrigation standards. Requires extensive filtration before use."
+    });
+  }
+
+  // Render the cards
+  resultsGrid.innerHTML = "";
+  if (labels.length === 0) {
+    resultsGrid.innerHTML = `<div style="color:white;">No specific risks detected based on current rules.</div>`;
+  } else {
+    labels.forEach(label => {
+      let cssClass = label.risk; 
+      let riskText = label.risk === "high" ? "Critical Risk" : label.risk === "medium" ? "Moderate Risk" : "Optimal / Safe";
+      
+      resultsGrid.innerHTML += `
+        <div class="pred-card ${cssClass}">
+          <span class="pred-badge">${riskText}</span>
+          <div class="pred-title">${label.title}</div>
+          <div class="pred-desc">${label.desc}</div>
+        </div>
+      `;
+    });
+  }
+}
+
+/* ================== MANUAL ENTRY & UTILS ================== */
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.querySelector('span').innerText = msg;
+  toast.classList.add("visible");
+  setTimeout(() => toast.classList.remove("visible"), 3000);
+}
+
+function clearForm() {
+  document.querySelectorAll(".form-input").forEach(input => {
+    if (input.id !== "device-selector" && input.id !== "pred-source" && input.id !== "pred-rain") {
+      input.value = "";
+    }
+  });
+  document.getElementById("coords-display").classList.remove("visible");
+  document.getElementById("add-pin-btn").disabled = true;
+  if (entryPreviewMarker) {
+    entryMap.removeLayer(entryPreviewMarker);
+    entryPreviewMarker = null;
+  }
+}
+
+async function addPin() {
+  const lat = parseFloat(document.getElementById("f-lat").value);
+  const lng = parseFloat(document.getElementById("f-lng").value);
+  const pH = parseFloat(document.getElementById("f-pH").value);
+  const tds = parseFloat(document.getElementById("f-tds").value);
+  const temp = parseFloat(document.getElementById("f-temp").value);
+  const turb = parseFloat(document.getElementById("f-turb").value);
+
+  if ([lat, lng, pH, tds, temp, turb].some(isNaN)) {
+    alert("Fill all fields");
+    return;
+  }
+
+  document.getElementById("add-pin-btn").disabled = true;
+
+  try {
+    const response = await fetch(`/update?id=${currentDeviceId}&lat=${lat}&lng=${lng}&pH=${pH}&tds=${tds}&temp=${temp}&turb=${turb}`);
+    
+    if (response.ok) {
+      showToast("Pin saved successfully!");
+      clearForm();
+    } else {
+      throw new Error("Server rejected entry");
+    }
+  } catch(e) {
+    alert("Error saving pin.");
+    document.getElementById("add-pin-btn").disabled = false;
+  }
+}
+
+async function confirmReset() {
+  const pass = prompt("Enter LDCHEMICAL");
+  if (!pass) return; 
+
+  try {
+    const res = await fetch(`/reset?password=${pass}&id=${currentDeviceId}`);
+    if (res.ok) {
+      alert(`All data cleared for ${currentDeviceId}.`);
+    } else {
+      alert("Wrong password or reset failed.");
+    }
+  } catch (err) {
+    alert("Network error.");
+  }
+}
+
+function exportToCSV() {
+  if (!fullHistoryData || fullHistoryData.length === 0) {
+    showToast("No data available to export!");
+    return;
+  }
+
+  const headers = ["Timestamp", "Date/Time", "Latitude", "Longitude", "Status", "pH Level", "TDS (ppm)", "EC (µS/cm)", "Temp (°C)", "Turbidity (NTU)"];
+  let csvContent = headers.join(",") + "\n";
+
+  fullHistoryData.forEach(row => {
+    const calculatedEC = row.tds ? (row.tds / 0.67).toFixed(1) : "";
+    
+    const rowData = [
+      row.ts || "",
+      `"${row.time || ""}"`, 
+      row.lat || "",
+      row.lng || "",
+      row.status || "",
+      row.pH || "",
+      row.tds || "",
+      calculatedEC,
+      row.temp || "",
+      row.turb || ""
+    ];
+    csvContent += rowData.join(",") + "\n";
   });
 
-  // Use suitability card
-  const uc = document.createElement('div');
-  uc.className = 'pred-label-card';
-  uc.style.animationDelay = (cards.length * 0.06) + 's';
-  const ue = [{icon:'🚰',label:'Drinking',k:'drinking'},{icon:'🏊',label:'Bathing',k:'bathing'},{icon:'🌾',label:'Irrigation',k:'irrigation'},{icon:'🏭',label:'Industrial',k:'industrial'},{icon:'🐟',label:'Aquatic Life',k:'aquatic'}];
-  uc.innerHTML = `<div class="pred-label-card-title">💧 Water Use Suitability</div>
-    <div style="display:flex;flex-direction:column;gap:7px;margin-top:4px">
-    ${ue.map(u => {
-      const ok = labels.uses[u.k].ok, r = labels.uses[u.k].reason;
-      return `<div style="display:flex;align-items:flex-start;gap:9px">
-        <span style="font-size:.85rem;flex-shrink:0;margin-top:1px">${u.icon}</span>
-        <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:7px">
-            <span style="font-size:.76rem;font-weight:700;color:rgba(255,255,255,.8)">${u.label}</span>
-            <span style="font-size:.62rem;font-weight:800;padding:2px 7px;border-radius:10px;background:${ok?'rgba(16,185,129,.15)':'rgba(239,68,68,.12)'};color:${ok?'#34d399':'#f87171'};border:1px solid ${ok?'rgba(16,185,129,.25)':'rgba(239,68,68,.25)'}">${ok?'SUITABLE':'NOT SUITABLE'}</span>
-          </div>
-          ${!ok&&r?`<div style="font-size:.68rem;color:rgba(255,255,255,.32);margin-top:1px">${r.trim()}</div>`:''}
-        </div>
-      </div>`;
-    }).join('')}
-    </div>${accTip('uses')}`;
-  grid.appendChild(uc);
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `${currentDeviceId}_data_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showToast("CSV Exported!");
+}
 
-  // Param table
-  const tbl = document.getElementById('pred-param-table');
-  const pList = [
-    {k:'ph',  v:inp.ph,   l:'pH Level',      u:'',      lo:6.5,hi:8.5, dm:14},
-    {k:'tds', v:inp.tds,  l:'TDS / Solids',  u:'mg/L',  hi:500,        dm:1500},
-    {k:'turb',v:inp.turb, l:'Turbidity',     u:'NTU',   hi:1,          dm:20},
-    {k:'cond',v:inp.cond, l:'Conductivity',  u:'µS/cm', hi:800,        dm:5000},
-    {k:'hard',v:inp.hard, l:'Hardness',      u:'mg/L',  hi:300,        dm:800},
-    {k:'do_v',v:inp.do_v, l:'Dissolved O₂',  u:'mg/L',  lo:5,          dm:12},
-    {k:'bod', v:inp.bod,  l:'BOD',           u:'mg/L',  hi:3,          dm:30},
-    {k:'nit', v:inp.nit,  l:'Nitrates',      u:'mg/L',  hi:10,         dm:50},
-    {k:'fc',  v:inp.fc,   l:'Fecal Coliform',u:'MPN',   hi:0,          dm:10000},
-    {k:'ars', v:inp.ars,  l:'Arsenic',       u:'mg/L',  hi:0.01,       dm:0.1},
-    {k:'lead',v:inp.lead, l:'Lead',          u:'mg/L',  hi:0.01,       dm:0.1},
-    {k:'temp',v:inp.temp, l:'Temperature',   u:'°C',    hi:30,         dm:45},
-  ].filter(p => p.v !== null);
+/* ================== UI CONTROL ================== */
+function navigate(page) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById("page-" + page).classList.add("active");
+  document.getElementById("nav-" + page).classList.add("active");
+  
+  closeSidebar();
 
-  tbl.innerHTML = pList.map(p => {
-    let st, col, pct;
-    if (p.k==='ph') {
-      st=(p.v>=6.5&&p.v<=8.5)?'NORMAL':(p.v<6.0||p.v>9.0)?'ALERT':'MARGINAL';
-      col=st==='NORMAL'?'#10b981':st==='ALERT'?'#ef4444':'#f59e0b'; pct=(p.v/14)*100;
-    } else if (p.k==='do_v') {
-      st=p.v>=5?'NORMAL':p.v>=3?'LOW':'CRITICAL';
-      col=p.v>=5?'#10b981':p.v>=3?'#f59e0b':'#ef4444'; pct=Math.min(100,(p.v/12)*100);
-    } else {
-      const hi=p.hi??1;
-      st=p.v<=hi?'NORMAL':p.v<=hi*2?'MARGINAL':'EXCEEDED';
-      col=p.v<=hi?'#10b981':p.v<=hi*2?'#f59e0b':'#ef4444'; pct=Math.min(100,(p.v/(p.dm||hi*3))*100);
+  setTimeout(() => {
+    if(page === 'dashboard' && mlMap) mlMap.invalidateSize();
+    if(page === 'options' && entryMap) entryMap.invalidateSize();
+    if(page === 'predictions' && predMap) {
+      predMap.invalidateSize();
+      if (currentSelectedPin && window.weatherFetchedForPin !== currentSelectedPin.id) {
+         autoFetchWeather();
+      } else {
+         runPredictions();
+      }
     }
-    const refStr = p.lo!==undefined ? `WHO: ${p.lo}–${p.hi??'–'}` : p.hi!==undefined ? `max: ${p.hi}` : '';
-    return `<div class="param-row">
-      <span class="param-name">${p.l}</span>
-      <span class="param-val">${p.v} <span style="font-size:.62rem;color:rgba(255,255,255,.28)">${p.u}</span></span>
-      <div class="param-bar-wrap"><div class="param-bar-fill" style="width:${pct.toFixed(1)}%;background:${col}"></div></div>
-      <span class="param-status" style="background:${col}22;color:${col};border:1px solid ${col}44">${st}</span>
-      <span style="font-size:.62rem;color:rgba(255,255,255,.22);width:88px;text-align:right;flex-shrink:0">${refStr}</span>
-    </div>`;
-  }).join('');
-
-  // Model breakdown
-  const rfLine = rf && rf.loaded
-    ? `<br>🌧️ <strong style="color:#67e8f9">Rainfall API active</strong> — ${rf.mm24h.toFixed(1)} mm (24h) / ${rf.mm7d.toFixed(1)} mm (7d) from Open-Meteo ERA5 archive. Monsoon and contamination scores adjusted accordingly.`
-    : '⚠️ No rainfall data loaded — add a date and select a pin for enhanced accuracy.';
-
-  document.getElementById('pred-model-breakdown').innerHTML = `
-    <div class="model-card"><div style="font-size:1.4rem;width:36px;flex-shrink:0">🧮</div><div style="flex:1">
-      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Naïve Bayes Potability Classifier <span class="model-pill" style="background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.25);margin-left:6px">19,656 rows · 6 datasets</span></div>
-      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Used ${usedFields} features. Class prior: 39% potable / 61% non-potable. Posterior potability: <strong style="color:${potProb>0.5?'#34d399':'#f87171'}">${(potProb*100).toFixed(1)}%</strong>. Published accuracy on this dataset: ~60–65% (NB). Literature note: dataset features show low class-separation (similar means for both classes) — accuracy ceiling ~68%.</div>
-    </div></div>
-    <div class="model-card"><div style="font-size:1.4rem;width:36px;flex-shrink:0">📏</div><div style="flex:1">
-      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Rule Engine — Indian River Calibrated <span class="model-pill" style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.25);margin-left:6px">2,186 Indian station records</span></div>
-      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">6 labels: Monsoon (score ${monsoonScore}/14, rain boost included), Acid/Alkaline, Contamination (score ${riskScore}/14), Salinity, Hardness/Scaling, Use Suitability. Thresholds: BOD p75=3.6 mg/L, FC p75=993 MPN, Cond p75=592 µS/cm.${rfLine}</div>
-    </div></div>
-    <div class="model-card"><div style="font-size:1.4rem;width:36px;flex-shrink:0">⚗️</div><div style="flex:1">
-      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Chemical Safety NB (waterQuality1) <span class="model-pill" style="background:rgba(139,92,246,.15);color:#a78bfa;border:1px solid rgba(139,92,246,.25);margin-left:6px">7,996 rows · 15 parameters</span></div>
-      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Parameters: Arsenic, Lead, Cadmium, Chromium, Mercury, Uranium, Selenium, Aluminium, Nitrates, Nitrites, Bacteria, Viruses, Copper, Fluoride, Chloramine. Prior: 11.4% safe. Influences contamination source ID.</div>
-    </div></div>
-    <div class="model-card"><div style="font-size:1.4rem;width:36px;flex-shrink:0">🌧️</div><div style="flex:1">
-      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Open-Meteo Rainfall API <span class="model-pill" style="background:rgba(6,182,212,.15);color:#67e8f9;border:1px solid rgba(6,182,212,.25);margin-left:6px">Free · No API key · ERA5 reanalysis</span></div>
-      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Historical archive API: archive-api.open-meteo.com. Returns daily precipitation_sum and rain_sum from ERA5 (0.25° resolution, 1940–present). Fetches 7 days before the sample date. Data used to: (1) boost monsoon score when rainfall ≥5 mm/day, (2) flag rain-borne contamination sources, (3) raise drinking-water risk on heavy-rain days.</div>
-    </div></div>`;
+  }, 100);
 }
 
-// ── Presets
-const PRESETS = {
-  clean:    {ph:7.3,tds:120,temp:22,turb:0.5,cond:180,hard:110,bod:1.0,do_v:8.2,fc:2,tc:15,nit:2,sulf:80},
-  urban:    {ph:7.8,tds:680,temp:28,turb:18,cond:850,hard:280,bod:22,do_v:2.1,fc:4800,tc:18000,nit:24,sulf:220},
-  monsoon:  {ph:6.9,tds:310,temp:27,turb:42,cond:420,hard:160,bod:8.5,do_v:3.8,fc:2200,tc:9000,nit:12,sulf:140},
-  acid:     {ph:3.2,tds:1200,temp:18,turb:5,cond:2800,hard:380,bod:4,do_v:6.0,fc:5,tc:20,nit:3,sulf:480},
-  coastal:  {ph:7.9,tds:3200,temp:29,turb:8,cond:5800,hard:520,bod:3.2,do_v:5.5,fc:80,tc:450,nit:8,sulf:320},
-  industrial:{ph:4.8,tds:1800,temp:35,turb:22,cond:3100,hard:450,bod:35,do_v:1.2,fc:150,tc:800,nit:35,ars:0.08,lead:0.04,al:1.2},
-};
-
-function loadPreset(name) {
-  const p = PRESETS[name]; if (!p) return;
-  const set = (id, v) => { const el=document.getElementById(id); if(el&&v!==undefined) el.value=v; };
-  set('pi-ph',p.ph); set('pi-tds',p.tds); set('pi-temp',p.temp); set('pi-turb',p.turb);
-  set('pi-cond',p.cond); set('pi-hard',p.hard);
-  if(p.bod||p.do_v||p.fc){
-    document.getElementById('ext-params').style.display='grid';
-    document.getElementById('ext-arrow').style.transform='rotate(180deg)';
-    set('pi-bod',p.bod); set('pi-do',p.do_v); set('pi-fc',p.fc); set('pi-tc',p.tc);
-    set('pi-nit',p.nit); set('pi-sulf',p.sulf);
-    if(p.ars)set('pi-ars',p.ars); if(p.lead)set('pi-lead',p.lead); if(p.al)set('pi-al',p.al);
+function toggleSidebar(){
+  const sidebar = document.getElementById("sidebar");
+  if (sidebar.classList.contains("open")) {
+    closeSidebar();
+  } else {
+    openSidebar();
   }
-  livePredict();
 }
 
-function clearPredict() {
-  document.querySelectorAll('[id^="pi-"]').forEach(el => el.value='');
-  document.getElementById('pred-results').style.display='none';
-  document.getElementById('pred-placeholder').style.display='block';
-  rainfallData = null;
-  document.getElementById('rain-box').style.display='none';
-  document.getElementById('rain-context-banner').style.display='none';
-  predSelectedLat = null; predSelectedLng = null;
-  document.getElementById('pred-pin-status').textContent='No pin selected — or enter values manually below';
+function openSidebar(){
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("overlay").classList.add("visible");
+  document.querySelector(".main").style.filter = "blur(8px)";
 }
 
-function toggleExtended() {
-  const p=document.getElementById('ext-params'), a=document.getElementById('ext-arrow');
-  const open = p.style.display !== 'none';
-  p.style.display = open ? 'none' : 'grid';
-  a.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+function closeSidebar(){
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("overlay").classList.remove("visible");
+  document.querySelector(".main").style.filter = "blur(0)";
 }
 
-// ── Hook into navigate so predict map initialises on first visit
-const _origNavigate = navigate;
-window.navigate = function(page) {
-  _origNavigate(page);
-  if (page === 'predict') {
-    setTimeout(() => {
-      initPredMap();
-      refreshPredMapPins();
-      if (predMap) predMap.invalidateSize();
-    }, 80);
-  }
-};
+window.addEventListener("load", () => {
+  initDashboardMap();
+  initEntryMap();
+  initPredMap(); // Initialize the new predictions map
+});
 </script>
 </body>
 </html>
