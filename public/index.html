@@ -638,7 +638,7 @@ select option{background:#0f172a;color:white}
                   <div class="form-title-icon" style="background:rgba(59, 130, 246, 0.2); color:#60a5fa; padding:6px; border-radius:8px;">
                     <svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6a1 1 0 0 0-1 1v5a1 1 0 0 0 .29.71l3 3a1 1 0 0 0 1.42-1.42L13 11.58V7a1 1 0 0 0-1-1z"/></svg>
                   </div>
-                  GEMINI AI SUMMARY
+                  LLAMA 3.3 AI SUMMARY
                 </div>
                 
                 <button id="ai-trigger-btn" class="btn-primary" style="padding: 8px 16px; font-size: 0.85rem; border-radius: 12px; flex: 0 1 auto;" onclick="handleManualAIRequest()">
@@ -647,7 +647,7 @@ select option{background:#0f172a;color:white}
               </div>
               
               <div id="ai-summary-text" style="font-size:0.9rem; line-height:1.6; color:rgba(255,255,255,0.8); min-height: 40px;">
-                <i style="color: rgba(255,255,255,0.4);">Click "Generate Report" above to request a professional analysis from Gemini AI.</i>
+                <i style="color: rgba(255,255,255,0.4);">Click "Generate Report" above to request a professional analysis from Llama 3.3 AI.</i>
               </div>
               
               <div id="ai-loading" style="display:none; align-items:center; gap:10px; margin-top:10px; color:#60a5fa; font-size:0.8rem;">
@@ -1127,7 +1127,7 @@ function selectPredPin(pin, idx) {
   }
 
   // Clear any existing AI output when switching pins to avoid confusion
-  document.getElementById('ai-summary-text').innerHTML = `<i style="color: rgba(255,255,255,0.4);">Click "Generate Report ✨" above to request a professional analysis from Gemini AI for this new location.</i>`;
+  document.getElementById('ai-summary-text').innerHTML = `<i style="color: rgba(255,255,255,0.4);">Click "Generate Report ✨" above to request a professional analysis from Llama 3.3 AI for this new location.</i>`;
 
   fetchRainfallIfReady();
   livePredict();
@@ -1571,9 +1571,6 @@ function livePredict() {
       <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Open-Meteo Weather Intergration <span class="model-pill" style="background:rgba(6,182,212,.15);color:#67e8f9;border:1px solid rgba(6,182,212,.25);margin-left:6px">Live Forecast & Historical Data</span></div>
       <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Automatically reaches out to global weather satellites to check if it rained in the last 7 days at your selected map pin. If it did, the AI instantly increases the danger rating for flood-borne bacteria and surface dirt mixing into the water.</div>
     </div></div>`;
-    
-  // NOT CALLING THE BACKGROUND AI SCRIPT ANYMORE. 
-  // It waits for the user to click the button!
 }
 
 const PRESETS = {
@@ -1599,7 +1596,7 @@ function loadPreset(name) {
   }
   
   // Clear any existing AI output when switching presets to avoid confusion
-  document.getElementById('ai-summary-text').innerHTML = `<i style="color: rgba(255,255,255,0.4);">Click "Generate Report ✨" above to request a professional analysis from Gemini AI for this preset.</i>`;
+  document.getElementById('ai-summary-text').innerHTML = `<i style="color: rgba(255,255,255,0.4);">Click "Generate Report ✨" above to request a professional analysis from Llama 3.3 AI for this preset.</i>`;
 
   livePredict();
 }

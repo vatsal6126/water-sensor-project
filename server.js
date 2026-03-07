@@ -10,7 +10,9 @@ const axios = require("axios");
 const FIREBASE_DB = "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
 const RESET_PASSWORD = "LDCHEMICAL";
 const PORT = process.env.PORT || 3000;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
+
+// Uses Render Environment Variable if available, otherwise uses your provided fallback key
+const GROQ_API_KEY = process.env.GROQ_API_KEY; 
 
 const NTFY_TOPIC = "chemeleon_water_alerts"; 
 
@@ -22,10 +24,10 @@ app.use(express.json());
 
 server.listen(PORT, () => {
   console.log("✅ Server running on port " + PORT);
-  if (!GEMINI_API_KEY) {
-      console.log("⚠️ WARNING: GEMINI_API_KEY is missing. Add it to Render Environment Variables.");
+  if (!GROQ_API_KEY) {
+      console.log("⚠️ WARNING: GROQ_API_KEY is missing. Add it to Render Environment Variables.");
   } else {
-      console.log("🤖 Gemini API Key loaded successfully.");
+      console.log("🦙 Groq Llama 3.3 API Key loaded successfully.");
   }
 });
 
@@ -65,14 +67,14 @@ async function sendNtfyAlert(entry, deviceId) {
   }
 }
 
-// ================= AI SUMMARY ROUTE (SECURE) =================
+// ================= AI SUMMARY ROUTE (GROQ LLAMA 3.3) =================
 app.post("/api/ai-summary", async (req, res) => {
   const { ph, tds, temp, turb } = req.body;
 
-  console.log(`🤖 Received AI request for pH:${ph}, TDS:${tds}, Temp:${temp}, Turb:${turb}`);
+  console.log(`🦙 Received AI request for pH:${ph}, TDS:${tds}, Temp:${temp}, Turb:${turb}`);
 
-  if (!GEMINI_API_KEY) {
-    console.error("❌ Server missing GEMINI_API_KEY");
+  if (!GROQ_API_KEY) {
+    console.error("❌ Server missing GROQ_API_KEY");
     return res.status(500).json({ error: "Server missing API Key configuration in Render." });
   }
 
@@ -86,22 +88,31 @@ app.post("/api/ai-summary", async (req, res) => {
   Use simple, friendly language. Format it nicely. Try to keep it small and easy to understand.`;
 
   try {
-    // USING GEMINI 2.5 FLASH
+    // UPDATED TO USE GROQ LLAMA 3.3 70B
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
+      `https://api.groq.com/openai/v1/chat/completions`,
       {
-        contents: [{ parts: [{ text: prompt }] }]
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ]
       },
       {
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${GROQ_API_KEY}`
+        }
       }
     );
 
-    const output = response.data.candidates[0].content.parts[0].text;
-    console.log("✅ Successfully generated Gemini response.");
+    const output = response.data.choices[0].message.content;
+    console.log("✅ Successfully generated Llama 3.3 response.");
     res.json({ summary: output });
   } catch (error) {
-    console.error("❌ Gemini API Error:", error.response ? JSON.stringify(error.response.data) : error.message);
+    console.error("❌ Groq API Error:", error.response ? JSON.stringify(error.response.data) : error.message);
     res.status(500).json({ error: "Failed to generate AI summary. You may have hit a rate limit." });
   }
 });
