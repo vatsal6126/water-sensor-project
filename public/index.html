@@ -135,7 +135,7 @@ select.device-selector:focus {
 @media(min-width:768px){.metrics-grid{grid-template-columns:repeat(3,1fr)}}
 @media(min-width:1024px){.metrics-grid{grid-template-columns:repeat(5,1fr);gap:16px}}
 .metric-card{border-radius:24px;padding:20px;cursor:pointer;transition:all .4s cubic-bezier(0.16,1,0.3,1)}
-.metric-card:hover{transform:translateY(-2px)}
+.metric-card:hover{transform:translateY(-2px); background:rgba(255,255,255,.12) !important;}
 .metric-card.active{background:rgba(255,255,255,.1)!important;transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,.3);outline:1px solid rgba(255,255,255,.2)}
 .metric-icon{padding:10px;background:rgba(255,255,255,.05);border-radius:12px;display:inline-flex;margin-bottom:16px;color:rgba(255,255,255,.7)}
 .metric-label{color:rgba(255,255,255,.5);font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:4px}
@@ -146,15 +146,21 @@ select.device-selector:focus {
 /* CHARTS */
 .charts-container{display:flex;flex-direction:column;gap:16px;flex-shrink:0;padding-bottom:20px}
 .chart-section{min-height:180px;background:rgba(0,0,0,.1);border-radius:24px;padding:20px;border:1px solid rgba(255,255,255,.05);position:relative;transition:box-shadow .4s ease}
-.chart-header{color:rgba(255,255,255,.8);font-weight:500;font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.chart-header{color:rgba(255,255,255,.8);font-weight:500;font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.chart-expand-btn {background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.7); cursor:pointer; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; transition:all 0.3s ease;}
+.chart-expand-btn:hover {background:rgba(255,255,255,0.15); color:#fff; transform:scale(1.05);}
 .chart-dot{width:12px;height:12px;border-radius:50%;background:#60a5fa;transition:background .4s ease}
 .chart-canvas-wrapper{height:140px;position:relative}
 .svg-chart{width:100%;height:100%;overflow:visible}
-.chart-tooltip{position:absolute;background:rgba(15,23,42,.95);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 14px;font-size:.78rem;pointer-events:none;display:none;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:50;transform:translate(-50%,-110%);transition:left .1s ease}
-.chart-tooltip.visible{display:block}
+.chart-tooltip{position:absolute;background:rgba(15,23,42,.95);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 14px;font-size:.78rem;pointer-events:none;opacity:0;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:50;transform:translate(-50%,-110%);transition:opacity 0.2s, left 0.1s ease;}
+.chart-tooltip.visible{opacity:1;}
 .ct-time{color:rgba(255,255,255,.5);font-size:.7rem;margin-bottom:4px}
 .ct-val{font-weight:800;font-size:1rem;color:#fff}
 .ct-unit{font-size:.7rem;color:rgba(255,255,255,.4);margin-left:2px}
+
+/* FULLSCREEN MODAL */
+#fs-modal {position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(12px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity 0.3s cubic-bezier(0.16,1,0.3,1);}
+#fs-modal.visible {opacity:1;pointer-events:auto;}
 
 /* PAGE CONTENT */
 .page-content{padding:24px;overflow-y:auto;flex:1}
@@ -194,7 +200,7 @@ select.device-selector:focus {
 .btn-primary:hover{background:linear-gradient(90deg,#3b82f6,#60a5fa);box-shadow:0 0 30px rgba(59,130,246,.5);transform:scale(1.02)}
 .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
 .btn-secondary{background:rgba(255,255,255,.05);color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:16px;border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:all .3s ease}
-.btn-secondary:hover{background:rgba(255,255,255,.1)}
+.btn-secondary:hover{background:rgba(255,255,255,.15); box-shadow:0 0 15px rgba(255,255,255,.05);}
 
 /* TOAST */
 .toast{position:fixed;bottom:32px;right:32px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);backdrop-filter:blur(12px);color:#34d399;padding:14px 28px;border-radius:16px;font-weight:600;font-size:.95rem;transform:translateY(100px);opacity:0;transition:all .4s cubic-bezier(.4,0,.2,1);z-index:9999;box-shadow:0 10px 40px rgba(0,0,0,.4);display:flex;align-items:center;gap:12px}
@@ -211,12 +217,12 @@ select.device-selector:focus {
 .btn-danger:hover{background:rgba(239,68,68,.2);box-shadow:0 0 20px rgba(239,68,68,.2)}
 
 /* ABOUT */
-.about-page{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;min-height:100vh;overflow-y:auto}
-.about-inner{max-width:768px;width:100%;text-align:center;position:relative;z-index:10}
+.about-page{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px;min-height:100vh;overflow-y:auto}
+.about-inner{max-width:800px;width:100%;text-align:center;position:relative;z-index:10; padding-top:32px;}
 .about-logo-wrap{width:80px;height:80px;background:linear-gradient(135deg,#3b82f6,#06b6d4);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 32px;box-shadow:0 0 40px rgba(59,130,246,.4);transform:rotate(3deg)}
 .about-heading{font-size:3rem;font-weight:900;letter-spacing:-.02em;background:linear-gradient(90deg,#60a5fa,#67e8f9,#60a5fa);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:20px}
 @media(min-width:768px){.about-heading{font-size:5rem}}
-.about-desc{color:rgba(255,255,255,.6);font-size:1rem;max-width:480px;margin:0 auto 64px;font-weight:300;line-height:1.7}
+.about-desc{color:rgba(255,255,255,.6);font-size:1rem;max-width:550px;margin:0 auto 64px;font-weight:300;line-height:1.7}
 @media(min-width:768px){.about-desc{font-size:1.25rem}}
 .team-panel{border-radius:40px;padding:40px;position:relative;overflow:hidden}
 @media(min-width:768px){.team-panel{padding:48px}}
@@ -299,6 +305,35 @@ select option{background:#0f172a;color:white}
 <div id="toast" class="toast">
   <svg class="toast-icon icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
   <span id="toast-msg">Pin saved successfully!</span>
+</div>
+
+<div id="fs-modal">
+  <div class="glass-panel" style="width:100%; max-width:1100px; height:85vh; border-radius: 28px; display:flex; flex-direction:column; padding: 24px; position:relative; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 20px 80px rgba(0,0,0,0.8);">
+    <button onclick="closeFS()" style="position:absolute; top:24px; right:24px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:36px; height:36px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.2s; z-index: 10;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
+    <div style="display: flex; flex-direction: column; margin-bottom: 20px;">
+      <h2 id="fs-title" style="font-size: 1.5rem; font-weight: 800; background: linear-gradient(90deg,#fff 0%,rgba(255,255,255,.7) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 12px;">Detailed Graph</h2>
+      <div style="display:flex; gap:10px;">
+          <button class="btn-secondary" onclick="zoomFS(1.3)" style="padding: 8px 16px; font-size: 0.85rem; border-radius: 12px; display:flex; align-items:center; gap:6px;">
+            <svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg> Zoom In
+          </button>
+          <button class="btn-secondary" onclick="zoomFS(0.77)" style="padding: 8px 16px; font-size: 0.85rem; border-radius: 12px; display:flex; align-items:center; gap:6px;">
+            <svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg> Zoom Out
+          </button>
+          <button class="btn-secondary" onclick="zoomFS(0)" style="padding: 8px 16px; font-size: 0.85rem; border-radius: 12px; display:flex; align-items:center; gap:6px;">
+            <svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Reset
+          </button>
+      </div>
+    </div>
+    <div style="flex:1; overflow-x:auto; overflow-y:hidden; position:relative; border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; background: rgba(0,0,0,0.2);">
+        <svg id="fs-chart" class="svg-chart" preserveAspectRatio="none" style="height:100%; min-width:100%;"></svg>
+        <div class="chart-tooltip" id="fs-tooltip">
+          <div class="ct-time" id="fs-time">--</div>
+          <div><span class="ct-val" id="fs-val">--</span><span class="ct-unit" id="fs-unit"></span></div>
+        </div>
+    </div>
+  </div>
 </div>
 
 <div class="app">
@@ -415,8 +450,13 @@ select option{background:#0f172a;color:white}
           <div class="charts-container">
             <div class="chart-section glass-card" id="chart-section-bg-global">
               <div class="chart-header">
-                <div class="chart-dot" id="chart-dot-global"></div>
-                Global System Trend (<span id="chart-metric-label-global">pH</span>)
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div class="chart-dot" id="chart-dot-global"></div>
+                  Global System Trend (<span id="chart-metric-label-global">pH</span>)
+                </div>
+                <button class="chart-expand-btn" onclick="openFS('global')" title="Fullscreen Graph">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                </button>
               </div>
               <div class="chart-canvas-wrapper" id="chart-wrapper-global">
                 <svg id="area-chart-global" class="svg-chart" viewBox="0 0 800 150" preserveAspectRatio="none"></svg>
@@ -428,8 +468,13 @@ select option{background:#0f172a;color:white}
             </div>
             <div class="chart-section glass-card" id="chart-section-bg-local">
               <div class="chart-header">
-                <div class="chart-dot" id="chart-dot-local"></div>
-                Selected Location AI Forecast (<span id="chart-metric-label-local">pH</span>)
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div class="chart-dot" id="chart-dot-local"></div>
+                  Selected Location AI Forecast (<span id="chart-metric-label-local">pH</span>)
+                </div>
+                <button class="chart-expand-btn" onclick="openFS('local')" title="Fullscreen Graph">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                </button>
               </div>
               <div class="chart-canvas-wrapper" id="chart-wrapper-local">
                 <svg id="area-chart-local" class="svg-chart" viewBox="0 0 800 150" preserveAspectRatio="none"></svg>
@@ -655,24 +700,17 @@ select option{background:#0f172a;color:white}
               </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:14px;margin-bottom:16px" id="pred-labels-grid"></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:14px;margin-bottom:32px" id="pred-labels-grid"></div>
 
-            <div class="glass-panel" style="border-radius:26px;padding:24px 28px;margin-bottom:16px">
+            <div class="glass-panel" style="border-radius:26px;padding:24px 28px;margin-bottom:32px">
               <div class="form-title" style="margin-bottom:16px;font-size:.95rem">
                 <div class="form-title-icon" style="padding:6px"><svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
                 Parameter Analysis vs WHO / BIS Standards
               </div>
               <div id="pred-param-table" style="display:flex;flex-direction:column;gap:5px"></div>
             </div>
-
-            <div class="glass-panel" style="border-radius:26px;padding:24px 28px;margin-bottom:32px">
-              <div class="form-title" style="margin-bottom:16px;font-size:.95rem">
-                <div class="form-title-icon" style="padding:6px;background:rgba(139,92,246,.2);color:#a78bfa"><svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
-                Model & Training Data Breakdown
-              </div>
-              <div id="pred-model-breakdown" style="display:flex;flex-direction:column;gap:10px"></div>
+            
             </div>
-          </div>
 
           <div id="pred-placeholder" style="text-align:center;padding:40px 24px;color:rgba(255,255,255,.25)">
             <svg style="width:52px;height:52px;margin:0 auto 14px;display:block;opacity:.3;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -691,7 +729,8 @@ select option{background:#0f172a;color:white}
             <h1 class="about-heading">CHEMELEON</h1>
             <p class="about-desc">Advanced water quality monitoring dashboard with real-time sensor integration, geospatial visualization, and AI-powered quality prediction.</p>
           </div>
-          <div class="team-panel glass-panel">
+          
+          <div class="team-panel glass-panel" style="margin-bottom: 32px;">
             <div class="team-deco-1"></div><div class="team-deco-2"></div>
             <div class="team-label">The Team Behind the Project</div>
             <div class="team-grid">
@@ -701,6 +740,35 @@ select option{background:#0f172a;color:white}
               <div class="team-card glass-card"><div class="team-avatar"><span class="team-avatar-letter">R</span></div><div><div class="team-name">RAHUL DORA</div><div class="team-role"></div></div></div>
             </div>
           </div>
+          
+          <div class="glass-panel" style="border-radius:32px;padding:32px; text-align:left; position:relative; overflow:hidden;">
+            <div class="form-title" style="margin-bottom:24px;font-size:1.15rem; color:white;">
+              <div class="form-title-icon" style="background:rgba(139,92,246,.2);color:#a78bfa; padding:8px; border-radius:12px;">
+                  <svg class="icon" style="width:20px;height:20px" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              </div>
+              Core Engine & Training Data Breakdown
+            </div>
+            
+            <div style="display:flex;flex-direction:column;gap:20px">
+              <div class="model-card"><div style="font-size:1.8rem;width:40px;flex-shrink:0">🧮</div><div style="flex:1">
+                <div style="font-weight:700;font-size:.9rem;color:rgba(255,255,255,.9);margin-bottom:4px">AI Potability Analyzer <span class="model-pill" style="background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.25);margin-left:8px; vertical-align: middle;">Nearly 20,000 reference samples</span></div>
+                <div style="font-size:.8rem;color:rgba(255,255,255,.5);line-height:1.6">Analyzes up to 12 distinct sensor readings simultaneously. The algorithm mathematically compares your current water's chemical signature to thousands of historical global records to output an accurate safety confidence rating.</div>
+              </div></div>
+              <div class="model-card"><div style="font-size:1.8rem;width:40px;flex-shrink:0">📏</div><div style="flex:1">
+                <div style="font-weight:700;font-size:.9rem;color:rgba(255,255,255,.9);margin-bottom:4px">Safety Rules & Guidelines <span class="model-pill" style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.25);margin-left:8px; vertical-align: middle;">2,100+ Indian monitoring stations</span></div>
+                <div style="font-size:.8rem;color:rgba(255,255,255,.5);line-height:1.6">Strictly cross-checks the water against established WHO and BIS environmental guidelines. Runs independent safety checks to flag flood risks, acidic danger, high salinity, plumbing hardness, and specific use suitabilities.</div>
+              </div></div>
+              <div class="model-card"><div style="font-size:1.8rem;width:40px;flex-shrink:0">⚗️</div><div style="flex:1">
+                <div style="font-weight:700;font-size:.9rem;color:rgba(255,255,255,.9);margin-bottom:4px">Heavy Metal Risk Analyzer <span class="model-pill" style="background:rgba(139,92,246,.15);color:#a78bfa;border:1px solid rgba(139,92,246,.25);margin-left:8px; vertical-align: middle;">15 specific chemical parameters</span></div>
+                <div style="font-size:.8rem;color:rgba(255,255,255,.5);line-height:1.6">Watches out specifically for hazardous microscopic materials like Arsenic, Lead, and excessive Coliform Bacteria. This allows the system to identify exactly where contamination might be originating (e.g. factory runoff vs biological waste).</div>
+              </div></div>
+              <div class="model-card"><div style="font-size:1.8rem;width:40px;flex-shrink:0">🌧️</div><div style="flex:1">
+                <div style="font-weight:700;font-size:.9rem;color:rgba(255,255,255,.9);margin-bottom:4px">Open-Meteo Weather Integration <span class="model-pill" style="background:rgba(6,182,212,.15);color:#67e8f9;border:1px solid rgba(6,182,212,.25);margin-left:8px; vertical-align: middle;">Live Forecast & Historical Data</span></div>
+                <div style="font-size:.8rem;color:rgba(255,255,255,.5);line-height:1.6">Automatically reaches out to global weather satellites to verify rainfall over the last 7 days at your exact map pin. If heavy rain is detected, the AI instantly increases the mathematical danger rating for flood-borne bacteria.</div>
+              </div></div>
+            </div>
+          </div>
+
           <div class="about-footer">© <span id="year">2026</span> CHEMELEON PROJECT. ALL RIGHTS RESERVED.</div>
         </div>
       </div>
@@ -709,6 +777,33 @@ select option{background:#0f172a;color:white}
   </main>
 </div>
 <script>
+// ══════════════════════════════════════════════════════════
+// AUDIO UX (Subtle Water Pop)
+// ══════════════════════════════════════════════════════════
+let audioCtx = null;
+function playPop() {
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(250, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.04, audioCtx.currentTime); 
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    } catch(e){}
+}
+// Trigger on clicks without blocking standard events
+document.addEventListener('pointerdown', (e) => {
+    const isInteractive = e.target.closest('button') || e.target.closest('.metric-card') || e.target.closest('select') || e.target.closest('.nav-item') || e.target.closest('.ml-marker') || e.target.closest('.chart-expand-btn');
+    if (isInteractive) { playPop(); }
+});
+
 // ══════════════════════════════════════════════════════════
 //  FIREBASE
 // ══════════════════════════════════════════════════════════
@@ -807,7 +902,9 @@ function setupRealtimeListener(){
     fullHistoryData=Object.values(data).sort((a,b)=>a.ts-b.ts);
     const sl=document.getElementById('tm-slider');sl.max=fullHistoryData.length-1;
     if(mode==='LIVE')sl.value=fullHistoryData.length-1;
-    globalChartData=fullHistoryData.slice(-20);drawGlobalChart();
+    
+    // CHANGED: Showing up to 30 history elements for better fullscreen depth
+    globalChartData=fullHistoryData.slice(-30);drawGlobalChart();
     if(currentSelectedPin)updateChartForSelectedPin();
   });
 }
@@ -856,7 +953,7 @@ function selectPin(index){
 function updateChartForSelectedPin(){
   if(!currentSelectedPin)return;
   const loc=fullHistoryData.filter(e=>{if(!e.lat||!e.lng)return false;return getDistance(currentSelectedPin.lat,currentSelectedPin.lng,e.lat,e.lng)<=25;});
-  localChartData=loc.slice(-20);drawLocalChart();
+  localChartData=loc.slice(-30);drawLocalChart();
 }
 
 function setActiveMetric(metric,color){
@@ -869,6 +966,7 @@ function setActiveMetric(metric,color){
     document.getElementById('chart-section-bg-'+t).style.background=`radial-gradient(circle at top right,${color}22 0%,rgba(0,0,0,.1) 70%)`;
   });
   drawGlobalChart();drawLocalChart();
+  if (document.getElementById('fs-modal').classList.contains('visible')) drawFSChart();
 }
 
 function buildSmoothPath(pts){
@@ -878,23 +976,29 @@ function buildSmoothPath(pts){
   return p;
 }
 
+// Custom formatter to fix squished axes - truncates large numbers, keeps 1 decimal for small ones
+const formatAxisNum = v => v < 20 ? v.toFixed(1) : Math.round(v);
+
 function drawGlobalChart(){
   const svg=document.getElementById('area-chart-global');svg.innerHTML='';
   if(!globalChartData||!globalChartData.length)return;
-  const W=800,H=150,xO=40,cW=W-xO-20;
+  const W=800,H=150,xO=55,cW=W-xO-20; // Increased xO to 55 to stop squishing
   const vals=globalChartData.map(d=>activeMetric==='ec'?Number((d.tds/0.67).toFixed(1)):Number(d[activeMetric]));
   const times=globalChartData.map(d=>d.time?d.time:new Date(d.ts).toLocaleTimeString());
   let max=Math.max(...vals),min=Math.min(...vals);if(max===min){max+=1;min-=1;}
   const mid=(max+min)/2,range=max-min;
+  
   const grid=`<line x1="${xO}" y1="15" x2="${W}" y2="15" stroke="rgba(255,255,255,.1)" stroke-width="1" stroke-dasharray="4,4"/>
-    <text x="0" y="20" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${max.toFixed(1)}</text>
+    <text x="10" y="20" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${formatAxisNum(max)}</text>
     <line x1="${xO}" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="rgba(255,255,255,.05)" stroke-width="1" stroke-dasharray="4,4"/>
-    <text x="0" y="${H/2+4}" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${mid.toFixed(1)}</text>
+    <text x="10" y="${H/2+4}" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${formatAxisNum(mid)}</text>
     <line x1="${xO}" y1="${H-15}" x2="${W}" y2="${H-15}" stroke="rgba(255,255,255,.1)" stroke-width="1" stroke-dasharray="4,4"/>
-    <text x="0" y="${H-10}" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${min.toFixed(1)}</text>`;
+    <text x="10" y="${H-10}" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${formatAxisNum(min)}</text>`;
+    
   const pts=vals.map((v,i)=>({x:xO+(i/Math.max(1,vals.length-1))*cW,y:H-15-((v-min)/range)*(H-30)}));
   const ac=document.getElementById('chart-dot-global').style.background||'#3b82f6';
   svg.innerHTML=grid+`<path d="${buildSmoothPath(pts)}" fill="none" stroke="${ac}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+  
   const tt=document.getElementById('chart-tooltip-global');
   svg.onmousemove=e=>{const rect=svg.getBoundingClientRect(),sX=W/rect.width,svgX=(e.clientX-rect.left)*sX;if(svgX<xO){tt.classList.remove('visible');return;}let ci=0,md=Infinity;pts.forEach((p,i)=>{const d=Math.abs(svgX-p.x);if(d<md){md=d;ci=i;}});tt.classList.add('visible');tt.style.left=(pts[ci].x/sX)+'px';tt.style.top='20px';document.getElementById('ct-time-global').innerText=times[ci];document.getElementById('ct-val-global').innerText=vals[ci];document.getElementById('ct-unit-global').innerText=activeMetric==='tds'?' ppm':activeMetric==='temp'?' °C':activeMetric==='turb'?' NTU':activeMetric==='ec'?' µS/cm':'';};
   svg.onmouseleave=()=>tt.classList.remove('visible');
@@ -903,29 +1007,119 @@ function drawGlobalChart(){
 function drawLocalChart(){
   const svg=document.getElementById('area-chart-local');svg.innerHTML='';
   if(!localChartData||!localChartData.length){svg.innerHTML=`<text x="400" y="80" fill="rgba(255,255,255,.3)" font-size="12" font-weight="600" font-family="Outfit" text-anchor="middle" letter-spacing="0.1em">SELECT A PIN TO VIEW LOCAL HISTORY</text>`;return;}
-  const W=800,H=150,xO=40;
+  const W=800,H=150,xO=55; // Increased xO to 55
   const vals=localChartData.map(d=>activeMetric==='ec'?Number((d.tds/0.67).toFixed(1)):Number(d[activeMetric]));
   const times=localChartData.map(d=>d.time?d.time:new Date(d.ts).toLocaleTimeString());
   let allV=[...vals],predY=null,hasPred=vals.length>=4;
+  
   if(hasPred){let n=vals.length,sx=0,sy=0,sxy=0,sxx=0;for(let i=0;i<n;i++){sx+=i;sy+=vals[i];sxy+=i*vals[i];sxx+=i*i;}let m=(n*sxy-sx*sy)/(n*sxx-sx*sx)||0,b=(sy-m*sx)/n;predY=Math.max(0,m*(n+2)+b);allV.push(predY);}
   let max=Math.max(...allV),min=Math.min(...allV);if(max===min){max+=1;min-=1;}
   const mid=(max+min)/2,range=max-min;
+  
   const grid=`<line x1="${xO}" y1="15" x2="${W}" y2="15" stroke="rgba(255,255,255,.1)" stroke-width="1" stroke-dasharray="4,4"/>
-    <text x="0" y="20" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${max.toFixed(1)}</text>
+    <text x="10" y="20" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${formatAxisNum(max)}</text>
     <line x1="${xO}" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="rgba(255,255,255,.05)" stroke-width="1" stroke-dasharray="4,4"/>
-    <text x="0" y="${H/2+4}" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${mid.toFixed(1)}</text>
+    <text x="10" y="${H/2+4}" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${formatAxisNum(mid)}</text>
     <line x1="${xO}" y1="${H-15}" x2="${W}" y2="${H-15}" stroke="rgba(255,255,255,.1)" stroke-width="1" stroke-dasharray="4,4"/>
-    <text x="0" y="${H-10}" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${min.toFixed(1)}</text>`;
+    <text x="10" y="${H-10}" fill="rgba(255,255,255,.4)" font-size="12" font-weight="600" font-family="Outfit">${formatAxisNum(min)}</text>`;
+    
   const cW=hasPred?(W-xO)*0.70:W-xO-20;
   const pts=vals.map((v,i)=>({x:xO+(i/Math.max(1,vals.length-1))*cW,y:H-15-((v-min)/range)*(H-30)}));
   const ac=document.getElementById('chart-dot-local').style.background||'#3b82f6';
   let fHtml='',futX=0,futY=0;
-  if(hasPred){futX=xO+cW+(W-xO)*0.2;futY=H-15-((predY-min)/range)*(H-30);const lp=pts[pts.length-1];let danger=false;if(activeMetric==='pH'&&(predY<6.5||predY>8.5))danger=true;if(activeMetric==='tds'&&predY>500)danger=true;if(activeMetric==='temp'&&predY>35)danger=true;if(activeMetric==='turb'&&predY>10)danger=true;if(activeMetric==='ec'&&predY>800)danger=true;const bc=danger?'#ef4444':'#10b981';fHtml=`<path d="M${lp.x},${lp.y} L${futX},${futY}" fill="none" stroke="${bc}" stroke-width="3" stroke-linecap="round" stroke-dasharray="8,8" opacity=".8"/><circle cx="${futX}" cy="${futY}" r="4" fill="${bc}"/><rect x="${futX-70}" y="${futY-30}" width="140" height="20" rx="6" fill="rgba(15,23,42,.9)" stroke="${bc}" stroke-width="1"/><text x="${futX}" y="${futY-16}" fill="${bc}" font-size="10" font-weight="700" font-family="Outfit" text-anchor="middle" letter-spacing=".05em">${danger?'FORECAST: WARNING':'FORECAST: SAFE'}</text>`;}
-  else{fHtml=`<text x="${W/2+60}" y="${H/2}" fill="rgba(255,255,255,.2)" font-size="12" font-weight="600" font-family="Outfit" text-anchor="middle" letter-spacing=".1em">&lt; 4 VALUES. NO PREDICTION YET.</text>`;}
+  
+  if(hasPred){
+    futX=xO+cW+(W-xO)*0.2;futY=H-15-((predY-min)/range)*(H-30);const lp=pts[pts.length-1];let danger=false;if(activeMetric==='pH'&&(predY<6.5||predY>8.5))danger=true;if(activeMetric==='tds'&&predY>500)danger=true;if(activeMetric==='temp'&&predY>35)danger=true;if(activeMetric==='turb'&&predY>10)danger=true;if(activeMetric==='ec'&&predY>800)danger=true;const bc=danger?'#ef4444':'#10b981';
+    fHtml=`<path d="M${lp.x},${lp.y} L${futX},${futY}" fill="none" stroke="${bc}" stroke-width="3" stroke-linecap="round" stroke-dasharray="8,8" opacity=".8"/><circle cx="${futX}" cy="${futY}" r="4" fill="${bc}"/><rect x="${futX-70}" y="${futY-30}" width="140" height="20" rx="6" fill="rgba(15,23,42,.9)" stroke="${bc}" stroke-width="1"/><text x="${futX}" y="${futY-16}" fill="${bc}" font-size="10" font-weight="700" font-family="Outfit" text-anchor="middle" letter-spacing=".05em">${danger?'FORECAST: WARNING':'FORECAST: SAFE'}</text>`;
+  } else {
+    // MODIFIED: Draw the existing points without covering them with a big warning text
+    fHtml=`<text x="${W-10}" y="20" fill="rgba(255,255,255,.25)" font-size="10" font-weight="600" font-family="Outfit" text-anchor="end" letter-spacing=".05em">NEED 4+ PTS FOR FORECAST</text>`;
+  }
+  
   svg.innerHTML=grid+`<path d="${buildSmoothPath(pts)}" fill="none" stroke="${ac}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`+fHtml;
+  
   const tt=document.getElementById('chart-tooltip-local');const unit=activeMetric==='tds'?' ppm':activeMetric==='temp'?' °C':activeMetric==='turb'?' NTU':activeMetric==='ec'?' µS/cm':'';
   svg.onmousemove=e=>{const rect=svg.getBoundingClientRect(),sX=W/rect.width,svgX=(e.clientX-rect.left)*sX;if(svgX<xO){tt.classList.remove('visible');return;}let ci=0,md=Infinity;pts.forEach((p,i)=>{const d=Math.abs(svgX-p.x);if(d<md){md=d;ci=i;}});if(hasPred&&Math.abs(svgX-futX)<md){tt.classList.add('visible');tt.style.left=(futX/sX)+'px';tt.style.top='20px';document.getElementById('ct-time-local').innerText='Predicted Future Value';document.getElementById('ct-val-local').innerText=predY.toFixed(1);document.getElementById('ct-unit-local').innerText=unit;return;}tt.classList.add('visible');tt.style.left=(pts[ci].x/sX)+'px';tt.style.top='20px';document.getElementById('ct-time-local').innerText=times[ci];document.getElementById('ct-val-local').innerText=vals[ci];document.getElementById('ct-unit-local').innerText=unit;};
   svg.onmouseleave=()=>tt.classList.remove('visible');
+}
+
+// ══════════════════════════════════════════════════════════
+//  FULLSCREEN GRAPH LOGIC
+// ══════════════════════════════════════════════════════════
+let currentFSType = null;
+let currentFSZoom = 1;
+
+function openFS(type) {
+    currentFSType = type;
+    currentFSZoom = 1;
+    document.getElementById('fs-title').innerText = type === 'global' ? 'Global System Trend (Last 30)' : 'Selected Location Trend (Last 30)';
+    document.getElementById('fs-modal').classList.add('visible');
+    drawFSChart();
+}
+
+function closeFS() {
+    document.getElementById('fs-modal').classList.remove('visible');
+}
+
+function zoomFS(val) {
+    if(val === 0) currentFSZoom = 1;
+    else currentFSZoom *= val;
+    drawFSChart();
+}
+
+function drawFSChart() {
+    const svg = document.getElementById('fs-chart');
+    svg.innerHTML = '';
+    const data = currentFSType === 'global' ? globalChartData : localChartData;
+    if(!data || !data.length) return;
+    
+    // Dynamic width calculation enables standard horizontal scrolling
+    const baseW = Math.max(900, data.length * 40); 
+    const W = baseW * currentFSZoom;
+    const H = 600; 
+    svg.style.minWidth = W + 'px';
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    
+    const xO = 55;
+    const cW = W - xO - 20;
+    const vals = data.map(d => activeMetric === 'ec' ? Number((d.tds/0.67).toFixed(1)) : Number(d[activeMetric]));
+    const times = data.map(d => d.time ? d.time : new Date(d.ts).toLocaleTimeString());
+    
+    let max = Math.max(...vals), min = Math.min(...vals); if(max===min){max+=1; min-=1;}
+    const mid = (max+min)/2, range = max-min;
+    
+    const grid = `<line x1="${xO}" y1="40" x2="${W}" y2="40" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-dasharray="6,6"/>
+      <text x="15" y="45" fill="rgba(255,255,255,.5)" font-size="16" font-weight="600" font-family="Outfit">${formatAxisNum(max)}</text>
+      <line x1="${xO}" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="rgba(255,255,255,.05)" stroke-width="1.5" stroke-dasharray="6,6"/>
+      <text x="15" y="${H/2+6}" fill="rgba(255,255,255,.5)" font-size="16" font-weight="600" font-family="Outfit">${formatAxisNum(mid)}</text>
+      <line x1="${xO}" y1="${H-40}" x2="${W}" y2="${H-40}" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-dasharray="6,6"/>
+      <text x="15" y="${H-35}" fill="rgba(255,255,255,.5)" font-size="16" font-weight="600" font-family="Outfit">${formatAxisNum(min)}</text>`;
+      
+    const pts = vals.map((v,i) => ({ x: xO + (i/Math.max(1,vals.length-1))*cW, y: H-40 - ((v-min)/range)*(H-80) }));
+    const ac = document.getElementById('chart-dot-' + currentFSType).style.background || '#3b82f6';
+    
+    // Draw dots on fullscreen for better readability
+    let dotsHtml = '';
+    pts.forEach(p => { dotsHtml += `<circle cx="${p.x}" cy="${p.y}" r="4" fill="${ac}" stroke="#1e293b" stroke-width="2" />`; });
+    
+    svg.innerHTML = grid + `<path d="${buildSmoothPath(pts)}" fill="none" stroke="${ac}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` + dotsHtml;
+    
+    const tt = document.getElementById('fs-tooltip');
+    svg.onmousemove = e => {
+        const rect = svg.getBoundingClientRect();
+        const sX = W / rect.width;
+        const svgX = (e.clientX - rect.left) * sX;
+        if(svgX < xO) { tt.classList.remove('visible'); return; }
+        let ci = 0, md = Infinity;
+        pts.forEach((p,i) => { const d = Math.abs(svgX - p.x); if(d < md){ md = d; ci = i; }});
+        tt.classList.add('visible');
+        tt.style.left = (pts[ci].x / sX) + 'px';
+        tt.style.top = '40px';
+        document.getElementById('fs-time').innerText = times[ci];
+        document.getElementById('fs-val').innerText = vals[ci];
+        document.getElementById('fs-unit').innerText = activeMetric==='tds'?' ppm':activeMetric==='temp'?' °C':activeMetric==='turb'?' NTU':activeMetric==='ec'?' µS/cm':'';
+    };
+    svg.onmouseleave = () => tt.classList.remove('visible');
 }
 
 function showToast(msg){const t=document.getElementById('toast');t.querySelector('span').innerText=msg;t.classList.add('visible');setTimeout(()=>t.classList.remove('visible'),3000);}
@@ -1357,7 +1551,6 @@ function readInputs() {
     lead:gf('pi-lead'), al:gf('pi-al') };
 }
 
-// ── NEW SECURE AI FETCH FUNCTION (MANUAL TRIGGER) ──
 async function handleManualAIRequest() {
     const btn = document.getElementById('ai-trigger-btn');
     const aiText = document.getElementById('ai-summary-text');
@@ -1365,13 +1558,11 @@ async function handleManualAIRequest() {
     
     const data = readInputs();
     
-    // Prevent fetching if core data is missing
     if (data.ph === null || data.tds === null) {
         aiText.innerText = "Need more sensor data (pH and TDS) to generate a summary. Please enter them above.";
         return;
     }
     
-    // UI Feedback
     btn.disabled = true;
     btn.innerHTML = "Processing... ⏳";
     aiText.style.opacity = '0.5';
@@ -1402,7 +1593,6 @@ async function handleManualAIRequest() {
         aiText.innerText = "Cannot connect to server. Ensure your Node.js backend is running on the correct port.";
         console.error("Fetch Error:", error);
     } finally {
-        // Restore UI
         btn.disabled = false;
         btn.innerHTML = "Generate Report ✨";
         aiText.style.opacity = '1';
@@ -1549,28 +1739,6 @@ function livePredict() {
       <span style="font-size:.62rem;color:rgba(255,255,255,.22);width:88px;text-align:right;flex-shrink:0">${refStr}</span>
     </div>`;
   }).join('');
-
-  const rfLine = rf && rf.loaded
-    ? `<br>🌧️ <strong style="color:#67e8f9">Live Weather Checking Active</strong> — Automatically checked ${rf.mm24h.toFixed(1)} mm of rain from Open-Meteo. The AI adjusted flood & contamination risks based on this.`
-    : '⚠️ No rainfall data loaded — Set a date and select a map pin for the AI to check weather patterns automatically.';
-
-  document.getElementById('pred-model-breakdown').innerHTML = `
-    <div class="model-card"><div style="font-size:1.4rem;width:36px;flex-shrink:0">🧮</div><div style="flex:1">
-      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">AI Potability Analyzer <span class="model-pill" style="background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.25);margin-left:6px">Nearly 20,000 reference samples</span></div>
-      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Analyzed ${usedFields} sensor readings against a massive database of safe and unsafe drinking water. The AI mathematically compares your water's chemical signature to historical records. The final confidence rating that this water is safe is <strong style="color:${potProb>0.5?'#34d399':'#f87171'}">${(potProb*100).toFixed(1)}%</strong>.</div>
-    </div></div>
-    <div class="model-card"><div style="font-size:1.4rem;width:36px;flex-shrink:0">📏</div><div style="flex:1">
-      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Safety Rules & Guidelines <span class="model-pill" style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.25);margin-left:6px">2,100+ Indian monitoring stations</span></div>
-      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Cross-checks your water against strict environmental guidelines. Uses 6 individual safety checks to flag Monsoon flood risk, Acid levels, Salinity, Hardness, and general use suitability.${rfLine}</div>
-    </div></div>
-    <div class="model-card"><div style="font-size:1.4rem;width:36px;flex-shrink:0">⚗️</div><div style="flex:1">
-      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Heavy Metal Risk Analyzer <span class="model-pill" style="background:rgba(139,92,246,.15);color:#a78bfa;border:1px solid rgba(139,92,246,.25);margin-left:6px">15 specific chemical parameters</span></div>
-      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Watches out specifically for hazardous materials like Arsenic, Lead, Mercury, Uranium, and excessive Bacteria. Helps the AI identify exactly where contamination might be coming from (like factory runoff or bad pipes).</div>
-    </div></div>
-    <div class="model-card"><div style="font-size:1.4rem;width:36px;flex-shrink:0">🌧️</div><div style="flex:1">
-      <div style="font-weight:700;font-size:.83rem;color:rgba(255,255,255,.85);margin-bottom:3px">Open-Meteo Weather Intergration <span class="model-pill" style="background:rgba(6,182,212,.15);color:#67e8f9;border:1px solid rgba(6,182,212,.25);margin-left:6px">Live Forecast & Historical Data</span></div>
-      <div style="font-size:.76rem;color:rgba(255,255,255,.43);line-height:1.55">Automatically reaches out to global weather satellites to check if it rained in the last 7 days at your selected map pin. If it did, the AI instantly increases the danger rating for flood-borne bacteria and surface dirt mixing into the water.</div>
-    </div></div>`;
 }
 
 const PRESETS = {
@@ -1595,9 +1763,7 @@ function loadPreset(name) {
     if(p.ars)set('pi-ars',p.ars); if(p.lead)set('pi-lead',p.lead); if(p.al)set('pi-al',p.al);
   }
   
-  // Clear any existing AI output when switching presets to avoid confusion
   document.getElementById('ai-summary-text').innerHTML = `<i style="color: rgba(255,255,255,0.4);">Click "Generate Report ✨" above to request a professional analysis from Llama 3.3 AI for this preset.</i>`;
-
   livePredict();
 }
 
