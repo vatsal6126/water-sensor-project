@@ -798,33 +798,6 @@ select option{background:#0f172a;color:white}
   </main>
 </div>
 <script>
-// ══════════════════════════════════════════════════════════
-// AUDIO UX (Subtle Water Pop)
-// ══════════════════════════════════════════════════════════
-let audioCtx = null;
-function playPop() {
-    try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(250, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.04, audioCtx.currentTime); 
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-    } catch(e){}
-}
-// Trigger on clicks without blocking standard events
-document.addEventListener('pointerdown', (e) => {
-    const isInteractive = e.target.closest('button') || e.target.closest('.metric-card') || e.target.closest('select') || e.target.closest('.nav-item') || e.target.closest('.ml-marker') || e.target.closest('.chart-expand-btn');
-    if (isInteractive) { playPop(); }
-});
-
 // Modal Escape key support
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
@@ -1117,6 +1090,8 @@ function drawLocalChart(){
 // ══════════════════════════════════════════════════════════
 //  FULLSCREEN GRAPH LOGIC (SPLIT-PANE STICKY Y-AXIS)
 // ══════════════════════════════════════════════════════════
+let currentFSType = null;
+
 function openFS(type) {
     currentFSType = type;
     document.getElementById('fs-title').innerText = type === 'global' ? 'Global System Trend (Last 30)' : 'Selected Location Trend (Last 30)';
@@ -1153,9 +1128,9 @@ function drawFSChart() {
     
     // 1. Draw Sticky Y-Axis Overlay
     svgY.innerHTML = `
-      <text x="15" y="45" fill="rgba(255,255,255,.8)" font-size="14" font-weight="500" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(max)}</text>
-      <text x="15" y="${H/2+6}" fill="rgba(255,255,255,.8)" font-size="14" font-weight="500" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(mid)}</text>
-      <text x="15" y="${H-35}" fill="rgba(255,255,255,.8)" font-size="14" font-weight="500" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(min)}</text>
+      <text x="15" y="45" fill="rgba(255,255,255,.8)" font-size="14" font-weight="400" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(max)}</text>
+      <text x="15" y="${H/2+6}" fill="rgba(255,255,255,.8)" font-size="14" font-weight="400" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(mid)}</text>
+      <text x="15" y="${H-35}" fill="rgba(255,255,255,.8)" font-size="14" font-weight="400" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(min)}</text>
     `;
 
     // 2. Draw Main Data View
