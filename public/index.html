@@ -895,12 +895,40 @@ function setupRealtimeListener(){
         const icon=L.divIcon({className:'',html:`<div class="ml-marker ${sc}"><div class="ml-pulse"></div><div class="ml-marker-inner"></div></div>`,iconSize:[34,38],iconAnchor:[17,38]});
         const marker=L.marker([parseFloat(pin.lat),parseFloat(pin.lng)],{icon}).addTo(pinsLayerGroup);
         markersMap[key]=marker;
+      } else {
+        // Update marker color if status changed
+        const sc=pin.status==='SAFE'?'safe':'warning';
+        const icon=L.divIcon({className:'',html:`<div class="ml-marker ${sc}"><div class="ml-pulse"></div><div class="ml-marker-inner"></div></div>`,iconSize:[34,38],iconAnchor:[17,38]});
+        markersMap[key].setIcon(icon);
       }
       markersMap[key].off('click');markersMap[key].on('click',()=>selectPin(idx));
     });
-    if(!initialLoadComplete&&pinsData.length>0){selectPin(pinsData.length-1);initialLoadComplete=true;}
-    
+    if(!initialLoadComplete&&pinsData.length>0){
+      selectPin(pinsData.length-1);
+      initialLoadComplete=true;
+    } else if(initialLoadComplete) {
+      // Auto-zoom to newest pin if it's brand new
+      const existingIds = Object.keys(markersMap).filter(k => markersMap[k]._prevAdded);
+      const newKeys = currentKeys.filter(k => !existingIds.includes(k));
+      if(newKeys.length > 0) {
+        const newestPin = pinsData.find(p => p.id === newKeys[newKeys.length-1]);
+        if(newestPin) {
+          mlMap.flyTo([parseFloat(newestPin.lat), parseFloat(newestPin.lng)], 15, { animate:true, duration:1.5 });
+          selectPin(pinsData.indexOf(newestPin));
+        }
+      }
+      // If the currently displayed pin was updated, refresh the card
+      if(currentSelectedPin) {
+        const refreshed = pinsData.find(p => p.id === currentSelectedPin.id);
+        if(refreshed) {
+          currentSelectedPin = refreshed;
+          selectPin(pinsData.indexOf(refreshed));
+        }
+      }
+    }
+    currentKeys.forEach(k => { if(markersMap[k]) markersMap[k]._prevAdded = true; });
     refreshPredMapPins();
+  
   });
   historyRef.on('value',snap=>{
     const data=snap.val();if(!data)return;

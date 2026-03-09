@@ -8,11 +8,13 @@ const http = require("http");
 const axios = require("axios");
 
 const FIREBASE_DB = "https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app";
-const RESET_PASSWORD = "LDCHEMICAL";
+const RESET_PASSWORD = process.env.RESET_PASSWORD || "LDCHEMICAL";
 const PORT = process.env.PORT || 3000;
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const NTFY_TOPIC = "chemeleon_water_alerts";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const app = express();
 const server = http.createServer(app);
@@ -58,6 +60,35 @@ async function sendNtfyAlert(entry, deviceId) {
     console.log("🚨 Ntfy alert sent!");
   } catch (error) {
     console.error("Failed to send ntfy alert:", error.message);
+  }
+}
+
+async function sendTelegramAlert(entry, deviceId) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  const statusEmoji = entry.status === "WARNING" ? "🚨" : "✅";
+  const message =
+    `${statusEmoji} *CHEMELEON WATER ALERT* ${statusEmoji}\n\n` +
+    `📡 *Device:* ${deviceId}\n` +
+    `📍 *Location:* ${entry.lat ?? "N/A"}, ${entry.lng ?? "N/A"}\n\n` +
+    `🧪 *Sensor Readings:*\n` +
+    `• pH: \`${entry.pH}\`\n` +
+    `• TDS: \`${entry.tds} ppm\`\n` +
+    `• Temperature: \`${entry.temp} °C\`\n` +
+    `• Turbidity: \`${entry.turb} NTU\`\n\n` +
+    `⚠️ *Status:* ${entry.status}\n` +
+    `🕐 *Time:* ${entry.time}`;
+  try {
+    await axios.post(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      {
+        chat_id: TELEGRAM_CHAT_ID,
+        text: message,
+        parse_mode: "Markdown",
+      }
+    );
+    console.log("✅ Telegram alert sent!");
+  } catch (error) {
+    console.error("Failed to send Telegram alert:", error.response?.data || error.message);
   }
 }
 
@@ -129,7 +160,10 @@ app.get("/add", async (req, res) => {
   try {
     await axios.post(`${FIREBASE_DB}/devices/${id}/history.json`, entry);
     await axios.post(`${FIREBASE_DB}/devices/${id}/pins.json`, entry);
-    if (status === "WARNING") sendNtfyAlert(entry, id);
+    if (status === "WARNING") {
+  sendNtfyAlert(entry, id);
+  sendTelegramAlert(entry, id);
+}
     res.send("Pin added successfully");
   } catch (err) {
     res.status(500).send("Firebase Error");
@@ -198,7 +232,10 @@ app.get("/update", async (req, res) => {
       }
     }
 
-    if (status === "WARNING") sendNtfyAlert(entry, id);
+   if (status === "WARNING") {
+  sendNtfyAlert(entry, id);
+  sendTelegramAlert(entry, id);
+}
     console.log(`✅ [${id}] pH:${pH} TDS:${tds} Turb:${turb} Temp:${temp} → ${status} | ts:${ts}`);
     res.send("Data Stored Successfully");
   } catch (err) {
