@@ -13,8 +13,6 @@ const PORT = process.env.PORT || 3000;
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const NTFY_TOPIC = "chemeleon_water_alerts";
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const app = express();
 const server = http.createServer(app);
@@ -63,65 +61,6 @@ async function sendNtfyAlert(entry, deviceId) {
   }
 }
 
-async function sendTelegramAlert(entry, deviceId) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.log("⚠️  Telegram skipped — missing BOT_TOKEN or CHAT_ID in env vars");
-    return;
-  }
-  const statusEmoji = entry.status === "WARNING" ? "🚨" : "✅";
-  const lat = entry.lat ?? "N/A";
-  const lng = entry.lng ?? "N/A";
-  const message =
-    `${statusEmoji} <b>CHEMELEON WATER ALERT</b> ${statusEmoji}\n\n` +
-    `📡 <b>Device:</b> ${deviceId}\n` +
-    `📍 <b>Location:</b> ${lat}, ${lng}\n\n` +
-    `🧪 <b>Sensor Readings:</b>\n` +
-    `• pH: <code>${entry.pH}</code>\n` +
-    `• TDS: <code>${entry.tds} ppm</code>\n` +
-    `• Temperature: <code>${entry.temp} °C</code>\n` +
-    `• Turbidity: <code>${entry.turb} NTU</code>\n\n` +
-    `⚠️ <b>Status:</b> ${entry.status}\n` +
-    `🕐 <b>Time:</b> ${entry.time}`;
-  try {
-    const resp = await axios.post(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-      {
-        chat_id: TELEGRAM_CHAT_ID,
-        text: message,
-        parse_mode: "HTML",
-      }
-    );
-    console.log("✅ Telegram alert sent! Message ID:", resp.data?.result?.message_id);
-  } catch (error) {
-    const errData = error.response?.data;
-    console.error("❌ Telegram failed:", errData ? JSON.stringify(errData) : error.message);
-    // Fallback: retry without any parse mode (plain text)
-    try {
-      await axios.post(
-        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-        {
-          chat_id: TELEGRAM_CHAT_ID,
-          text: `CHEMELEON ALERT — Device: ${deviceId} — pH: ${entry.pH} TDS: ${entry.tds} Status: ${entry.status} Time: ${entry.time}`,
-        }
-      );
-      console.log("✅ Telegram plain-text fallback sent.");
-    } catch (e2) {
-      console.error("❌ Telegram fallback also failed:", e2.message);
-    }
-  }
-}
-```
-
----
-
-**To verify your Telegram setup is correct**, paste this into your browser (replace with your actual token and chat ID from Render):
-```
-https://api.telegram.org/bot<YOUR_TOKEN>/getMe
-```
-
-It should return a JSON with your bot's name. Then test:
-```
-https://api.telegram.org/bot<YOUR_TOKEN>/sendMessage?chat_id=<YOUR_CHAT_ID>&text=test
 // ================= AI SUMMARY (GROQ LLAMA 3.3) =================
 app.post("/api/ai-summary", async (req, res) => {
   const { ph, tds, temp, turb } = req.body;
@@ -191,9 +130,8 @@ app.get("/add", async (req, res) => {
     await axios.post(`${FIREBASE_DB}/devices/${id}/history.json`, entry);
     await axios.post(`${FIREBASE_DB}/devices/${id}/pins.json`, entry);
     if (status === "WARNING") {
-  sendNtfyAlert(entry, id);
-  sendTelegramAlert(entry, id);
-}
+      sendNtfyAlert(entry, id);
+    }
     res.send("Pin added successfully");
   } catch (err) {
     res.status(500).send("Firebase Error");
@@ -262,10 +200,9 @@ app.get("/update", async (req, res) => {
       }
     }
 
-   if (status === "WARNING") {
-  sendNtfyAlert(entry, id);
-  sendTelegramAlert(entry, id);
-}
+    if (status === "WARNING") {
+      sendNtfyAlert(entry, id);
+    }
     console.log(`✅ [${id}] pH:${pH} TDS:${tds} Turb:${turb} Temp:${temp} → ${status} | ts:${ts}`);
     res.send("Data Stored Successfully");
   } catch (err) {

@@ -750,6 +750,65 @@ select option{background:#0f172a;color:white}
             <h1 class="about-heading">CHEMELEON</h1>
             <p class="about-desc">Advanced water quality monitoring dashboard with real-time sensor integration, geospatial visualization, and AI-powered quality prediction.</p>
           </div>
+
+          <!-- ═══ NTFY SUBSCRIBE BLOCK ═══ -->
+          <div class="glass-panel" style="border-radius:28px;padding:28px 32px;margin-bottom:32px;text-align:left;position:relative;overflow:hidden;">
+            <div style="position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:rgba(139,92,246,.15);border-radius:50%;filter:blur(80px);pointer-events:none"></div>
+            <div class="form-title" style="margin-bottom:16px;font-size:1rem;color:white;position:relative;z-index:1;">
+              <div class="form-title-icon" style="background:rgba(139,92,246,.2);color:#a78bfa;padding:8px;border-radius:12px;">
+                <svg class="icon" style="width:18px;height:18px" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </div>
+              Get Water Quality Alerts via ntfy
+            </div>
+            <p style="color:rgba(255,255,255,.5);font-size:.85rem;margin-bottom:20px;line-height:1.6;position:relative;z-index:1;">Receive instant push notifications whenever contamination or dangerous water quality is detected by any sensor. Free, no account needed.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:14px;position:relative;z-index:1;">
+
+              <!-- Web subscribe -->
+              <a href="https://ntfy.sh/chemeleon_water_alerts" target="_blank" rel="noopener"
+                 style="display:flex;align-items:center;gap:12px;padding:14px 22px;border-radius:16px;background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(139,92,246,.05));border:1px solid rgba(139,92,246,.35);text-decoration:none;color:white;font-weight:700;font-size:.9rem;transition:all .3s ease;box-shadow:0 4px 20px rgba(139,92,246,.12);"
+                 onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 30px rgba(139,92,246,.35)'"
+                 onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(139,92,246,.12)'">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="12" fill="#6d28d9"/>
+                  <path d="M12 5C8.5 5 6 7.5 6 10c0 4 4 7 4 7h4s4-3 4-7c0-2.5-2.5-5-6-5z" fill="white" opacity=".9"/>
+                  <circle cx="12" cy="17.5" r="1" fill="white"/>
+                </svg>
+                <div>
+                  <div style="font-size:.9rem;font-weight:800;">Subscribe on ntfy Web</div>
+                  <div style="font-size:.7rem;color:rgba(255,255,255,.45);margin-top:2px;">Opens ntfy.sh in browser</div>
+                </div>
+              </a>
+
+              <!-- App deep link -->
+              <a href="ntfy://chemeleon_water_alerts"
+                 style="display:flex;align-items:center;gap:12px;padding:14px 22px;border-radius:16px;background:linear-gradient(135deg,rgba(16,185,129,.2),rgba(16,185,129,.05));border:1px solid rgba(16,185,129,.35);text-decoration:none;color:white;font-weight:700;font-size:.9rem;transition:all .3s ease;box-shadow:0 4px 20px rgba(16,185,129,.12);"
+                 onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 30px rgba(16,185,129,.35)'"
+                 onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(16,185,129,.12)'">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="12" fill="#059669"/>
+                  <rect x="7" y="6" width="10" height="14" rx="2" fill="white" opacity=".9"/>
+                  <rect x="9" y="9" width="6" height="1.5" rx=".75" fill="#059669"/>
+                  <rect x="9" y="12" width="4" height="1.5" rx=".75" fill="#059669"/>
+                </svg>
+                <div>
+                  <div style="font-size:.9rem;font-weight:800;">Open ntfy App</div>
+                  <div style="font-size:.7rem;color:rgba(255,255,255,.45);margin-top:2px;">Tap if app is installed</div>
+                </div>
+              </a>
+            </div>
+
+            <!-- Manual topic copy row -->
+            <div style="margin-top:18px;padding:12px 16px;background:rgba(0,0,0,.2);border-radius:12px;border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:relative;z-index:1;">
+              <span style="font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);">Topic name</span>
+              <code style="background:rgba(255,255,255,.07);padding:6px 14px;border-radius:9px;font-size:.88rem;color:#a78bfa;letter-spacing:.04em;border:1px solid rgba(139,92,246,.2);">chemeleon_water_alerts</code>
+              <button onclick="navigator.clipboard.writeText('chemeleon_water_alerts').then(()=>showToast('Topic name copied!'))"
+                      style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:#a78bfa;padding:6px 14px;border-radius:9px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:.75rem;font-weight:700;transition:all .2s;"
+                      onmouseover="this.style.background='rgba(139,92,246,.3)'"
+                      onmouseout="this.style.background='rgba(139,92,246,.15)'">Copy</button>
+              <span style="font-size:.72rem;color:rgba(255,255,255,.25);">Enter this in the ntfy app manually if the button above doesn't auto-open</span>
+            </div>
+          </div>
+          <!-- ═══ END NTFY BLOCK ═══ -->
           
           <div class="team-panel glass-panel" style="margin-bottom: 32px;">
             <div class="team-deco-1"></div><div class="team-deco-2"></div>
@@ -896,7 +955,6 @@ function setupRealtimeListener(){
         const marker=L.marker([parseFloat(pin.lat),parseFloat(pin.lng)],{icon}).addTo(pinsLayerGroup);
         markersMap[key]=marker;
       } else {
-        // Update marker color if status changed
         const sc=pin.status==='SAFE'?'safe':'warning';
         const icon=L.divIcon({className:'',html:`<div class="ml-marker ${sc}"><div class="ml-pulse"></div><div class="ml-marker-inner"></div></div>`,iconSize:[34,38],iconAnchor:[17,38]});
         markersMap[key].setIcon(icon);
@@ -907,7 +965,6 @@ function setupRealtimeListener(){
       selectPin(pinsData.length-1);
       initialLoadComplete=true;
     } else if(initialLoadComplete) {
-      // Auto-zoom to newest pin if it's brand new
       const existingIds = Object.keys(markersMap).filter(k => markersMap[k]._prevAdded);
       const newKeys = currentKeys.filter(k => !existingIds.includes(k));
       if(newKeys.length > 0) {
@@ -917,7 +974,6 @@ function setupRealtimeListener(){
           selectPin(pinsData.indexOf(newestPin));
         }
       }
-      // If the currently displayed pin was updated, refresh the card
       if(currentSelectedPin) {
         const refreshed = pinsData.find(p => p.id === currentSelectedPin.id);
         if(refreshed) {
@@ -1008,7 +1064,6 @@ function buildSmoothPath(pts){
   return p;
 }
 
-// Formatter to fix squished axes - removes decimals for large numbers, keeps 1 for small ones
 const formatAxisNum = v => v < 20 ? v.toFixed(1) : Math.round(v);
 
 function drawGlobalChart(){
@@ -1040,14 +1095,10 @@ function drawGlobalChart(){
     const rect=svg.getBoundingClientRect(),sX=W/rect.width,svgX=(e.clientX-rect.left)*sX;
     if(svgX<xO){tt.classList.remove('visible');return;}
     let ci=0,md=Infinity;pts.forEach((p,i)=>{const d=Math.abs(svgX-p.x);if(d<md){md=d;ci=i;}});
-    
     tt.classList.add('visible');
-    
-    // Boundary clamp logic to prevent clipping off screen
     let isRightHalf = ci > pts.length / 2;
     tt.style.transform = isRightHalf ? 'translate(-100%, -120%)' : 'translate(0%, -120%)';
     tt.style.marginLeft = isRightHalf ? '-12px' : '12px';
-    
     tt.style.left=(pts[ci].x/sX)+'px';
     tt.style.top='20px';
     document.getElementById('ct-time-global').innerText=times[ci];
@@ -1089,7 +1140,6 @@ function drawLocalChart(){
     futX=xO+cW+(W-xO)*0.2;futY=H-15-((predY-min)/range)*(H-30);const lp=pts[pts.length-1];let danger=false;if(activeMetric==='pH'&&(predY<6.5||predY>8.5))danger=true;if(activeMetric==='tds'&&predY>500)danger=true;if(activeMetric==='temp'&&predY>35)danger=true;if(activeMetric==='turb'&&predY>10)danger=true;if(activeMetric==='ec'&&predY>800)danger=true;const bc=danger?'#ef4444':'#10b981';
     fHtml=`<path d="M${lp.x},${lp.y} L${futX},${futY}" fill="none" stroke="${bc}" stroke-width="3" stroke-linecap="round" stroke-dasharray="8,8" opacity=".8"/><circle cx="${futX}" cy="${futY}" r="4" fill="${bc}"/><rect x="${futX-70}" y="${futY-30}" width="140" height="20" rx="6" fill="rgba(15,23,42,.9)" stroke="${bc}" stroke-width="1"/><text x="${futX}" y="${futY-16}" fill="${bc}" font-size="10" font-weight="700" font-family="Outfit" text-anchor="middle" letter-spacing=".05em">${danger?'FORECAST: WARNING':'FORECAST: SAFE'}</text>`;
   } else {
-    // Shows the existing < 4 points while keeping a small subtle warning tag.
     fHtml=`<text x="${W-10}" y="20" fill="rgba(255,255,255,.25)" font-size="9" font-weight="600" font-family="Outfit" text-anchor="end" letter-spacing=".05em">NEED 4+ PTS FOR FORECAST</text>`;
   }
   
@@ -1100,16 +1150,11 @@ function drawLocalChart(){
     const rect=svg.getBoundingClientRect(),sX=W/rect.width,svgX=(e.clientX-rect.left)*sX;
     if(svgX<xO){tt.classList.remove('visible');return;}
     let ci=0,md=Infinity;pts.forEach((p,i)=>{const d=Math.abs(svgX-p.x);if(d<md){md=d;ci=i;}});
-    
     tt.classList.add('visible');
-    
-    // Boundary clamp logic
     let isRightHalf = ci > (pts.length / 2);
     tt.style.transform = isRightHalf ? 'translate(-100%, -120%)' : 'translate(0%, -120%)';
     tt.style.marginLeft = isRightHalf ? '-12px' : '12px';
-
     if(hasPred&&Math.abs(svgX-futX)<md){tt.style.left=(futX/sX)+'px';tt.style.top='20px';document.getElementById('ct-time-local').innerText='Predicted Future Value';document.getElementById('ct-val-local').innerText=predY.toFixed(1);document.getElementById('ct-unit-local').innerText=unit;return;}
-    
     tt.style.left=(pts[ci].x/sX)+'px';tt.style.top='20px';document.getElementById('ct-time-local').innerText=times[ci];document.getElementById('ct-val-local').innerText=vals[ci];document.getElementById('ct-unit-local').innerText=unit;
   };
   svg.onmouseleave=()=>tt.classList.remove('visible');
@@ -1139,9 +1184,8 @@ function drawFSChart() {
     const data = currentFSType === 'global' ? globalChartData : localChartData;
     if(!data || !data.length) return;
     
-    // Y-Axis stays static. Data chart stretches horizontally based on number of points.
     const H = 600; 
-    const pointSpacing = 70; // Guaranteed 70px gap between every point
+    const pointSpacing = 70;
     const W = Math.max(900, data.length * pointSpacing); 
     
     svgData.style.minWidth = W + 'px';
@@ -1154,25 +1198,22 @@ function drawFSChart() {
     let max = Math.max(...vals), min = Math.min(...vals); if(max===min){max+=1; min-=1;}
     const mid = (max+min)/2, range = max-min;
     
-    // 1. Draw Sticky Y-Axis Overlay
     svgY.innerHTML = `
       <text x="15" y="45" fill="rgba(255,255,255,.8)" font-size="14" font-weight="400" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(max)}</text>
       <text x="15" y="${H/2+6}" fill="rgba(255,255,255,.8)" font-size="14" font-weight="400" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(mid)}</text>
       <text x="15" y="${H-35}" fill="rgba(255,255,255,.8)" font-size="14" font-weight="400" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(min)}</text>
     `;
 
-    // 2. Draw Main Data View
     const grid = `
       <line x1="0" y1="40" x2="${W}" y2="40" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-dasharray="6,6"/>
       <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="rgba(255,255,255,.05)" stroke-width="1.5" stroke-dasharray="6,6"/>
       <line x1="0" y1="${H-40}" x2="${W}" y2="${H-40}" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-dasharray="6,6"/>
     `;
       
-    const cW = W - 40; // padding inside data view
+    const cW = W - 40;
     const pts = vals.map((v,i) => ({ x: 20 + (i/Math.max(1,vals.length-1))*cW, y: H-40 - ((v-min)/range)*(H-80) }));
     const ac = document.getElementById('chart-dot-' + currentFSType).style.background || '#3b82f6';
     
-    // Draw dots, horizontal labels, and subtle vertical column guides
     let dotsHtml = '';
     let labelsHtml = '';
     pts.forEach((p, i) => { 
@@ -1193,12 +1234,9 @@ function drawFSChart() {
         pts.forEach((p,i) => { const d = Math.abs(svgX - p.x); if(d < md){ md = d; ci = i; }});
         
         tt.classList.add('visible');
-        
-        // Boundary clamp
         let isRightHalf = ci > pts.length / 2;
         tt.style.transform = isRightHalf ? 'translate(-100%, -120%)' : 'translate(0%, -120%)';
         tt.style.marginLeft = isRightHalf ? '-12px' : '12px';
-
         tt.style.left = (pts[ci].x / sX) + 'px';
         tt.style.top = '60px';
         document.getElementById('fs-time').innerText = times[ci];
@@ -1224,7 +1262,6 @@ async function addPin(){
   catch{alert('Error saving pin.');document.getElementById('add-pin-btn').disabled=false;}
 }
 
-// Custom Modal Reset Logic
 function openPrompt(){
   document.getElementById('admin-pass-input').value = '';
   const modal = document.getElementById('custom-prompt-modal');
@@ -1248,7 +1285,6 @@ async function submitReset(){
       if(r.ok) {
           closePrompt();
           showToast('All data cleared for ' + currentDeviceId);
-          // Force clear all local state immediately
           pinsData = []; fullHistoryData = []; globalChartData = []; localChartData = [];
           currentSelectedPin = null; initialLoadComplete = false;
           Object.keys(markersMap).forEach(k => pinsLayerGroup.removeLayer(markersMap[k]));
@@ -1290,7 +1326,6 @@ function navigate(page){
   document.getElementById('nav-'+page).classList.add('active');
   closeSidebar();
   
-  // Safely hook init calls directly into the navigation system.
   setTimeout(()=>{
     if(page==='dashboard'&&mlMap) mlMap.invalidateSize();
     if(page==='options'&&entryMap) entryMap.invalidateSize();
@@ -1459,7 +1494,6 @@ function selectPredPin(pin, idx) {
     document.getElementById('pi-datetime').value = now.toISOString().slice(0, 16);
   }
 
-  // Clear any existing AI output when switching pins to avoid confusion
   document.getElementById('ai-summary-text').innerHTML = `<i style="color: rgba(255,255,255,0.4);">Click "Generate Report ✨" above to request a professional analysis from Llama 3.3 AI for this new location.</i>`;
 
   fetchRainfallIfReady();
