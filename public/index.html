@@ -1227,24 +1227,49 @@ async function addPin(){
 // Custom Modal Reset Logic
 function openPrompt(){
   document.getElementById('admin-pass-input').value = '';
-  document.getElementById('custom-prompt-modal').style.display = 'flex';
+  const modal = document.getElementById('custom-prompt-modal');
+  modal.style.display = 'flex';
+  modal.style.opacity = '1';
+  modal.style.pointerEvents = 'auto';
+  setTimeout(() => document.getElementById('admin-pass-input').focus(), 100);
 }
 function closePrompt(){
   document.getElementById('custom-prompt-modal').style.display = 'none';
 }
 async function submitReset(){
-  const p = document.getElementById('admin-pass-input').value;
-  if (!p) return;
+  const p = document.getElementById('admin-pass-input').value.trim();
+  if (!p) { alert('Please enter a password.'); return; }
+  const btn = document.querySelector('#custom-prompt-modal .btn-danger');
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
   try{
-      const r = await fetch(`/reset?password=${p}&id=${currentDeviceId}`);
+      const r = await fetch(`/reset?password=${encodeURIComponent(p)}&id=${currentDeviceId}`);
+      const txt = await r.text();
       if(r.ok) {
-          alert(`Data cleared for ${currentDeviceId}.`);
           closePrompt();
+          showToast('All data cleared for ' + currentDeviceId);
+          // Force clear all local state immediately
+          pinsData = []; fullHistoryData = []; globalChartData = []; localChartData = [];
+          currentSelectedPin = null; initialLoadComplete = false;
+          Object.keys(markersMap).forEach(k => pinsLayerGroup.removeLayer(markersMap[k]));
+          markersMap = {};
+          document.getElementById('area-chart-global').innerHTML = '';
+          document.getElementById('area-chart-local').innerHTML = '';
+          document.getElementById('global-empty').classList.add('visible');
+          document.getElementById('local-empty').classList.add('visible');
+          document.getElementById('panel-title').innerText = 'Select a Location';
+          document.getElementById('panel-sub').innerText = 'Click on a map marker to view detailed metrics';
+          document.getElementById('status-badge').classList.remove('visible');
+          document.getElementById('wqi-score').innerText = '-- / 100';
+          document.getElementById('wqi-fill').style.width = '0%';
       } else {
-          alert('Wrong password. Authentication failed.');
+          alert('Error: ' + txt);
       }
-  } catch {
-      alert('Network error.');
+  } catch(e) {
+      alert('Network error: ' + e.message);
+  } finally {
+      btn.disabled = false;
+      btn.textContent = 'Confirm';
   }
 }
 
