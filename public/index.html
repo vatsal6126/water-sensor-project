@@ -886,15 +886,11 @@ function getDistance(lat1,lon1,lat2,lon2){
 }
 
 function initDashboardMap(){
-function initDashboardMap(){
-  mlMap=L.map('maplibre-map',{zoomControl:false,preferCanvas:true}).setView([21.175,72.8311],11);
+  mlMap=L.map('maplibre-map',{zoomControl:false}).setView([21.175,72.8311],11);
   L.control.zoom({position:'bottomright'}).addTo(mlMap);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(mlMap);
   pinsLayerGroup=L.layerGroup().addTo(mlMap);
   historyLayerGroup=L.layerGroup();
-  // Mobile: map container height isn't known until after first paint
-  setTimeout(()=>{ mlMap.invalidateSize({animate:false}); }, 100);
-  setTimeout(()=>{ mlMap.invalidateSize({animate:false}); }, 500);
   setupRealtimeListener();
 }
 
@@ -943,22 +939,6 @@ function switchDevice(newId){
   showToast('Switched to '+newId);
 }
 
-// Mobile-safe zoom: waits for map to have real dimensions before flying
-function safeZoom(lat, lng, zoom){
-  if(!mlMap) return;
-  const doZoom = () => {
-    mlMap.invalidateSize({animate:false});
-    const size = mlMap.getSize();
-    if(size.x < 10 || size.y < 10){
-      // Map still has no real size — retry
-      setTimeout(()=>doZoom(), 150);
-      return;
-    }
-    mlMap.flyTo([lat, lng], zoom||15, {animate:true, duration:1.5});
-  };
-  doZoom();
-}
-
 function setupRealtimeListener(){
   if(pinsRef)pinsRef.off();if(historyRef)historyRef.off();
   pinsRef=database.ref(`devices/${currentDeviceId}/pins`);
@@ -990,9 +970,10 @@ function setupRealtimeListener(){
       if(newKeys.length > 0) {
         const newestPin = pinsData.find(p => p.id === newKeys[newKeys.length-1]);
         if(newestPin) {
-          safeZoom(parseFloat(newestPin.lat), parseFloat(newestPin.lng), 15);
+          mlMap.flyTo([parseFloat(newestPin.lat), parseFloat(newestPin.lng)], 15, { animate:true, duration:1.5 });
           selectPin(pinsData.indexOf(newestPin));
         }
+      }
       if(currentSelectedPin) {
         const refreshed = pinsData.find(p => p.id === currentSelectedPin.id);
         if(refreshed) {
@@ -1034,8 +1015,6 @@ function handleTimeSlider(index){
 
 function selectPin(index){
   const pin=pinsData[index];currentSelectedPin=pin;
-  // Auto-zoom to pin on mobile when tapped
-  if(mlMap){ safeZoom(parseFloat(pin.lat), parseFloat(pin.lng), 15); }
   document.getElementById('panel-title').innerText='Location '+(index+1);
   document.getElementById('panel-sub').innerText=`${parseFloat(pin.lat).toFixed(4)}, ${parseFloat(pin.lng).toFixed(4)}`;
   const badge=document.getElementById('status-badge');
@@ -1347,20 +1326,15 @@ function navigate(page){
   document.getElementById('nav-'+page).classList.add('active');
   closeSidebar();
   
- setTimeout(()=>{
-    if(page==='dashboard'&&mlMap){ mlMap.invalidateSize({animate:false}); }
-    if(page==='options'&&entryMap){ entryMap.invalidateSize({animate:false}); }
+  setTimeout(()=>{
+    if(page==='dashboard'&&mlMap) mlMap.invalidateSize();
+    if(page==='options'&&entryMap) entryMap.invalidateSize();
     if(page==='predict') {
       initPredMap();
       refreshPredMapPins();
       if (predMap) predMap.invalidateSize();
     }
   },50);
-  setTimeout(()=>{
-    if(page==='dashboard'&&mlMap) mlMap.invalidateSize({animate:false});
-    if(page==='options'&&entryMap) entryMap.invalidateSize({animate:false});
-    if(page==='predict'&&predMap)  predMap.invalidateSize({animate:false});
-  }, 400);
 }
 
 function toggleSidebar(){document.getElementById('sidebar').classList.contains('open')?closeSidebar():openSidebar();}
