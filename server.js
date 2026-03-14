@@ -52,6 +52,7 @@ async function sendNtfyAlert(entry, deviceId) {
           Title: "Chemeleon: Contamination Detected!",
           Tags: "warning,skull,droplet",
           Priority: "high",
+          "Content-Type": "text/plain",
         },
       }
     );
