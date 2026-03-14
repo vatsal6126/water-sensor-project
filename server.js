@@ -18,7 +18,7 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(express.static("public"));
-app.use(express.json());
+app.use(express.json({ limit: "64kb" })); // CHANGED: was express.json() — increased limit to handle 40-sample JSON payloads from ESP32
 
 server.listen(PORT, () => {
   console.log("✅ Server running on port " + PORT);
@@ -142,45 +142,75 @@ app.get("/add", async (req, res) => {
 app.get("/ping", (req, res) => res.status(200).send("Server alive"));
 
 // ================= UPDATE ROUTE (ESP32 → Firebase) =================
-app.get("/update", async (req, res) => {
-  const id   = req.query.id   || "device1";
-  const pH   = parseFloat(req.query.pH);
-  const tds  = parseFloat(req.query.tds);
-  const temp = parseFloat(req.query.temp);
-  const turb = parseFloat(req.query.turb);
-  const lat  = parseFloat(req.query.lat);
-  const lng  = parseFloat(req.query.lng);
+// CHANGED: The original single app.get("/update") is now split into:
+//   1. A shared async function handleUpdate() containing all the logic
+//   2. app.post("/update") — NEW route for the new ESP32 firmware (JSON body with samples)
+//   3. app.get("/update")  — KEPT exactly for SD card offline flush (query string, no samples)
 
-  // ── ✅ TIMESTAMP FIX — use ESP32's real measurement time for offline records ──
-  // ESP32 sends ?ts=<unix_seconds> — we convert to ms.
-  // If ts is missing or invalid, fall back to server time (Date.now()).
-  const tsRaw = parseInt(req.query.ts);
-  const ts    = (!isNaN(tsRaw) && tsRaw > 1000000000)
-                ? tsRaw * 1000          // ESP32 sends seconds → convert to ms
-                : Date.now();           // live reading — use server time
-  // ─────────────────────────────────────────────────────────────────────────────
+// CHANGED: Shared handler extracted so both GET and POST routes use identical logic
+async function handleUpdate(fields, res) {
+  const {
+    id = "device1",
+    pH, tds, temp, turb,
+    lat, lng,
+    samples = null, // ADDED: optional 40-point sample arrays from new ESP32 firmware
+    tsRaw   = null,
+  } = fields;
 
-  if ([pH, tds, temp, turb].some(isNaN))
+  if ([pH, tds, temp, turb].some(v => isNaN(parseFloat(v))))
     return res.status(400).send("Invalid sensor values");
 
+  const phF   = parseFloat(pH);
+  const tdsF  = parseFloat(tds);
+  const tempF = parseFloat(temp);
+  const turbF = parseFloat(turb);
+  const latF  = parseFloat(lat);
+  const lngF  = parseFloat(lng);
+
+  // UNCHANGED: same timestamp fix as original
+  const tsRaw_ = parseInt(tsRaw);
+  const ts = (!isNaN(tsRaw_) && tsRaw_ > 1000000000)
+    ? tsRaw_ * 1000
+    : Date.now();
+
   const status =
-    pH < 6.5 || pH > 8.5 || tds > 500 || temp > 35 || turb > 10
+    phF < 6.5 || phF > 8.5 || tdsF > 500 || tempF > 35 || turbF > 10
       ? "WARNING" : "SAFE";
+
+  // ADDED: validate and clean the samples arrays if present
+  // If samples is null (GET/SD flush calls), this block is skipped entirely
+  let cleanSamples = null;
+  if (samples && typeof samples === "object") {
+    cleanSamples = {};
+    for (const key of ["pH", "tds", "turb", "temp"]) {
+      if (Array.isArray(samples[key]) && samples[key].length > 0) {
+        cleanSamples[key] = samples[key]
+          .slice(0, 40)
+          .map(v => {
+            const n = parseFloat(v);
+            return isNaN(n) ? 0 : Math.round(n * 100) / 100;
+          });
+      }
+    }
+    if (Object.keys(cleanSamples).length === 0) cleanSamples = null;
+  }
 
   const entry = {
     ts,
-    time: new Date(ts).toLocaleString("en-IN"),   // human-readable in IST
-    pH, tds, temp, turb, status,
-    lat: isNaN(lat) ? null : lat,
-    lng: isNaN(lng) ? null : lng,
+    time: new Date(ts).toLocaleString("en-IN"),
+    pH: phF, tds: tdsF, temp: tempF, turb: turbF,
+    status,
+    lat: isNaN(latF) ? null : latF,
+    lng: isNaN(lngF) ? null : lngF,
+    ...(cleanSamples ? { samples: cleanSamples } : {}), // ADDED: spread samples into entry only if present
   };
 
   try {
-    // Always write to latest + history
+    // UNCHANGED: same Firebase writes as original
     await axios.patch(`${FIREBASE_DB}/devices/${id}/latest.json`, entry);
     await axios.post(`${FIREBASE_DB}/devices/${id}/history.json`, entry);
 
-    // Pin management — match nearest pin within 25 m, else create new
+    // UNCHANGED: same pin management logic as original
     if (entry.lat !== null && entry.lng !== null) {
       const pinsRes = await axios.get(`${FIREBASE_DB}/devices/${id}/pins.json`);
       const pins = pinsRes.data || {};
@@ -203,12 +233,31 @@ app.get("/update", async (req, res) => {
     if (status === "WARNING") {
       sendNtfyAlert(entry, id);
     }
-    console.log(`✅ [${id}] pH:${pH} TDS:${tds} Turb:${turb} Temp:${temp} → ${status} | ts:${ts}`);
+
+    // CHANGED: console.log now also prints whether samples were included
+    const sampleInfo = cleanSamples
+      ? `+samples(${Object.values(cleanSamples)[0]?.length ?? 0} pts each)`
+      : "no-samples";
+    console.log(`✅ [${id}] pH:${phF} TDS:${tdsF} Turb:${turbF} Temp:${tempF} → ${status} | ts:${ts} | ${sampleInfo}`);
+
     res.send("Data Stored Successfully");
   } catch (err) {
     console.error("Firebase Error:", err.message);
     res.status(500).send("Firebase Error");
   }
+}
+
+// ADDED: POST /update — receives JSON body from new ESP32 firmware (includes samples arrays)
+app.post("/update", async (req, res) => {
+  const { id, pH, tds, temp, turb, wqi, lat, lng, samples, ts } = req.body;
+  await handleUpdate({ id, pH, tds, temp, turb, wqi, lat, lng, samples, tsRaw: ts }, res);
+});
+
+// CHANGED: app.get("/update") — logic moved into handleUpdate(), samples forced to null
+// so SD card offline flush (which sends GET with query string) is 100% unchanged in behaviour
+app.get("/update", async (req, res) => {
+  const { id, pH, tds, temp, turb, wqi, lat, lng, ts } = req.query;
+  await handleUpdate({ id, pH, tds, temp, turb, wqi, lat, lng, samples: null, tsRaw: ts }, res);
 });
 
 // ================= RESET =================

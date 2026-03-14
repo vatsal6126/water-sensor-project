@@ -131,17 +131,30 @@ select.device-selector:focus {
 .wqi-fill{height:100%;width:0%;background:#ef4444;border-radius:4px;transition:all 1s cubic-bezier(0.16,1,0.3,1);box-shadow:0 0 15px rgba(239,68,68,0.5)}
 
 /* METRIC CARDS */
-.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;flex-shrink:0}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;flex-shrink:0;overflow:visible}
 @media(min-width:768px){.metrics-grid{grid-template-columns:repeat(3,1fr)}}
 @media(min-width:1024px){.metrics-grid{grid-template-columns:repeat(5,1fr);gap:16px}}
-.metric-card{border-radius:24px;padding:20px;cursor:pointer;transition:all .4s cubic-bezier(0.16,1,0.3,1); position:relative;}
-.metric-card:hover{transform:translateY(-2px); background:rgba(255,255,255,.12) !important;}
+.metric-card{border-radius:24px;padding:20px;cursor:pointer;transition:all .4s cubic-bezier(0.16,1,0.3,1);position:relative;overflow:visible;z-index:1}
+.metric-card:hover{transform:translateY(-2px);background:rgba(255,255,255,.12) !important;z-index:50}
 .metric-card.active{background:rgba(255,255,255,.1)!important;transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,.3);outline:1px solid rgba(255,255,255,.2)}
 .metric-icon{padding:10px;background:rgba(255,255,255,.05);border-radius:12px;display:inline-flex;margin-bottom:16px;color:rgba(255,255,255,.7)}
 .metric-label{color:rgba(255,255,255,.5);font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:4px}
 .metric-value{font-size:1.75rem;font-weight:800;color:#fff;line-height:1}
 @media(min-width:1024px){.metric-value{font-size:2rem}}
 .metric-unit{font-size:.875rem;font-weight:500;color:rgba(255,255,255,.4)}
+
+/* HOVER MICRO-CHART POPUP — NEW */
+.mhc-popup{position:absolute;bottom:calc(100% + 14px);left:50%;transform:translateX(-50%) translateY(6px);width:240px;background:rgba(6,11,22,.97);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:13px 15px 11px;box-shadow:0 24px 60px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.03);pointer-events:none;opacity:0;transition:opacity .2s cubic-bezier(0.16,1,0.3,1),transform .2s cubic-bezier(0.16,1,0.3,1);z-index:500;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+.metric-card:hover .mhc-popup{opacity:1;transform:translateX(-50%) translateY(0px)}
+.mhc-header{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.38);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center}
+.mhc-count{font-size:.58rem;color:rgba(255,255,255,.22);font-weight:600;letter-spacing:.06em}
+.mhc-svg-wrap{width:100%;height:56px;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.03);margin-bottom:9px}
+.mhc-svg-wrap svg{display:block;width:100%;height:100%}
+.mhc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.mhc-stat{background:rgba(255,255,255,.04);border-radius:8px;padding:5px 3px;text-align:center}
+.mhc-stat-lbl{font-size:.52rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:2px}
+.mhc-stat-val{font-size:.78rem;font-weight:800;color:#fff}
+.mhc-nodata{font-size:.7rem;color:rgba(255,255,255,.2);text-align:center;padding:14px 0 6px;font-weight:600;letter-spacing:.05em}
 
 /* CHARTS */
 .charts-container{display:flex;flex-direction:column;gap:16px;flex-shrink:0;padding-bottom:20px}
@@ -444,33 +457,34 @@ select option{background:#0f172a;color:white}
               <div class="metric-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></div>
               <div class="metric-label">pH Level</div>
               <div class="metric-value" id="val-pH">--</div>
+              <div class="mhc-popup" id="mhc-pH"></div>
             </div>
             <div class="metric-card glass-card" id="metric-tds" onclick="setActiveMetric('tds','#8b5cf6')">
               <div class="metric-icon"><svg class="icon" viewBox="0 0 24 24"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
               <div class="metric-label">TDS</div>
               <div class="metric-value" id="val-tds">-- <span class="metric-unit">ppm</span></div>
+              <div class="mhc-popup" id="mhc-tds"></div>
             </div>
             <div class="metric-card glass-card" id="metric-temp" onclick="setActiveMetric('temp','#ef4444')">
               <div class="metric-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg></div>
               <div class="metric-label">Temperature</div>
               <div class="metric-value" id="val-temp">-- <span class="metric-unit">°C</span></div>
+              <div class="mhc-popup" id="mhc-temp"></div>
             </div>
             <div class="metric-card glass-card" id="metric-turb" onclick="setActiveMetric('turb','#10b981')">
               <div class="metric-icon"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
               <div class="metric-label">Turbidity</div>
               <div class="metric-value" id="val-turb">-- <span class="metric-unit">NTU</span></div>
+              <div class="mhc-popup" id="mhc-turb"></div>
             </div>
             <div class="metric-card glass-card" id="metric-ec" onclick="setActiveMetric('ec','#f59e0b')">
               <div class="metric-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
               <div class="metric-label">Conductivity</div>
               <div class="metric-value" id="val-ec">-- <span class="metric-unit">µS/cm</span></div>
+              <div class="mhc-popup" id="mhc-ec"></div>
             </div>
           </div>
 
-          <!-- ═══════════════════════════════════════════════════════════
-               CHARTS: Local/AI Forecast FIRST, then Global Trend
-               (positions swapped from original)
-               ═══════════════════════════════════════════════════════════ -->
           <div class="charts-container">
             <!-- CHART 1: Selected Location AI Forecast (now on top) -->
             <div class="chart-section glass-card" id="chart-section-bg-local">
@@ -870,7 +884,6 @@ firebase.initializeApp({ databaseURL:"https://water-sensor-project-default-rtdb.
 const database = firebase.database();
 
 // ── DEFAULT MAP CENTER: Patna, Bihar ──────────────────────
-// Falls back here when no pins exist on load/refresh
 const PATNA_LAT = 25.5941;
 const PATNA_LNG = 85.1376;
 const PATNA_ZOOM = 12;
@@ -890,7 +903,6 @@ function getDistance(lat1,lon1,lat2,lon2){
 }
 
 function initDashboardMap(){
-  // ── CHANGE 2 & 3: Start at Patna; fly to last pin once data loads ──
   mlMap = L.map('maplibre-map', { zoomControl: false }).setView([PATNA_LAT, PATNA_LNG], PATNA_ZOOM);
   L.control.zoom({ position: 'bottomright' }).addTo(mlMap);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(mlMap);
@@ -918,9 +930,7 @@ function initEntryMap(){
 
 function switchDevice(newId){
   currentDeviceId=newId;
-  
   document.querySelectorAll('.device-selector').forEach(sel => sel.value = newId);
-
   Object.keys(markersMap).forEach(k=>pinsLayerGroup.removeLayer(markersMap[k]));
   markersMap={};pinsData=[];fullHistoryData=[];globalChartData=[];localChartData=[];
   currentSelectedPin=null;initialLoadComplete=false;historyLayerGroup.clearLayers();
@@ -933,14 +943,10 @@ function switchDevice(newId){
   document.getElementById('area-chart-local').innerHTML='';
   document.getElementById('global-empty').classList.add('visible');
   document.getElementById('local-empty').classList.add('visible');
-  
   const sl=document.getElementById('tm-slider');sl.max=0;sl.value=0;
   document.getElementById('tm-date').innerText='LIVE';mode='LIVE';
   mlMap.removeLayer(historyLayerGroup);pinsLayerGroup.addTo(mlMap);
-
-  // Reset to Patna when switching device (no pins loaded yet)
   mlMap.setView([PATNA_LAT, PATNA_LNG], PATNA_ZOOM);
-  
   setupRealtimeListener();
   refreshPredMapPins();
   clearPredict();
@@ -969,15 +975,12 @@ function setupRealtimeListener(){
       }
       markersMap[key].off('click');markersMap[key].on('click',()=>selectPin(idx));
     });
-
     if(!initialLoadComplete){
       if(pinsData.length > 0){
-        // ── CHANGE 3: On first load, fly to the most recent (last) pin ──
         const lastPin = pinsData[pinsData.length - 1];
         mlMap.flyTo([parseFloat(lastPin.lat), parseFloat(lastPin.lng)], 14, { animate: true, duration: 1.5 });
         selectPin(pinsData.length - 1);
       }
-      // If pinsData is empty, map stays at Patna (set during init)
       initialLoadComplete = true;
     } else {
       const existingIds = Object.keys(markersMap).filter(k => markersMap[k]._prevAdded);
@@ -999,14 +1002,12 @@ function setupRealtimeListener(){
     }
     currentKeys.forEach(k => { if(markersMap[k]) markersMap[k]._prevAdded = true; });
     refreshPredMapPins();
-  
   });
   historyRef.on('value',snap=>{
     const data=snap.val();if(!data)return;
     fullHistoryData=Object.values(data).sort((a,b)=>a.ts-b.ts);
     const sl=document.getElementById('tm-slider');sl.max=fullHistoryData.length-1;
     if(mode==='LIVE')sl.value=fullHistoryData.length-1;
-    
     globalChartData=fullHistoryData.slice(-30);drawGlobalChart();
     if(currentSelectedPin)updateChartForSelectedPin();
   });
@@ -1027,6 +1028,15 @@ function handleTimeSlider(index){
     L.marker([parseFloat(pin.lat),parseFloat(pin.lng)],{icon}).addTo(historyLayerGroup);
   });
 }
+
+// ── Metric config for hover chart (colour, unit, decimal places) ── NEW
+const METRIC_CFG = {
+  pH:   { color:'#3b82f6', unit:'',       key:'pH',   dp:2 },
+  tds:  { color:'#8b5cf6', unit:' ppm',   key:'tds',  dp:0 },
+  temp: { color:'#ef4444', unit:' °C',    key:'temp', dp:1 },
+  turb: { color:'#10b981', unit:' NTU',   key:'turb', dp:1 },
+  ec:   { color:'#f59e0b', unit:' µS/cm', key:null,   dp:0 },
+};
 
 function selectPin(index){
   const pin=pinsData[index];currentSelectedPin=pin;
@@ -1050,7 +1060,85 @@ function selectPin(index){
   const hue=(wqi/100)*120;const color=`hsl(${hue},80%,50%)`;
   const fill=document.getElementById('wqi-fill');
   fill.style.width=`${wqi}%`;fill.style.backgroundColor=color;fill.style.boxShadow=`0 0 15px ${color}`;
+  renderHoverCharts(pin); // NEW — draw sparklines from pin.samples
   updateChartForSelectedPin();
+}
+
+// ── renderHoverCharts — NEW function ────────────────────────────────
+// Draws a 40-point sparkline popup for each metric card.
+// Uses pin.samples from Firebase if present; shows "No sample data"
+// gracefully for manual entries or old firmware readings.
+function renderHoverCharts(pin) {
+  const S = pin.samples || null;
+  const ecSamples = (S && S.tds) ? S.tds.map(v => +(v / 0.67).toFixed(0)) : null;
+  const datasets = {
+    pH:   S?.pH   || null,
+    tds:  S?.tds  || null,
+    temp: S?.temp || null,
+    turb: S?.turb || null,
+    ec:   ecSamples,
+  };
+
+  for (const [metric, data] of Object.entries(datasets)) {
+    const el  = document.getElementById('mhc-' + metric);
+    const cfg = METRIC_CFG[metric];
+    if (!el) continue;
+
+    if (!data || data.length < 2) {
+      el.innerHTML = `
+        <div class="mhc-header"><span>40-Sample Readings</span><span class="mhc-count">NO DATA</span></div>
+        <div class="mhc-nodata">No sample data —<br>manual entry or old firmware</div>`;
+      continue;
+    }
+
+    const n   = data.length;
+    const avg = data.reduce((a, b) => a + b, 0) / n;
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const dp  = cfg.dp;
+    const fmt = v => dp === 0 ? Math.round(v) : v.toFixed(dp);
+
+    // Build SVG sparkline (210 × 48 viewBox)
+    const VW = 210, VH = 48, PAD = 3;
+    const range = max - min || 1;
+    const pts = data.map((v, i) => ({
+      x: PAD + (i / (n - 1)) * (VW - PAD * 2),
+      y: PAD + (1 - (v - min) / range) * (VH - PAD * 2),
+    }));
+
+    let path = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p1 = pts[i], p2 = pts[i + 1];
+      const cx = p1.x + (p2.x - p1.x) / 2;
+      path += ` C${cx.toFixed(1)},${p1.y.toFixed(1)} ${cx.toFixed(1)},${p2.y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+    }
+    const lastPt  = pts[pts.length - 1];
+    const areaPath = path + ` L${lastPt.x.toFixed(1)},${VH} L${PAD},${VH} Z`;
+    const avgY    = (PAD + (1 - (avg - min) / range) * (VH - PAD * 2)).toFixed(1);
+    const dots    = pts.filter((_, i) => i % 5 === 0 || i === n - 1)
+                       .map(p => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2" fill="${cfg.color}" opacity="0.9"/>`)
+                       .join('');
+
+    const svgContent = `<svg viewBox="0 0 ${VW} ${VH}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="mhcg-${metric}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${cfg.color}" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="${cfg.color}" stop-opacity="0.02"/>
+      </linearGradient></defs>
+      <path d="${areaPath}" fill="url(#mhcg-${metric})"/>
+      <line x1="${PAD}" y1="${avgY}" x2="${VW-PAD}" y2="${avgY}" stroke="${cfg.color}" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.45"/>
+      <path d="${path}" fill="none" stroke="${cfg.color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}
+    </svg>`;
+
+    el.innerHTML = `
+      <div class="mhc-header"><span>40-Sample Readings</span><span class="mhc-count">${n} PTS</span></div>
+      <div class="mhc-svg-wrap">${svgContent}</div>
+      <div class="mhc-stats">
+        <div class="mhc-stat"><div class="mhc-stat-lbl">Min</div><div class="mhc-stat-val" style="color:${cfg.color}">${fmt(min)}${cfg.unit}</div></div>
+        <div class="mhc-stat"><div class="mhc-stat-lbl">Avg</div><div class="mhc-stat-val">${fmt(avg)}${cfg.unit}</div></div>
+        <div class="mhc-stat"><div class="mhc-stat-lbl">Max</div><div class="mhc-stat-val" style="color:${cfg.color}">${fmt(max)}${cfg.unit}</div></div>
+      </div>`;
+  }
 }
 
 function updateChartForSelectedPin(){
@@ -1084,27 +1172,22 @@ const formatAxisNum = v => v < 20 ? v.toFixed(1) : Math.round(v);
 function drawGlobalChart(){
   const svg=document.getElementById('area-chart-global');svg.innerHTML='';
   const emptyOverlay = document.getElementById('global-empty');
-  
   if(!globalChartData||!globalChartData.length) { emptyOverlay.classList.add('visible'); return; }
   emptyOverlay.classList.remove('visible');
-
-  const W=800,H=150,xO=60,cW=W-xO-15; 
+  const W=800,H=150,xO=60,cW=W-xO-15;
   const vals=globalChartData.map(d=>activeMetric==='ec'?Number((d.tds/0.67).toFixed(1)):Number(d[activeMetric]));
   const times=globalChartData.map(d=>d.time?d.time:new Date(d.ts).toLocaleTimeString());
   let max=Math.max(...vals),min=Math.min(...vals);if(max===min){max+=1;min-=1;}
   const mid=(max+min)/2,range=max-min;
-  
   const grid=`<line x1="${xO}" y1="15" x2="${W}" y2="15" stroke="rgba(255,255,255,.1)" stroke-width="1" stroke-dasharray="4,4"/>
     <text x="10" y="20" fill="rgba(255,255,255,.5)" font-size="10" font-weight="500" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(max)}</text>
     <line x1="${xO}" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="rgba(255,255,255,.05)" stroke-width="1" stroke-dasharray="4,4"/>
     <text x="10" y="${H/2+4}" fill="rgba(255,255,255,.5)" font-size="10" font-weight="500" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(mid)}</text>
     <line x1="${xO}" y1="${H-15}" x2="${W}" y2="${H-15}" stroke="rgba(255,255,255,.1)" stroke-width="1" stroke-dasharray="4,4"/>
     <text x="10" y="${H-10}" fill="rgba(255,255,255,.5)" font-size="10" font-weight="500" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(min)}</text>`;
-    
   const pts=vals.map((v,i)=>({x:xO+(i/Math.max(1,vals.length-1))*cW,y:H-15-((v-min)/range)*(H-30)}));
   const ac=document.getElementById('chart-dot-global').style.background||'#3b82f6';
   svg.innerHTML=grid+`<path d="${buildSmoothPath(pts)}" fill="none" stroke="${ac}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
-  
   const tt=document.getElementById('chart-tooltip-global');
   svg.onmousemove=e=>{
     const rect=svg.getBoundingClientRect(),sX=W/rect.width,svgX=(e.clientX-rect.left)*sX;
@@ -1126,40 +1209,32 @@ function drawGlobalChart(){
 function drawLocalChart(){
   const svg=document.getElementById('area-chart-local');svg.innerHTML='';
   const emptyOverlay = document.getElementById('local-empty');
-
   if(!localChartData||!localChartData.length) { emptyOverlay.classList.add('visible'); return; }
   emptyOverlay.classList.remove('visible');
-
-  const W=800,H=150,xO=60; 
+  const W=800,H=150,xO=60;
   const vals=localChartData.map(d=>activeMetric==='ec'?Number((d.tds/0.67).toFixed(1)):Number(d[activeMetric]));
   const times=localChartData.map(d=>d.time?d.time:new Date(d.ts).toLocaleTimeString());
   let allV=[...vals],predY=null,hasPred=vals.length>=4;
-  
   if(hasPred){let n=vals.length,sx=0,sy=0,sxy=0,sxx=0;for(let i=0;i<n;i++){sx+=i;sy+=vals[i];sxy+=i*vals[i];sxx+=i*i;}let m=(n*sxy-sx*sy)/(n*sxx-sx*sx)||0,b=(sy-m*sx)/n;predY=Math.max(0,m*(n+2)+b);allV.push(predY);}
   let max=Math.max(...allV),min=Math.min(...allV);if(max===min){max+=1;min-=1;}
   const mid=(max+min)/2,range=max-min;
-  
   const grid=`<line x1="${xO}" y1="15" x2="${W}" y2="15" stroke="rgba(255,255,255,.1)" stroke-width="1" stroke-dasharray="4,4"/>
     <text x="10" y="20" fill="rgba(255,255,255,.5)" font-size="10" font-weight="500" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(max)}</text>
     <line x1="${xO}" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="rgba(255,255,255,.05)" stroke-width="1" stroke-dasharray="4,4"/>
     <text x="10" y="${H/2+4}" fill="rgba(255,255,255,.5)" font-size="10" font-weight="500" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(mid)}</text>
     <line x1="${xO}" y1="${H-15}" x2="${W}" y2="${H-15}" stroke="rgba(255,255,255,.1)" stroke-width="1" stroke-dasharray="4,4"/>
     <text x="10" y="${H-10}" fill="rgba(255,255,255,.5)" font-size="10" font-weight="500" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(min)}</text>`;
-    
   const cW=hasPred?(W-xO)*0.70:W-xO-20;
   const pts=vals.map((v,i)=>({x:xO+(i/Math.max(1,vals.length-1))*cW,y:H-15-((v-min)/range)*(H-30)}));
   const ac=document.getElementById('chart-dot-local').style.background||'#3b82f6';
   let fHtml='',futX=0,futY=0;
-  
   if(hasPred){
     futX=xO+cW+(W-xO)*0.2;futY=H-15-((predY-min)/range)*(H-30);const lp=pts[pts.length-1];let danger=false;if(activeMetric==='pH'&&(predY<6.5||predY>8.5))danger=true;if(activeMetric==='tds'&&predY>500)danger=true;if(activeMetric==='temp'&&predY>35)danger=true;if(activeMetric==='turb'&&predY>10)danger=true;if(activeMetric==='ec'&&predY>800)danger=true;const bc=danger?'#ef4444':'#10b981';
     fHtml=`<path d="M${lp.x},${lp.y} L${futX},${futY}" fill="none" stroke="${bc}" stroke-width="3" stroke-linecap="round" stroke-dasharray="8,8" opacity=".8"/><circle cx="${futX}" cy="${futY}" r="4" fill="${bc}"/><rect x="${futX-70}" y="${futY-30}" width="140" height="20" rx="6" fill="rgba(15,23,42,.9)" stroke="${bc}" stroke-width="1"/><text x="${futX}" y="${futY-16}" fill="${bc}" font-size="10" font-weight="700" font-family="Outfit" text-anchor="middle" letter-spacing=".05em">${danger?'FORECAST: WARNING':'FORECAST: SAFE'}</text>`;
   } else {
     fHtml=`<text x="${W-10}" y="20" fill="rgba(255,255,255,.25)" font-size="9" font-weight="600" font-family="Outfit" text-anchor="end" letter-spacing=".05em">NEED 4+ PTS FOR FORECAST</text>`;
   }
-  
   svg.innerHTML=grid+`<path d="${buildSmoothPath(pts)}" fill="none" stroke="${ac}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`+fHtml;
-  
   const tt=document.getElementById('chart-tooltip-local');const unit=activeMetric==='tds'?' ppm':activeMetric==='temp'?' °C':activeMetric==='turb'?' NTU':activeMetric==='ec'?' µS/cm':'';
   svg.onmousemove=e=>{
     const rect=svg.getBoundingClientRect(),sX=W/rect.width,svgX=(e.clientX-rect.left)*sX;
@@ -1195,59 +1270,46 @@ function drawFSChart() {
     const svgData = document.getElementById('fs-chart');
     const svgY = document.getElementById('fs-y-axis');
     svgData.innerHTML = ''; svgY.innerHTML = '';
-    
     const data = currentFSType === 'global' ? globalChartData : localChartData;
     if(!data || !data.length) return;
-    
-    const H = 600; 
+    const H = 600;
     const pointSpacing = 70;
-    const W = Math.max(900, data.length * pointSpacing); 
-    
+    const W = Math.max(900, data.length * pointSpacing);
     svgData.style.minWidth = W + 'px';
     svgData.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svgY.setAttribute('viewBox', `0 0 60 ${H}`);
-    
     const vals = data.map(d => activeMetric === 'ec' ? Number((d.tds/0.67).toFixed(1)) : Number(d[activeMetric]));
     const times = data.map(d => d.time ? d.time.split(' ')[1] : new Date(d.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
-    
     let max = Math.max(...vals), min = Math.min(...vals); if(max===min){max+=1; min-=1;}
     const mid = (max+min)/2, range = max-min;
-    
     svgY.innerHTML = `
       <text x="15" y="45" fill="rgba(255,255,255,.8)" font-size="14" font-weight="400" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(max)}</text>
       <text x="15" y="${H/2+6}" fill="rgba(255,255,255,.8)" font-size="14" font-weight="400" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(mid)}</text>
       <text x="15" y="${H-35}" fill="rgba(255,255,255,.8)" font-size="14" font-weight="400" letter-spacing="0.05em" font-family="Outfit">${formatAxisNum(min)}</text>
     `;
-
     const grid = `
       <line x1="0" y1="40" x2="${W}" y2="40" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-dasharray="6,6"/>
       <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="rgba(255,255,255,.05)" stroke-width="1.5" stroke-dasharray="6,6"/>
       <line x1="0" y1="${H-40}" x2="${W}" y2="${H-40}" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-dasharray="6,6"/>
     `;
-      
     const cW = W - 40;
     const pts = vals.map((v,i) => ({ x: 20 + (i/Math.max(1,vals.length-1))*cW, y: H-40 - ((v-min)/range)*(H-80) }));
     const ac = document.getElementById('chart-dot-' + currentFSType).style.background || '#3b82f6';
-    
     let dotsHtml = '';
     let labelsHtml = '';
-    pts.forEach((p, i) => { 
-        dotsHtml += `<circle cx="${p.x}" cy="${p.y}" r="5" fill="${ac}" stroke="#1e293b" stroke-width="2" />`; 
+    pts.forEach((p, i) => {
+        dotsHtml += `<circle cx="${p.x}" cy="${p.y}" r="5" fill="${ac}" stroke="#1e293b" stroke-width="2" />`;
         labelsHtml += `<text x="${p.x}" y="${H - 12}" fill="rgba(255,255,255,0.4)" font-size="11" font-weight="500" font-family="Outfit" text-anchor="middle">${times[i]}</text>`;
         labelsHtml += `<line x1="${p.x}" y1="40" x2="${p.x}" y2="${H-40}" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>`;
     });
-    
     svgData.innerHTML = grid + labelsHtml + `<path d="${buildSmoothPath(pts)}" fill="none" stroke="${ac}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` + dotsHtml;
-    
     const tt = document.getElementById('fs-tooltip');
     svgData.onmousemove = e => {
         const rect = svgData.getBoundingClientRect();
         const sX = W / rect.width;
         const svgX = (e.clientX - rect.left) * sX;
-        
         let ci = 0, md = Infinity;
         pts.forEach((p,i) => { const d = Math.abs(svgX - p.x); if(d < md){ md = d; ci = i; }});
-        
         tt.classList.add('visible');
         let isRightHalf = ci > pts.length / 2;
         tt.style.transform = isRightHalf ? 'translate(-100%, -120%)' : 'translate(0%, -120%)';
@@ -1313,7 +1375,6 @@ async function submitReset(){
           document.getElementById('status-badge').classList.remove('visible');
           document.getElementById('wqi-score').innerText = '-- / 100';
           document.getElementById('wqi-fill').style.width = '0%';
-          // After reset, return to Patna
           mlMap.setView([PATNA_LAT, PATNA_LNG], PATNA_ZOOM);
       } else {
           alert('Error: ' + txt);
@@ -1342,7 +1403,6 @@ function navigate(page){
   document.getElementById('page-'+page).classList.add('active');
   document.getElementById('nav-'+page).classList.add('active');
   closeSidebar();
-  
   setTimeout(()=>{
     if(page==='dashboard'&&mlMap) mlMap.invalidateSize();
     if(page==='options'&&entryMap) entryMap.invalidateSize();
@@ -1468,9 +1528,7 @@ function refreshPredMapPins() {
   if (!predMap) return;
   Object.values(predMapMarkers).forEach(m => predMap.removeLayer(m));
   predMapMarkers = {};
-
   if (!pinsData || !pinsData.length) return;
-
   pinsData.forEach((pin, idx) => {
     const sc = pin.status === 'SAFE' ? 'safe' : 'warning';
     const icon = L.divIcon({
@@ -1487,32 +1545,26 @@ function refreshPredMapPins() {
 function selectPredPin(pin, idx) {
   predSelectedLat = parseFloat(pin.lat);
   predSelectedLng = parseFloat(pin.lng);
-
   const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null && v !== '') el.value = v; };
   set('pi-ph',   pin.pH);
   set('pi-tds',  pin.tds);
   set('pi-temp', pin.temp);
   set('pi-turb', pin.turb);
   if (pin.tds) set('pi-cond', (pin.tds / 0.67).toFixed(0));
-
   document.getElementById('pred-pin-status').textContent =
     `📍 Pin ${idx + 1} selected — Lat ${predSelectedLat.toFixed(4)}, Lng ${predSelectedLng.toFixed(4)}`;
-
   Object.values(predMapMarkers).forEach(m => {
     const el = m.getElement();
     if (el) el.querySelector('.ml-marker-inner').style.boxShadow = '';
   });
   const selEl = predMapMarkers[pin.id]?.getElement();
   if (selEl) selEl.querySelector('.ml-marker-inner').style.boxShadow = '0 0 18px rgba(96,165,250,.9)';
-
   if (!document.getElementById('pi-datetime').value) {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('pi-datetime').value = now.toISOString().slice(0, 16);
   }
-
   document.getElementById('ai-summary-text').innerHTML = `<i style="color: rgba(255,255,255,0.4);">Click "Generate Report ✨" above to request a professional analysis from Llama 3.3 AI for this new location.</i>`;
-
   fetchRainfallIfReady();
   livePredict();
 }
@@ -1521,40 +1573,30 @@ async function fetchRainfallIfReady() {
   if (!predSelectedLat || !predSelectedLng) return;
   const dtEl = document.getElementById('pi-datetime');
   if (!dtEl.value) return;
-
   const sampleDate = new Date(dtEl.value);
   if (isNaN(sampleDate.getTime())) return;
-
   const endDate = new Date(sampleDate);
   const startDate = new Date(sampleDate);
   startDate.setDate(startDate.getDate() - 7);
-
   const fmt = d => d.toISOString().split('T')[0];
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${predSelectedLat}&longitude=${predSelectedLng}&start_date=${fmt(startDate)}&end_date=${fmt(endDate)}&daily=precipitation_sum,rain_sum&timezone=Asia%2FKolkata`;
-
   document.getElementById('rain-loading').style.display = 'flex';
   document.getElementById('rain-box').style.display = 'none';
   rainfallData = null;
-
   try {
     const resp = await fetch(url);
     if (!resp.ok) throw new Error('API error');
     const data = await resp.json();
-
     const precip = data.daily?.precipitation_sum || [];
     const mm7d = precip.reduce((s, v) => s + (v || 0), 0);
     const mm24h = precip[precip.length - 1] || 0;
     const mm3d = precip.slice(-3).reduce((s, v) => s + (v || 0), 0);
-
     rainfallData = { mm24h, mm7d, mm3d, loaded: true };
-
     document.getElementById('rain-loading').style.display = 'none';
     document.getElementById('rain-box').style.display = 'block';
     document.getElementById('rain-val').textContent = `${mm24h.toFixed(1)} mm (24h) · ${mm7d.toFixed(1)} mm (7d)`;
     document.getElementById('rain-sub').textContent = `Sample date: ${fmt(sampleDate)} · Location: ${predSelectedLat.toFixed(3)}°, ${predSelectedLng.toFixed(3)}°`;
-
-    livePredict(); 
-
+    livePredict();
   } catch (e) {
     document.getElementById('rain-loading').style.display = 'none';
     rainfallData = { mm24h: 0, mm7d: 0, mm3d: 0, loaded: false, error: true };
@@ -1590,14 +1632,12 @@ function nbPotability(inp) {
 
 function ruleEngine(inp, rf) {
   const T = MODEL.thr;
-
   let ms = 0;
   if (inp.turb !== null) { if(inp.turb>10)ms+=3; else if(inp.turb>4)ms+=2; else if(inp.turb>1)ms+=1; }
   if (inp.bod  !== null) { if(inp.bod>T.bod.high)ms+=3; else if(inp.bod>T.bod.medium)ms+=2; else if(inp.bod>T.bod.low)ms+=1; }
   if (inp.do_v !== null && inp.do_v<5) ms += 2;
   if (inp.tc   !== null && inp.tc>T.tc.medium) ms += 1;
   if (inp.temp !== null && inp.temp>28) ms += 1;
-
   let rfBoost = 0, rfDesc = '';
   if (rf && rf.loaded) {
     if (rf.mm24h >= 50)      { rfBoost = 4; rfDesc = `Heavy rain today (${rf.mm24h.toFixed(1)} mm). Strong runoff expected.`; }
@@ -1609,23 +1649,18 @@ function ruleEngine(inp, rf) {
     else                     { rfBoost = 0; rfDesc = `Dry conditions (${rf.mm7d.toFixed(1)} mm this week). No rainfall contribution.`; }
     ms += rfBoost;
   }
-
-  ms = Math.min(ms, 14); 
-
+  ms = Math.min(ms, 14);
   const monsoon = ms>=7 ? 'HIGH MONSOON INFLUENCE'
                 : ms>=4 ? 'MODERATE MONSOON INFLUENCE'
                 : ms>=2 ? 'LOW MONSOON INFLUENCE'
                 : 'MINIMAL / NO MONSOON INFLUENCE';
-
   const rfNote = rf && rf.loaded ? ` Weather Data: ${rfDesc}` : ' No weather data — set a date/location for better accuracy.';
-
   const monsoonDescs = {
     'HIGH MONSOON INFLUENCE':      `Strong signs of flooding/runoff detected. High chances of dirt and organic waste mixing into the water.${rfNote}`,
     'MODERATE MONSOON INFLUENCE':  `Moderate runoff detected. Typical of local rivers after moderate rainfall.${rfNote}`,
     'LOW MONSOON INFLUENCE':       `Minor seasonal influence. Parameters slightly above normal dry-season levels.${rfNote}`,
     'MINIMAL / NO MONSOON INFLUENCE': `No major weather or flood signatures detected. Very stable baseline water.${rfNote}`
   };
-
   let acid, acidDesc;
   if (inp.ph !== null) {
     if      (inp.ph < 4)   { acid='SEVERE ACID CONTAMINATION'; acidDesc='pH < 4.0 — Highly corrosive! Possible mining or industrial chemical leak.'; }
@@ -1635,7 +1670,6 @@ function ruleEngine(inp, rf) {
     else if (inp.ph<=10)   { acid='ALKALINE INFLUENCE';        acidDesc='pH 8.5–10 — High alkaline levels. Can leave deposits and taste bitter.'; }
     else                   { acid='SEVERE ALKALINE CONTAMINATION'; acidDesc='pH > 10 — Very dangerous. Suggests industrial waste or heavy chemical mixing.'; }
   } else { acid='pH NOT PROVIDED'; acidDesc='Enter a pH level to assess acidity.'; }
-
   let rs = 0, sources = [];
   if (inp.bod  !== null) { if(inp.bod>T.bod.high)rs+=4; else if(inp.bod>T.bod.medium)rs+=2; else if(inp.bod>T.bod.low)rs+=1; }
   if (inp.fc   !== null) { if(inp.fc>T.fc.high)rs+=4; else if(inp.fc>T.fc.medium)rs+=3; else if(inp.fc>T.fc.low)rs+=1; }
@@ -1645,10 +1679,8 @@ function ruleEngine(inp, rf) {
   if (inp.lead !== null && inp.lead>0.05)rs += 3;
   if (inp.al   !== null && inp.al>0.5)   rs += 1;
   if (inp.turb !== null && inp.turb>4)   rs += 1;
-
   if (rf && rf.loaded && rf.mm24h >= 20) rs += 2;
   else if (rf && rf.loaded && rf.mm24h >= 5) rs += 1;
-
   if (inp.fc   !== null && inp.fc>T.fc.medium)         sources.push('Sewage / Fecal Matter');
   if (inp.bod  !== null && inp.bod>T.bod.medium)       sources.push('Organic / Plant Waste');
   if (inp.nit  !== null && inp.nit>10)                 sources.push('Farming / Fertilizers');
@@ -1659,7 +1691,6 @@ function ruleEngine(inp, rf) {
   if (cp !== null && cp > T.cond.saline)               sources.push('Seawater / Salt Mixing');
   if (inp.turb !== null && inp.turb>10 && !inp.fc)     sources.push('Heavy Mud / Sediment');
   if (rf && rf.loaded && rf.mm24h>=20 && inp.turb>4)  sources.push('Rain Flood Runoff');
-
   const cRisk = rs>=8?'CRITICAL':rs>=5?'HIGH':rs>=3?'MODERATE':rs>=1?'LOW':'MINIMAL';
   const srcStr = sources.length ? sources.join(', ') : 'No clear contamination signs detected';
   const cDescs = {
@@ -1669,7 +1700,6 @@ function ruleEngine(inp, rf) {
     LOW:      `Minor contamination. Source(s): ${srcStr}. Proceed with caution and standard filtering.`,
     MINIMAL:  'Everything looks incredibly clean and within safe limits.'
   };
-
   let sal, salDesc;
   if (cp !== null) {
     if      (cp < T.cond.fresh)    { sal='FRESHWATER (LOW SALINITY)';  salDesc=`~${Math.round(cp)} µS/cm — Excellent, pure freshwater.`; }
@@ -1678,7 +1708,6 @@ function ruleEngine(inp, rf) {
     else if (cp < 10000)           { sal='HIGH SALINITY RISK';         salDesc=`~${Math.round(cp)} µS/cm — Very salty. Likely mixing with seawater or brine.`; }
     else                           { sal='SALINE / BRACKISH WATER';    salDesc='> 10,000 µS/cm — Basically saltwater. Requires heavy reverse osmosis.'; }
   } else { sal='INSUFFICIENT DATA'; salDesc='Please enter TDS or Conductivity.'; }
-
   const h = inp.hard;
   let hard, hardDesc;
   if (h !== null) {
@@ -1688,7 +1717,6 @@ function ruleEngine(inp, rf) {
     else if (h < 500) { hard='HARD — SCALING RISK';      hardDesc=`${h} mg/L — Hard water. Will likely leave white scale in pipes/heaters. Softener recommended.`; }
     else              { hard='VERY HARD — HIGH SCALING'; hardDesc=`${h} mg/L — Extremely hard. Will damage appliances without a softening system.`; }
   } else { hard='NOT PROVIDED'; hardDesc='Enter a hardness value to check scaling risks.'; }
-
   const uses = { drinking:{ok:true,reason:''}, bathing:{ok:true,reason:''}, irrigation:{ok:true,reason:''}, industrial:{ok:true,reason:''}, aquatic:{ok:true,reason:''} };
   const fail = (k,r) => { uses[k].ok = false; uses[k].reason += r+' '; };
   if(inp.ph!==null&&(inp.ph<6.5||inp.ph>8.5))fail('drinking',`pH ${inp.ph} is outside safe 6.5–8.5 limits.`);
@@ -1716,7 +1744,6 @@ function ruleEngine(inp, rf) {
   if(inp.ph!==null&&(inp.ph<6||inp.ph>9))fail('aquatic','Acid/Alkaline levels will harm fish gills.');
   if(inp.turb!==null&&inp.turb>10)fail('aquatic','Too murky for fish/plants to thrive.');
   if(inp.ars!==null&&inp.ars>0.05)fail('aquatic','Arsenic levels are deadly to local aquatic life.');
-
   return { labels:{ monsoon, monsoonDesc:monsoonDescs[monsoon]||'', acid, acidDesc,
     contamination:`${cRisk} RISK`, contaminationSource:srcStr, contaminationDesc:cDescs[cRisk],
     salinity:sal, salinityDesc:salDesc, hardness:hard, hardnessDesc:hardDesc, uses },
@@ -1745,20 +1772,16 @@ async function handleManualAIRequest() {
     const btn = document.getElementById('ai-trigger-btn');
     const aiText = document.getElementById('ai-summary-text');
     const aiLoading = document.getElementById('ai-loading');
-    
     const data = readInputs();
-    
     if (data.ph === null || data.tds === null) {
         aiText.innerText = "Need more sensor data (pH and TDS) to generate a summary. Please enter them above.";
         return;
     }
-    
     btn.disabled = true;
     btn.innerHTML = "Processing... ⏳";
     aiText.style.opacity = '0.5';
     aiLoading.style.display = 'flex';
     aiText.innerText = "Generating custom analysis...";
-
     try {
         const response = await fetch(`/api/ai-summary`, {
             method: "POST",
@@ -1766,15 +1789,13 @@ async function handleManualAIRequest() {
             body: JSON.stringify({
                 ph: data.ph,
                 tds: data.tds,
-                temp: data.temp || 25, 
+                temp: data.temp || 25,
                 turb: data.turb || 0
             })
         });
-
         const result = await response.json();
-        
         if (response.ok) {
-            aiText.innerHTML = result.summary.replace(/\n/g, '<br>'); 
+            aiText.innerHTML = result.summary.replace(/\n/g, '<br>');
         } else {
             console.error("Server API Error:", result.error);
             aiText.innerText = `Server Error: ${result.error} (Check terminal logs)`;
@@ -1799,14 +1820,11 @@ function livePredict() {
   }
   document.getElementById('pred-placeholder').style.display = 'none';
   document.getElementById('pred-results').style.display = 'block';
-
   const rf = rainfallData;
   const { prob: potProb, usedFields } = nbPotability(inp);
   const { labels, riskScore, monsoonScore, cRisk } = ruleEngine(inp, rf);
-
   const totalFields = Object.values(inp).filter(v => v !== null).length;
   const confidence = Math.min(95, Math.max(30, 30 + totalFields * 4 + usedFields * 2 + (rf?.loaded ? 8 : 0)));
-
   let vl, vs, vc, ve;
   if (potProb > 0.65 && ['MINIMAL','LOW'].includes(cRisk)) {
     vl='LIKELY POTABLE'; vc='#10b981'; ve='✅'; vs=`The AI calculates a ${(potProb*100).toFixed(0)}% chance this water is completely safe to drink based on historical patterns.`;
@@ -1819,7 +1837,6 @@ function livePredict() {
   } else {
     vl='NOT POTABLE — TREATMENT REQUIRED'; vc='#ef4444'; ve='🚫'; vs=`The AI is only ${(potProb*100).toFixed(0)}% confident in this water. It fails several standard health guidelines.`;
   }
-
   const vi = document.getElementById('pred-verdict-icon');
   vi.textContent = ve; vi.style.background = vc+'22'; vi.style.boxShadow = `0 0 20px ${vc}33`;
   document.getElementById('pred-verdict-label').textContent = vl;
@@ -1828,7 +1845,6 @@ function livePredict() {
   document.getElementById('pred-conf-bar').style.cssText = `height:100%;border-radius:4px;width:${confidence}%;background:${vc};transition:width 1s cubic-bezier(.16,1,.3,1)`;
   document.getElementById('pred-conf-pct').textContent = confidence + '%';
   document.getElementById('overall-acc-tip').innerHTML = ACC_META.overall.detail;
-
   const rcb = document.getElementById('rain-context-banner');
   const rfBadge = document.getElementById('rain-influence-badge');
   if (rf && rf.loaded) {
@@ -1845,7 +1861,6 @@ function livePredict() {
   } else {
     rcb.style.display = 'none';
   }
-
   const grid = document.getElementById('pred-labels-grid');
   grid.innerHTML = '';
   const cards = [
@@ -1855,7 +1870,6 @@ function livePredict() {
     { title:'🌊 Salinity Risk', val:labels.salinity, desc:labels.salinityDesc, col:labels.salinity.includes('HIGH')||labels.salinity.includes('SALINE')?'#f59e0b':labels.salinity.includes('ELEVATED')?'#fcd34d':'#34d399', accKey:'salinity' },
     { title:'🪨 Hardness & Scaling', val:labels.hardness, desc:labels.hardnessDesc, col:labels.hardness.includes('VERY')?'#ef4444':labels.hardness.includes('HARD —')?'#f59e0b':labels.hardness==='NOT PROVIDED'?'rgba(255,255,255,.3)':'#34d399', accKey:'hardness' },
   ];
-
   cards.forEach((c, i) => {
     const d = document.createElement('div');
     d.className = 'pred-label-card';
@@ -1868,7 +1882,6 @@ function livePredict() {
       ${accTip(c.accKey)}`;
     grid.appendChild(d);
   });
-
   const uc = document.createElement('div');
   uc.className = 'pred-label-card';
   uc.style.animationDelay = (cards.length * 0.06) + 's';
@@ -1890,7 +1903,6 @@ function livePredict() {
     }).join('')}
     </div>${accTip('uses')}`;
   grid.appendChild(uc);
-
   const tbl = document.getElementById('pred-param-table');
   const pList = [
     {k:'ph',  v:inp.ph,   l:'pH Level',      u:'',      lo:6.5,hi:8.5, dm:14},
@@ -1906,7 +1918,6 @@ function livePredict() {
     {k:'lead',v:inp.lead, l:'Lead',          u:'mg/L',  hi:0.01,       dm:0.1},
     {k:'temp',v:inp.temp, l:'Temperature',   u:'°C',    hi:30,         dm:45},
   ].filter(p => p.v !== null);
-
   tbl.innerHTML = pList.map(p => {
     let st, col, pct;
     if (p.k==='ph') {
@@ -1952,7 +1963,6 @@ function loadPreset(name) {
     set('pi-nit',p.nit); set('pi-sulf',p.sulf);
     if(p.ars)set('pi-ars',p.ars); if(p.lead)set('pi-lead',p.lead); if(p.al)set('pi-al',p.al);
   }
-  
   document.getElementById('ai-summary-text').innerHTML = `<i style="color: rgba(255,255,255,0.4);">Click "Generate Report ✨" above to request a professional analysis from Llama 3.3 AI for this preset.</i>`;
   livePredict();
 }
