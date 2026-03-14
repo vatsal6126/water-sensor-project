@@ -1076,7 +1076,7 @@ else if (turb<800) qturb=40;
 else qturb=20;             
 
 const qtemp=Math.max(40,100-Math.abs(temp-25)*2);
-const wqi=Math.round(qph*0.25+qtds*0.35+qturb*0.25+qtemp*0.15);
+const wqi=Math.round(qph*0.30+qtds*0.40+qturb*0.30);
 
 document.getElementById('wqi-score').innerText=`${wqi} / 100`;
 const hue=(wqi/100)*120;const color=`hsl(${hue},80%,50%)`;
