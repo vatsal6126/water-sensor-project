@@ -153,6 +153,17 @@ app.get("/add", async (req, res) => {
 // ================= PING =================
 app.get("/ping", (req, res) => res.status(200).send("Server alive"));
 
+// ================= TEST NTFY =================
+app.get("/test-ntfy", async (req, res) => {
+  const fakeEntry = {
+    lat: 25.5941, lng: 85.1376,
+    pH: 4.0, tds: 800, temp: 36, turb: 15,
+    time: new Date().toLocaleString("en-IN")
+  };
+  await sendNtfyAlert(fakeEntry, "device1-TEST");
+  res.send("Alert sent — check your ntfy app and Render logs.");
+});
+
 // ================= UPDATE ROUTE (ESP32 → Firebase) =================
 
 async function handleUpdate(fields, res) {
@@ -160,7 +171,7 @@ async function handleUpdate(fields, res) {
     id = "device1",
     pH, tds, temp, turb, wqi,
     lat, lng,
-    samples = null, // ADDED: optional 40-point sample arrays from new ESP32 firmware
+    samples = null,
     tsRaw   = null,
   } = fields;
 
@@ -175,16 +186,19 @@ async function handleUpdate(fields, res) {
   const latF  = parseFloat(lat);
   const lngF  = parseFloat(lng);
 
-  
   const tsRaw_ = parseInt(tsRaw);
   const ts = (!isNaN(tsRaw_) && tsRaw_ > 1000000000)
     ? tsRaw_ * 1000
     : Date.now();
 
-  const status =
-    phF < 6.5 || phF > 8.5 || tdsF > 500 || tempF > 35 || turbF > 10 || (!isNaN(wqiF) && wqiF < 70)
-      ? "WARNING" : "SAFE";
-
+  // Mirror ESP32 RGB logic exactly:
+  // GREEN  = wqi >= 70  → SAFE
+  // YELLOW = wqi >= 50 and < 70  → WARNING (buzzer beeps)
+  // RED    = wqi < 50  → WARNING (buzzer constant)
+  // Also flag bad raw sensor values as WARNING
+  const wqiStatus = !isNaN(wqiF) && wqiF < 70;
+  const sensorStatus = phF < 6.5 || phF > 8.5 || tdsF > 500 || tempF > 35 || turbF > 10;
+  const status = (wqiStatus || sensorStatus) ? "WARNING" : "SAFE";
 
   let cleanSamples = null;
   if (samples && typeof samples === "object") {
@@ -209,15 +223,13 @@ async function handleUpdate(fields, res) {
     status,
     lat: isNaN(latF) ? null : latF,
     lng: isNaN(lngF) ? null : lngF,
-    ...(cleanSamples ? { samples: cleanSamples } : {}), // ADDED: spread samples into entry only if present
+    ...(cleanSamples ? { samples: cleanSamples } : {}),
   };
 
   try {
-    // UNCHANGED: same Firebase writes as original
     await axios.patch(`${FIREBASE_DB}/devices/${id}/latest.json`, entry);
     await axios.post(`${FIREBASE_DB}/devices/${id}/history.json`, entry);
 
-    // UNCHANGED: same pin management logic as original
     if (entry.lat !== null && entry.lng !== null) {
       const pinsRes = await axios.get(`${FIREBASE_DB}/devices/${id}/pins.json`);
       const pins = pinsRes.data || {};
@@ -238,14 +250,14 @@ async function handleUpdate(fields, res) {
     }
 
     if (status === "WARNING") {
+      console.log(`🚨 ALERT TRIGGERED — WQI:${wqiF} pH:${phF} TDS:${tdsF} Turb:${turbF} Temp:${tempF}`);
       await sendNtfyAlert(entry, id);
     }
 
-    
     const sampleInfo = cleanSamples
       ? `+samples(${Object.values(cleanSamples)[0]?.length ?? 0} pts each)`
       : "no-samples";
-    console.log(`✅ [${id}] pH:${phF} TDS:${tdsF} Turb:${turbF} Temp:${tempF} → ${status} | ts:${ts} | ${sampleInfo}`);
+    console.log(`✅ [${id}] pH:${phF} TDS:${tdsF} Turb:${turbF} Temp:${tempF} → ${status} | WQI:${wqiF} | ts:${ts} | ${sampleInfo}`);
 
     res.send("Data Stored Successfully");
   } catch (err) {
@@ -254,12 +266,10 @@ async function handleUpdate(fields, res) {
   }
 }
 
-// 
-  app.post("/update", async (req, res) => {
+app.post("/update", async (req, res) => {
   const { id, pH, tds, temp, turb, wqi, lat, lng, samples, ts } = req.body;
   await handleUpdate({ id, pH, tds, temp, turb, wqi, lat, lng, samples, tsRaw: ts }, res);
 });
-// update is used for manual entry
 
 app.get("/update", async (req, res) => {
   const { id, pH, tds, temp, turb, wqi, lat, lng, ts } = req.query;
