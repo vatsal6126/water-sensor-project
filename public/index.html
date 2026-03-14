@@ -1052,7 +1052,7 @@ function selectPin(index){
   document.getElementById('val-turb').innerHTML=`${pin.turb} <span class="metric-unit">NTU</span>`;
   const ec=(pin.tds/0.67).toFixed(0);
   document.getElementById('val-ec').innerHTML=`${ec} <span class="metric-unit">µS/cm</span>`;
-  // ✅ REPLACE WITH THIS — matches the ESP32 WQI formula exactly
+ // for wqi calculationsss
 const pH=parseFloat(pin.pH), tds=parseFloat(pin.tds),
       turb=parseFloat(pin.turb), temp=parseFloat(pin.temp);
 
@@ -1086,10 +1086,10 @@ fill.style.width=`${wqi}%`;fill.style.backgroundColor=color;fill.style.boxShadow
   updateChartForSelectedPin();
 }
 
-// ── renderHoverCharts — NEW function ────────────────────────────────
-// Draws a 40-point sparkline popup for each metric card.
-// Uses pin.samples from Firebase if present; shows "No sample data"
-// gracefully for manual entries or old firmware readings.
+
+//40 sample show on tooltips..
+// if that is old reading then it will show no sample dta
+
 function renderHoverCharts(pin) {
   const S = pin.samples || null;
   const ecSamples = (S && S.tds) ? S.tds.map(v => +(v / 0.67).toFixed(0)) : null;
@@ -1120,7 +1120,7 @@ function renderHoverCharts(pin) {
     const dp  = cfg.dp;
     const fmt = v => dp === 0 ? Math.round(v) : v.toFixed(dp);
 
-    // Build SVG sparkline (210 × 48 viewBox)
+    
     const VW = 210, VH = 48, PAD = 3;
     const range = max - min || 1;
     const pts = data.map((v, i) => ({
@@ -1272,9 +1272,7 @@ function drawLocalChart(){
   svg.onmouseleave=()=>tt.classList.remove('visible');
 }
 
-// ══════════════════════════════════════════════════════════
-//  FULLSCREEN GRAPH LOGIC (SPLIT-PANE STICKY Y-AXIS)
-// ══════════════════════════════════════════════════════════
+
 let currentFSType = null;
 
 function openFS(type) {

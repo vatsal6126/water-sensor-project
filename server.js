@@ -1,4 +1,4 @@
-// Conditionally load .env only in local development, not on Render
+// local run check for .env file
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
@@ -18,7 +18,7 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(express.static("public"));
-app.use(express.json({ limit: "64kb" })); // CHANGED: was express.json() — increased limit to handle 40-sample JSON payloads from ESP32
+app.use(express.json({ limit: "64kb" })); 
 
 server.listen(PORT, () => {
   console.log("✅ Server running on port " + PORT);
@@ -29,7 +29,7 @@ server.listen(PORT, () => {
   }
 });
 
-// ================= DISTANCE FUNCTION =================
+// distance rules for mapping on pi
 function distanceMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000;
   const toRad = (x) => (x * Math.PI) / 180;
@@ -41,7 +41,7 @@ function distanceMeters(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// ================= NTFY ALERT =================
+//mobile apps alert systems
 async function sendNtfyAlert(entry, deviceId) {
   try {
     await axios.post(
@@ -61,7 +61,7 @@ async function sendNtfyAlert(entry, deviceId) {
   }
 }
 
-// ================= AI SUMMARY (GROQ LLAMA 3.3) =================
+//llmama 3.3 api
 app.post("/api/ai-summary", async (req, res) => {
   const { ph, tds, temp, turb } = req.body;
   console.log(`🦙 AI request — pH:${ph} TDS:${tds} Temp:${temp} Turb:${turb}`);
@@ -142,12 +142,7 @@ app.get("/add", async (req, res) => {
 app.get("/ping", (req, res) => res.status(200).send("Server alive"));
 
 // ================= UPDATE ROUTE (ESP32 → Firebase) =================
-// CHANGED: The original single app.get("/update") is now split into:
-//   1. A shared async function handleUpdate() containing all the logic
-//   2. app.post("/update") — NEW route for the new ESP32 firmware (JSON body with samples)
-//   3. app.get("/update")  — KEPT exactly for SD card offline flush (query string, no samples)
 
-// CHANGED: Shared handler extracted so both GET and POST routes use identical logic
 async function handleUpdate(fields, res) {
   const {
     id = "device1",
@@ -167,7 +162,7 @@ async function handleUpdate(fields, res) {
   const latF  = parseFloat(lat);
   const lngF  = parseFloat(lng);
 
-  // UNCHANGED: same timestamp fix as original
+  
   const tsRaw_ = parseInt(tsRaw);
   const ts = (!isNaN(tsRaw_) && tsRaw_ > 1000000000)
     ? tsRaw_ * 1000
@@ -177,8 +172,7 @@ async function handleUpdate(fields, res) {
     phF < 6.5 || phF > 8.5 || tdsF > 500 || tempF > 35 || turbF > 10
       ? "WARNING" : "SAFE";
 
-  // ADDED: validate and clean the samples arrays if present
-  // If samples is null (GET/SD flush calls), this block is skipped entirely
+
   let cleanSamples = null;
   if (samples && typeof samples === "object") {
     cleanSamples = {};
@@ -234,7 +228,7 @@ async function handleUpdate(fields, res) {
       sendNtfyAlert(entry, id);
     }
 
-    // CHANGED: console.log now also prints whether samples were included
+    
     const sampleInfo = cleanSamples
       ? `+samples(${Object.values(cleanSamples)[0]?.length ?? 0} pts each)`
       : "no-samples";
@@ -247,14 +241,13 @@ async function handleUpdate(fields, res) {
   }
 }
 
-// ADDED: POST /update — receives JSON body from new ESP32 firmware (includes samples arrays)
-app.post("/update", async (req, res) => {
+// 
+  app.post("/update", async (req, res) => {
   const { id, pH, tds, temp, turb, wqi, lat, lng, samples, ts } = req.body;
   await handleUpdate({ id, pH, tds, temp, turb, wqi, lat, lng, samples, tsRaw: ts }, res);
 });
+// update is used for manual entry
 
-// CHANGED: app.get("/update") — logic moved into handleUpdate(), samples forced to null
-// so SD card offline flush (which sends GET with query string) is 100% unchanged in behaviour
 app.get("/update", async (req, res) => {
   const { id, pH, tds, temp, turb, wqi, lat, lng, ts } = req.query;
   await handleUpdate({ id, pH, tds, temp, turb, wqi, lat, lng, samples: null, tsRaw: ts }, res);
