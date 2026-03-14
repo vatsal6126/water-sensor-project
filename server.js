@@ -12,13 +12,14 @@ const RESET_PASSWORD = process.env.RESET_PASSWORD || "LDCHEMICAL";
 const PORT = process.env.PORT || 3000;
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const NTFY_TOPIC = "chemeleon_water_alerts";
+const NTFY_BASE_TOPIC = "chemeleon_water_alerts";
+let ntfyTopicIndex = 0; // 0 = base name, 1 = name1, 2 = name2, etc.
 
 const app = express();
 const server = http.createServer(app);
 
 app.use(express.static("public"));
-app.use(express.json({ limit: "64kb" })); 
+app.use(express.json({ limit: "64kb" }));
 
 server.listen(PORT, () => {
   console.log("✅ Server running on port " + PORT);
@@ -28,6 +29,13 @@ server.listen(PORT, () => {
     console.log("🦙 Groq Llama 3.3 API Key loaded successfully.");
   }
 });
+
+// ================= NTFY TOPIC HELPER =================
+function getCurrentTopic() {
+  return ntfyTopicIndex === 0
+    ? NTFY_BASE_TOPIC
+    : `${NTFY_BASE_TOPIC}${ntfyTopicIndex}`;
+}
 
 // distance rules for mapping on pi
 function distanceMeters(lat1, lon1, lat2, lon2) {
@@ -41,36 +49,59 @@ function distanceMeters(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-//mobile apps alert systems
+// ================= NTFY ALERT WITH AUTO FALLBACK =================
 async function sendNtfyAlert(entry, deviceId) {
-  try {
-    const message =
-      `Device: ${deviceId}\n` +
-      `Location: ${entry.lat}, ${entry.lng}\n` +
-      `pH: ${entry.pH}  |  TDS: ${entry.tds} ppm\n` +
-      `Temp: ${entry.temp} C  |  Turbidity: ${entry.turb} NTU\n` +
-      `Time: ${entry.time}`;
+  const MAX_TOPIC_ATTEMPTS = 10;
 
-    const response = await axios({
-      method: "post",
-      url: `https://ntfy.sh/${NTFY_TOPIC}`,
-      data: message,
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "X-Title":    "Chemeleon: Contamination Detected!",
-        "X-Tags":     "warning,skull",
-        "X-Priority": "high",
-      },
-    });
+  const message =
+    `Device: ${deviceId}\n` +
+    `Location: ${entry.lat}, ${entry.lng}\n` +
+    `pH: ${entry.pH}  |  TDS: ${entry.tds} ppm\n` +
+    `Temp: ${entry.temp} C  |  Turbidity: ${entry.turb} NTU\n` +
+    `Time: ${entry.time}`;
 
-    console.log(`Ntfy alert sent. Status: ${response.status}`);
-  } catch (error) {
-    console.error("Ntfy failed:", error.message);
-    if (error.response) {
-      console.error("ntfy HTTP status:", error.response.status);
-      console.error("ntfy response body:", JSON.stringify(error.response.data));
+  for (let attempt = 0; attempt < MAX_TOPIC_ATTEMPTS; attempt++) {
+    const topic = getCurrentTopic();
+    try {
+      const response = await axios({
+        method: "post",
+        url: `https://ntfy.sh/${topic}`,
+        data: message,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "X-Title":    "Chemeleon: Contamination Detected!",
+          "X-Tags":     "warning,skull",
+          "X-Priority": "high",
+        },
+      });
+
+      console.log(`✅ Ntfy alert sent on topic "${topic}". Status: ${response.status}`);
+      return; // success, stop
+
+    } catch (error) {
+      const status = error.response?.status;
+      const body   = error.response?.data;
+
+      if (status === 429) {
+        // Daily limit hit on this topic — bump to next topic and retry
+        ntfyTopicIndex++;
+        const newTopic = getCurrentTopic();
+        console.warn(`⚠️ Ntfy limit reached on "${topic}". Switching to "${newTopic}"...`);
+        // Small delay before retry
+        await new Promise(r => setTimeout(r, 500));
+      } else {
+        // Non-rate-limit error — log and give up
+        console.error(`❌ Ntfy failed on topic "${topic}":`, error.message);
+        if (error.response) {
+          console.error("ntfy HTTP status:", status);
+          console.error("ntfy response body:", JSON.stringify(body));
+        }
+        return;
+      }
     }
   }
+
+  console.error(`❌ Ntfy failed after trying ${MAX_TOPIC_ATTEMPTS} topics. All limits exhausted.`);
 }
 
 //llmama 3.3 api
@@ -142,10 +173,12 @@ app.get("/add", async (req, res) => {
     await axios.post(`${FIREBASE_DB}/devices/${id}/history.json`, entry);
     await axios.post(`${FIREBASE_DB}/devices/${id}/pins.json`, entry);
     if (status === "WARNING") {
+      console.log(`🚨 /add ALERT — pH:${pH} TDS:${tds} Turb:${turb} Temp:${temp} → ${status}`);
       await sendNtfyAlert(entry, id);
     }
     res.send("Pin added successfully");
   } catch (err) {
+    console.error("Add route error:", err.message);
     res.status(500).send("Firebase Error");
   }
 });
@@ -161,11 +194,15 @@ app.get("/test-ntfy", async (req, res) => {
     time: new Date().toLocaleString("en-IN")
   };
   await sendNtfyAlert(fakeEntry, "device1-TEST");
-  res.send("Alert sent — check your ntfy app and Render logs.");
+  res.send(`Alert sent on topic "${getCurrentTopic()}" — check your ntfy app and Render logs.`);
+});
+
+// ================= CURRENT TOPIC STATUS =================
+app.get("/ntfy-status", (req, res) => {
+  res.send(`Current ntfy topic: "${getCurrentTopic()}" (index: ${ntfyTopicIndex})`);
 });
 
 // ================= UPDATE ROUTE (ESP32 → Firebase) =================
-
 async function handleUpdate(fields, res) {
   const {
     id = "device1",
@@ -195,7 +232,6 @@ async function handleUpdate(fields, res) {
   // GREEN  = wqi >= 70  → SAFE
   // YELLOW = wqi >= 50 and < 70  → WARNING (buzzer beeps)
   // RED    = wqi < 50  → WARNING (buzzer constant)
-  // Also flag bad raw sensor values as WARNING
   const wqiStatus = !isNaN(wqiF) && wqiF < 70;
   const sensorStatus = phF < 6.5 || phF > 8.5 || tdsF > 500 || tempF > 35 || turbF > 10;
   const status = (wqiStatus || sensorStatus) ? "WARNING" : "SAFE";
