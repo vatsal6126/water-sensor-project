@@ -142,7 +142,7 @@ app.get("/add", async (req, res) => {
     await axios.post(`${FIREBASE_DB}/devices/${id}/history.json`, entry);
     await axios.post(`${FIREBASE_DB}/devices/${id}/pins.json`, entry);
     if (status === "WARNING") {
-      sendNtfyAlert(entry, id);
+      await sendNtfyAlert(entry, id);
     }
     res.send("Pin added successfully");
   } catch (err) {
@@ -158,7 +158,7 @@ app.get("/ping", (req, res) => res.status(200).send("Server alive"));
 async function handleUpdate(fields, res) {
   const {
     id = "device1",
-    pH, tds, temp, turb,
+    pH, tds, temp, turb, wqi,
     lat, lng,
     samples = null, // ADDED: optional 40-point sample arrays from new ESP32 firmware
     tsRaw   = null,
@@ -171,6 +171,7 @@ async function handleUpdate(fields, res) {
   const tdsF  = parseFloat(tds);
   const tempF = parseFloat(temp);
   const turbF = parseFloat(turb);
+  const wqiF  = parseFloat(wqi);
   const latF  = parseFloat(lat);
   const lngF  = parseFloat(lng);
 
@@ -181,7 +182,7 @@ async function handleUpdate(fields, res) {
     : Date.now();
 
   const status =
-    phF < 6.5 || phF > 8.5 || tdsF > 500 || tempF > 35 || turbF > 10
+    phF < 6.5 || phF > 8.5 || tdsF > 500 || tempF > 35 || turbF > 10 || (!isNaN(wqiF) && wqiF < 70)
       ? "WARNING" : "SAFE";
 
 
@@ -237,7 +238,7 @@ async function handleUpdate(fields, res) {
     }
 
     if (status === "WARNING") {
-      sendNtfyAlert(entry, id);
+      await sendNtfyAlert(entry, id);
     }
 
     
