@@ -1052,14 +1052,35 @@ function selectPin(index){
   document.getElementById('val-turb').innerHTML=`${pin.turb} <span class="metric-unit">NTU</span>`;
   const ec=(pin.tds/0.67).toFixed(0);
   document.getElementById('val-ec').innerHTML=`${ec} <span class="metric-unit">µS/cm</span>`;
-  let qPH=Math.max(0,100-(Math.abs(pin.pH-7)*20));
-  let qTDS=Math.max(0,100-(pin.tds*0.1));
-  let qTurb=Math.max(0,100-(pin.turb*10));
-  let wqi=Math.min(100,Math.max(0,(qPH*0.3+qTDS*0.4+qTurb*0.3))).toFixed(0);
-  document.getElementById('wqi-score').innerText=`${wqi} / 100`;
-  const hue=(wqi/100)*120;const color=`hsl(${hue},80%,50%)`;
-  const fill=document.getElementById('wqi-fill');
-  fill.style.width=`${wqi}%`;fill.style.backgroundColor=color;fill.style.boxShadow=`0 0 15px ${color}`;
+  // ✅ REPLACE WITH THIS — matches the ESP32 WQI formula exactly
+const pH=parseFloat(pin.pH), tds=parseFloat(pin.tds),
+      turb=parseFloat(pin.turb), temp=parseFloat(pin.temp);
+
+let qph;
+if      (pH>=6.5&&pH<=7.5) qph=100;
+else if (pH>=6.0&&pH<=8.0) qph=80;
+else if (pH>=5.0&&pH<=9.0) qph=60;
+else                        qph=40;
+
+let qtds;
+if      (tds<300)  qtds=100;
+else if (tds<600)  qtds=80;
+else if (tds<1000) qtds=60;
+else               qtds=40;
+
+let qturb;
+if      (turb<5)   qturb=100;
+else if (turb<50)  qturb=80;
+else if (turb<100) qturb=60;
+else               qturb=40;
+
+const qtemp=Math.max(40,100-Math.abs(temp-25)*2);
+const wqi=Math.round(qph*0.25+qtds*0.35+qturb*0.25+qtemp*0.15);
+
+document.getElementById('wqi-score').innerText=`${wqi} / 100`;
+const hue=(wqi/100)*120;const color=`hsl(${hue},80%,50%)`;
+const fill=document.getElementById('wqi-fill');
+fill.style.width=`${wqi}%`;fill.style.backgroundColor=color;fill.style.boxShadow=`0 0 15px ${color}`;
   renderHoverCharts(pin); // NEW — draw sparklines from pin.samples
   updateChartForSelectedPin();
 }
