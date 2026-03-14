@@ -44,21 +44,35 @@ function distanceMeters(lat1, lon1, lat2, lon2) {
 //mobile apps alert systems
 async function sendNtfyAlert(entry, deviceId) {
   try {
-    await axios.post(
-      `https://ntfy.sh/${NTFY_TOPIC}`,
-      `🚨 CRITICAL WATER ALERT 🚨\nDevice: ${deviceId}\nLocation: ${entry.lat}, ${entry.lng}\npH: ${entry.pH}\nTDS: ${entry.tds} ppm\nTemp: ${entry.temp} °C\nTurbidity: ${entry.turb} NTU\nTime: ${entry.time}`,
-      {
-        headers: {
-          Title: "Chemeleon: Contamination Detected!",
-          Tags: "warning,skull,droplet",
-          Priority: "high",
-          "Content-Type": "text/plain",
-        },
-      }
-    );
-    console.log("🚨 Ntfy alert sent!");
+    const message = [
+      "CRITICAL WATER ALERT",
+      `Device: ${deviceId}`,
+      `Location: ${entry.lat}, ${entry.lng}`,
+      `pH: ${entry.pH}`,
+      `TDS: ${entry.tds} ppm`,
+      `Temp: ${entry.temp} C`,
+      `Turbidity: ${entry.turb} NTU`,
+      `Time: ${entry.time}`
+    ].join("\n");
+
+    await axios({
+      method: "post",
+      url: `https://ntfy.sh/${NTFY_TOPIC}`,
+      data: Buffer.from(message),
+      headers: {
+        "Content-Type": "text/plain",
+        "Title": "Chemeleon: Contamination Detected!",
+        "Tags": "warning,skull",
+        "Priority": "high",
+      },
+    });
+
+    console.log("Ntfy alert sent for device:", deviceId);
   } catch (error) {
     console.error("Failed to send ntfy alert:", error.message);
+    if (error.response) {
+      console.error("ntfy response:", error.response.status, error.response.data);
+    }
   }
 }
 
