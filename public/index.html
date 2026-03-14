@@ -466,26 +466,13 @@ select option{background:#0f172a;color:white}
               <div class="metric-value" id="val-ec">-- <span class="metric-unit">µS/cm</span></div>
             </div>
           </div>
+
+          <!-- ═══════════════════════════════════════════════════════════
+               CHARTS: Local/AI Forecast FIRST, then Global Trend
+               (positions swapped from original)
+               ═══════════════════════════════════════════════════════════ -->
           <div class="charts-container">
-            <div class="chart-section glass-card" id="chart-section-bg-global">
-              <div class="chart-header">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <div class="chart-dot" id="chart-dot-global"></div>
-                  Global System Trend (<span id="chart-metric-label-global">pH</span>)
-                </div>
-                <button class="chart-expand-btn" aria-label="Expand Global Chart" onclick="openFS('global')" title="Fullscreen Graph">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-                </button>
-              </div>
-              <div class="chart-canvas-wrapper" id="chart-wrapper-global">
-                <div id="global-empty" class="empty-chart-text">NO DATA AVAILABLE</div>
-                <svg id="area-chart-global" class="svg-chart" viewBox="0 0 800 150" preserveAspectRatio="none"></svg>
-                <div class="chart-tooltip" id="chart-tooltip-global">
-                  <div class="ct-time" id="ct-time-global">--</div>
-                  <div><span class="ct-val" id="ct-val-global">--</span><span class="ct-unit" id="ct-unit-global"></span></div>
-                </div>
-              </div>
-            </div>
+            <!-- CHART 1: Selected Location AI Forecast (now on top) -->
             <div class="chart-section glass-card" id="chart-section-bg-local">
               <div class="chart-header">
                 <div style="display:flex; align-items:center; gap:8px;">
@@ -497,11 +484,31 @@ select option{background:#0f172a;color:white}
                 </button>
               </div>
               <div class="chart-canvas-wrapper" id="chart-wrapper-local">
-                <div id="local-empty" class="empty-chart-text">SELECT A PIN TO VIEW LOCAL HISTORY</div>
+                <div id="local-empty" class="empty-chart-text visible">SELECT A PIN TO VIEW LOCAL HISTORY</div>
                 <svg id="area-chart-local" class="svg-chart" viewBox="0 0 800 150" preserveAspectRatio="none"></svg>
                 <div class="chart-tooltip" id="chart-tooltip-local">
                   <div class="ct-time" id="ct-time-local">--</div>
                   <div><span class="ct-val" id="ct-val-local">--</span><span class="ct-unit" id="ct-unit-local"></span></div>
+                </div>
+              </div>
+            </div>
+            <!-- CHART 2: Global System Trend (now on bottom) -->
+            <div class="chart-section glass-card" id="chart-section-bg-global">
+              <div class="chart-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div class="chart-dot" id="chart-dot-global"></div>
+                  Global System Trend (<span id="chart-metric-label-global">pH</span>)
+                </div>
+                <button class="chart-expand-btn" aria-label="Expand Global Chart" onclick="openFS('global')" title="Fullscreen Graph">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                </button>
+              </div>
+              <div class="chart-canvas-wrapper" id="chart-wrapper-global">
+                <div id="global-empty" class="empty-chart-text visible">NO DATA AVAILABLE</div>
+                <svg id="area-chart-global" class="svg-chart" viewBox="0 0 800 150" preserveAspectRatio="none"></svg>
+                <div class="chart-tooltip" id="chart-tooltip-global">
+                  <div class="ct-time" id="ct-time-global">--</div>
+                  <div><span class="ct-val" id="ct-val-global">--</span><span class="ct-unit" id="ct-unit-global"></span></div>
                 </div>
               </div>
             </div>
@@ -751,7 +758,6 @@ select option{background:#0f172a;color:white}
             <p class="about-desc">Advanced water quality monitoring dashboard with real-time sensor integration, geospatial visualization, and AI-powered quality prediction.</p>
           </div>
 
-          <!-- ═══ NTFY SUBSCRIBE BLOCK ═══ -->
           <div class="glass-panel" style="border-radius:28px;padding:28px 32px;margin-bottom:32px;text-align:left;position:relative;overflow:hidden;">
             <div style="position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:rgba(139,92,246,.15);border-radius:50%;filter:blur(80px);pointer-events:none"></div>
             <div class="form-title" style="margin-bottom:16px;font-size:1rem;color:white;position:relative;z-index:1;">
@@ -762,8 +768,6 @@ select option{background:#0f172a;color:white}
             </div>
             <p style="color:rgba(255,255,255,.5);font-size:.85rem;margin-bottom:20px;line-height:1.6;position:relative;z-index:1;">Receive instant push notifications whenever contamination or dangerous water quality is detected by any sensor. Free, no account needed.</p>
             <div style="display:flex;flex-wrap:wrap;gap:14px;position:relative;z-index:1;">
-
-              <!-- Web subscribe -->
               <a href="https://ntfy.sh/chemeleon_water_alerts" target="_blank" rel="noopener"
                  style="display:flex;align-items:center;gap:12px;padding:14px 22px;border-radius:16px;background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(139,92,246,.05));border:1px solid rgba(139,92,246,.35);text-decoration:none;color:white;font-weight:700;font-size:.9rem;transition:all .3s ease;box-shadow:0 4px 20px rgba(139,92,246,.12);"
                  onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 30px rgba(139,92,246,.35)'"
@@ -778,8 +782,6 @@ select option{background:#0f172a;color:white}
                   <div style="font-size:.7rem;color:rgba(255,255,255,.45);margin-top:2px;">Opens ntfy.sh in browser</div>
                 </div>
               </a>
-
-              <!-- App deep link -->
               <a href="ntfy://chemeleon_water_alerts"
                  style="display:flex;align-items:center;gap:12px;padding:14px 22px;border-radius:16px;background:linear-gradient(135deg,rgba(16,185,129,.2),rgba(16,185,129,.05));border:1px solid rgba(16,185,129,.35);text-decoration:none;color:white;font-weight:700;font-size:.9rem;transition:all .3s ease;box-shadow:0 4px 20px rgba(16,185,129,.12);"
                  onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 30px rgba(16,185,129,.35)'"
@@ -796,8 +798,6 @@ select option{background:#0f172a;color:white}
                 </div>
               </a>
             </div>
-
-            <!-- Manual topic copy row -->
             <div style="margin-top:18px;padding:12px 16px;background:rgba(0,0,0,.2);border-radius:12px;border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:relative;z-index:1;">
               <span style="font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);">Topic name</span>
               <code style="background:rgba(255,255,255,.07);padding:6px 14px;border-radius:9px;font-size:.88rem;color:#a78bfa;letter-spacing:.04em;border:1px solid rgba(139,92,246,.2);">chemeleon_water_alerts</code>
@@ -808,7 +808,6 @@ select option{background:#0f172a;color:white}
               <span style="font-size:.72rem;color:rgba(255,255,255,.25);">Enter this in the ntfy app manually if the button above doesn't auto-open</span>
             </div>
           </div>
-          <!-- ═══ END NTFY BLOCK ═══ -->
           
           <div class="team-panel glass-panel" style="margin-bottom: 32px;">
             <div class="team-deco-1"></div><div class="team-deco-2"></div>
@@ -828,7 +827,6 @@ select option{background:#0f172a;color:white}
               </div>
               Core Engine & Training Data Breakdown
             </div>
-            
             <div style="display:flex;flex-direction:column;gap:20px">
               <div class="model-card"><div style="font-size:1.8rem;width:40px;flex-shrink:0">🧮</div><div style="flex:1">
                 <div style="font-weight:700;font-size:.9rem;color:rgba(255,255,255,.9);margin-bottom:4px">AI Potability Analyzer <span class="model-pill" style="background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.25);margin-left:8px; vertical-align: middle;">Nearly 20,000 reference samples</span></div>
@@ -871,6 +869,12 @@ document.addEventListener('keydown', e => {
 firebase.initializeApp({ databaseURL:"https://water-sensor-project-default-rtdb.asia-southeast1.firebasedatabase.app" });
 const database = firebase.database();
 
+// ── DEFAULT MAP CENTER: Patna, Bihar ──────────────────────
+// Falls back here when no pins exist on load/refresh
+const PATNA_LAT = 25.5941;
+const PATNA_LNG = 85.1376;
+const PATNA_ZOOM = 12;
+
 let currentDeviceId = "device1";
 let pinsRef = null, historyRef = null;
 let pinsData = [], markersMap = {}, mlMap, entryMap, entryPreviewMarker = null;
@@ -886,16 +890,17 @@ function getDistance(lat1,lon1,lat2,lon2){
 }
 
 function initDashboardMap(){
-  mlMap=L.map('maplibre-map',{zoomControl:false}).setView([21.175,72.8311],11);
-  L.control.zoom({position:'bottomright'}).addTo(mlMap);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(mlMap);
-  pinsLayerGroup=L.layerGroup().addTo(mlMap);
-  historyLayerGroup=L.layerGroup();
+  // ── CHANGE 2 & 3: Start at Patna; fly to last pin once data loads ──
+  mlMap = L.map('maplibre-map', { zoomControl: false }).setView([PATNA_LAT, PATNA_LNG], PATNA_ZOOM);
+  L.control.zoom({ position: 'bottomright' }).addTo(mlMap);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(mlMap);
+  pinsLayerGroup = L.layerGroup().addTo(mlMap);
+  historyLayerGroup = L.layerGroup();
   setupRealtimeListener();
 }
 
 function initEntryMap(){
-  entryMap=L.map('entry-map',{zoomControl:false}).setView([21.175,72.8311],11);
+  entryMap=L.map('entry-map',{zoomControl:false}).setView([PATNA_LAT, PATNA_LNG], PATNA_ZOOM);
   L.control.zoom({position:'bottomright'}).addTo(entryMap);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(entryMap);
   entryMap.on('click',e=>{
@@ -932,6 +937,9 @@ function switchDevice(newId){
   const sl=document.getElementById('tm-slider');sl.max=0;sl.value=0;
   document.getElementById('tm-date').innerText='LIVE';mode='LIVE';
   mlMap.removeLayer(historyLayerGroup);pinsLayerGroup.addTo(mlMap);
+
+  // Reset to Patna when switching device (no pins loaded yet)
+  mlMap.setView([PATNA_LAT, PATNA_LNG], PATNA_ZOOM);
   
   setupRealtimeListener();
   refreshPredMapPins();
@@ -961,10 +969,17 @@ function setupRealtimeListener(){
       }
       markersMap[key].off('click');markersMap[key].on('click',()=>selectPin(idx));
     });
-    if(!initialLoadComplete&&pinsData.length>0){
-      selectPin(pinsData.length-1);
-      initialLoadComplete=true;
-    } else if(initialLoadComplete) {
+
+    if(!initialLoadComplete){
+      if(pinsData.length > 0){
+        // ── CHANGE 3: On first load, fly to the most recent (last) pin ──
+        const lastPin = pinsData[pinsData.length - 1];
+        mlMap.flyTo([parseFloat(lastPin.lat), parseFloat(lastPin.lng)], 14, { animate: true, duration: 1.5 });
+        selectPin(pinsData.length - 1);
+      }
+      // If pinsData is empty, map stays at Patna (set during init)
+      initialLoadComplete = true;
+    } else {
       const existingIds = Object.keys(markersMap).filter(k => markersMap[k]._prevAdded);
       const newKeys = currentKeys.filter(k => !existingIds.includes(k));
       if(newKeys.length > 0) {
@@ -1167,7 +1182,7 @@ let currentFSType = null;
 
 function openFS(type) {
     currentFSType = type;
-    document.getElementById('fs-title').innerText = type === 'global' ? 'Global System Trend (Last 30)' : 'Selected Location Trend (Last 30)';
+    document.getElementById('fs-title').innerText = type === 'global' ? 'Global System Trend (Last 30)' : 'Selected Location AI Forecast (Last 30)';
     document.getElementById('fs-modal').classList.add('visible');
     drawFSChart();
 }
@@ -1298,6 +1313,8 @@ async function submitReset(){
           document.getElementById('status-badge').classList.remove('visible');
           document.getElementById('wqi-score').innerText = '-- / 100';
           document.getElementById('wqi-fill').style.width = '0%';
+          // After reset, return to Patna
+          mlMap.setView([PATNA_LAT, PATNA_LNG], PATNA_ZOOM);
       } else {
           alert('Error: ' + txt);
       }
@@ -1442,7 +1459,7 @@ let rainfallFetchTimer = null;
 
 function initPredMap() {
   if (predMap) return;
-  predMap = L.map('pred-map', { zoomControl: true }).setView([21.175, 72.8311], 10);
+  predMap = L.map('pred-map', { zoomControl: true }).setView([PATNA_LAT, PATNA_LNG], PATNA_ZOOM - 2);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(predMap);
   refreshPredMapPins();
 }
